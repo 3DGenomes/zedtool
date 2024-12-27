@@ -1,5 +1,7 @@
 # Directories with binaries
 tests/
+.idea/
+.vscode/
 
 # Python compiled files
 *.pyc
