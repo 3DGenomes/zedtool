@@ -79,11 +79,11 @@ def main(yaml_config_file: str) -> int:
             df_orig = filter_detections(df_orig, config)
             df_tdz,df_cor = extract_z_correction(df, df_orig)
             df_cor.to_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv", index=False)
-            df_tdz.to_csv(srx_corrections, index=False, sep='\t')
+            df_tdz.to_csv(corrections_file, index=False, sep='\t')
             df_cor_orig_z = pd.read_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv")
         else:
             logging.info(f"Loading z-corrections from {corrections_file}")
-            df_tdz = pd.read_csv(srx_corrections, sep='\t')
+            df_tdz = pd.read_csv(corrections_file, sep='\t')
             df_cor_orig_z = pd.read_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv")
         tdz_srx = df_tdz.values
     else:
