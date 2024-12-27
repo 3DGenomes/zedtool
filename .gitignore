@@ -1,0 +1,8 @@
+# Directories with binaries
+tests/
+
+# Python compiled files
+*.pyc
+__pycache__/
+src/zedtool/__pycache__/
+
