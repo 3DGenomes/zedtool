@@ -140,8 +140,12 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         im[int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = 228
     imp = Image.fromarray(im)
     draw = ImageDraw.Draw(imp)
-    # font = ImageFont.truetype("LiberationSans-Regular", 10) # linux version of "arial.ttf"
-    font = ImageFont.truetype("DejaVuSansMono", 10) # commonly installed on linux
+    for fontname in ["DejaVuSansMono", "couri", "Courier New", "arial", "LiberationSans-Regular"]:
+        try:
+            font = ImageFont.truetype(fontname, 10)
+            break
+        except OSError:
+            pass
     # Add text
     for j in range(len(df_fiducials)):
         label = df_fiducials.label[j]

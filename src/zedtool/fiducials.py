@@ -28,12 +28,13 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     segmentation_mask_file = 'segmentation_mask.tif'
     detections_img_file = 'detections_img.tif'
     fiducial_mask_file = 'fiducial_mask.tif'
-
+    plot_histogram(np.log10(img[img>0]), 'log10(intensity)', 'pixels', 'Histogram of log10(intensity)', 'histogram_log_intensity', config)
     image_path = os.path.join(config['output_dir'], detections_img_file)
     tifffile.imsave(image_path, img)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_disc_radius))
     # img_filt = skimage.filters.gaussian(img, sigma=gaussian_disc_radius)
-    img_mask = img_filt > skimage.filters.threshold_otsu(img_filt)
+    thresh = skimage.filters.threshold_otsu(img_filt)
+    img_mask = img_filt > thresh
     img_mask2 = skimage.morphology.binary_closing(img_mask, footprint=skimage.morphology.disk(filling_disc_radius))
     img_mask3 = scipy.ndimage.binary_fill_holes(img_mask2, skimage.morphology.disk(filling_disc_radius))
     img_mask4 = skimage.morphology.dilation(img_mask3, disk(dilation_disc_radius))
@@ -158,7 +159,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     excluded_labels = df_fiducials[idx==False]['label']
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
-    logging.info(f'n_fiducials after filtering for detectinos and area: {len(df_fiducials)}')
+    logging.info(f'n_fiducials after filtering for detections and area: {len(df_fiducials)}')
     # Get rid of those that move or wobble the most
     df_fiducials['vr_mad'] = np.sqrt(df_fiducials['vx_mad']**2 + df_fiducials['vy_mad']**2)
     df_fiducials['r_sd'] = np.sqrt(df_fiducials['x_sd']**2 + df_fiducials['y_sd']**2)
@@ -175,7 +176,8 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
         (df_fiducials['n_detections'] > n_detections_cutoff) &
         (df_fiducials['detections_per_image'] < doublet_cutoff)
     )
-    excluded_labels = excluded_labels.append(df_fiducials[idx==False]['label'])
+    excluded_labels = pd.concat([excluded_labels, df_fiducials[idx == False]['label']])
+
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
     logging.info(f'n_fiducials after filtering for stability and photons: {len(df_fiducials)}')

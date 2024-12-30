@@ -19,11 +19,10 @@ from typing import Tuple
 # Write out a table with both corrected and uncorrected z.
 
 
-matplotlib.use('TkAgg')
 
 def main(yaml_config_file: str) -> int:
-    #  no_display = True
-    no_display = False
+    no_display = True
+    # no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -44,6 +43,8 @@ def main(yaml_config_file: str) -> int:
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     stdout_handler.setFormatter(formatter)
     logger.addHandler(stdout_handler)
+    # quieten matplotlib
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     detections_file = config['corrected_detections_file']
@@ -95,8 +96,6 @@ def main(yaml_config_file: str) -> int:
     bin_resolution = config['bin_resolution']
     counts_xyz, x_bins, y_bins, z_bins = bin_detections(det_xyz,bin_resolution)
 
-    # Make index into the binned xy image from the detections
-    x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
 
     # Calculate moments and variance
     n_xy, mean_xy, sd_xy = bins3d_to_stats2d(counts_xyz, z_bins)
@@ -109,16 +108,22 @@ def main(yaml_config_file: str) -> int:
         plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", config)
 
 
-    # Mask on density to remove bright/dim areas
-    # Mostly unused but can speed up processing and remove background
-    mask_xy = make_density_mask_2d(n_xy, config)
-    logging.info(f"Before masking: {np.sum(mask_xy)} detections")
-    # Select detections in mask_xy
-    idx = mask_detections(mask_xy, x_idx, y_idx)
-    logging.info(f"After masking: {np.sum(idx)} detections")
-    # Apply masks
-    det_xyz = det_xyz[idx, :]
-    df = df[idx]
+    # Make index into the binned xy image from the detections
+    x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
+
+    # # Mask on density to remove bright/dim areas
+    # # Mostly unused but can speed up processing and remove background
+    # mask_xy = make_density_mask_2d(n_xy, config)
+    # logging.info(f"Before masking: {np.sum(mask_xy)} detections")
+    # # Select detections in mask_xy
+    # idx = mask_detections(mask_xy, x_idx, y_idx)
+    # logging.info(f"After masking: {np.sum(idx)} detections")
+    # # Apply masks
+    # det_xyz = det_xyz[idx, :]
+    # df = df[idx]
+    # x_idx = x_idx[idx]
+    # y_idx = y_idx[idx]
+    # z_idx = z_idx[idx]
 
     # Find fiducials
     # Treat n_xy as an image and segment, expand segmented areas, make labels and attached to df. Save centroids and labels
