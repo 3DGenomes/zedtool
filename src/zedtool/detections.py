@@ -54,6 +54,25 @@ def bins3d_to_stats2d(counts_xyz: np.ndarray, z_bins: np.ndarray) -> Tuple[np.nd
     sd_xy = np.sqrt(var_xy)
     return n_xy, moment_1_xy, sd_xy
 
+def create_backup_columns(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
+    ndims = len(xyz_colnames)
+    for backup_num in range(9, 0, -1):
+        for dim in range(ndims):
+            col = [xyz_colnames[dim], sd_colnames[dim]]
+            for c in col:
+                backup_from = f"{c}_{backup_num-1}"
+                backup_to = f"{c}_{backup_num}"
+                if backup_from in df.columns:
+                    df[backup_to] = df[backup_from]
+                    logging.info(f"Copying col {backup_from} -> {backup_to}")
+                backup_from = c
+                backup_to = f"{c}_0"
+                df[backup_to] = df[backup_from]
+                logging.info(f"Copying col {backup_from} -> {backup_to}")
+    return df
+
 def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     """
     Filters rows in a DataFrame based on column names and corresponding ranges.

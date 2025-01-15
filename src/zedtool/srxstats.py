@@ -159,4 +159,3 @@ def z_means_by_marker(det_xyz: np.ndarray, marker: np.ndarray) -> Tuple[np.ndarr
     # Avoid division by zero and calculate mean values
     z_mean = np.divide(sum, count, out=np.zeros_like(sum), where=count != 0)
     return z_mean,t
-

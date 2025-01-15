@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import skimage
 import skimage.filters
 import skimage.morphology
+from mpmath import zeros
+from scipy.cluster.hierarchy import weighted
 from skimage.morphology import binary_dilation, disk
 import scipy.ndimage
 import scipy.stats
@@ -13,8 +15,10 @@ from sklearn.cluster import KMeans
 import tifffile
 import os
 import logging
+from skmisc.loess import loess
 from zedtool.detections import im_to_detection_entry
-from zedtool.plots import plot_histogram, plot_scatter
+from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
+from zedtool.plots import construct_plot_path
 
 def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[np.ndarray, np.ndarray]:
     logging.info('find_fiducials')
@@ -28,7 +32,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     segmentation_mask_file = 'segmentation_mask.tif'
     detections_img_file = 'detections_img.tif'
     fiducial_mask_file = 'fiducial_mask.tif'
-    plot_histogram(np.log10(img[img>0]), 'log10(intensity)', 'pixels', 'Histogram of log10(intensity)', 'histogram_log_intensity', config)
+    plot_histogram(np.log10(img[img>0]), 'log10(intensity)', 'Fiducials', 'Histogram of log10(intensity) of fiducials', 'histogram_log_intensity', config)
     image_path = os.path.join(config['output_dir'], detections_img_file)
     tifffile.imsave(image_path, img)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_disc_radius))
@@ -59,7 +63,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         is_high = np.ones(len(df_fiducials), dtype=bool)
     excluded_labels = df_fiducials[is_high==False]['label']
     # scatter plot of log_intensity vs area, with the two clusters colored differently
-    plot_scatter(df_fiducials['log_intensity'], df_fiducials['area'], 'log10(mean_intensity+1)', 'area', 'Segmentation classification', 'segmentation_classification_plot', config)
+    plot_scatter(df_fiducials['log_intensity'], df_fiducials['area'], 'log10(mean_intensity+1)', 'area (bins)', 'Segmentation classification', 'segmentation_classification_plot', config)
     df_fiducials = df_fiducials[is_high]
     df_fiducials = df_fiducials.reset_index(drop=True)
     logging.info(f'Found {len(df_fiducials)} segmented regions after filtering')
@@ -90,7 +94,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     df_fiducials['z_sd'] = 0
     df_fiducials['photons_mean'] = 0
     df_fiducials['photons_sd'] = 0
-
+    df_fiducials['name'] = ''
     for j in range(len(df_fiducials)):
         fiducial_label = df_fiducials.at[j,'label']
         logging.info(f'Processing fiducial {fiducial_label}')
@@ -115,7 +119,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         vx_mad = np.median(np.abs(vx - np.median(vx)))
         vy_mad = np.median(np.abs(vy - np.median(vy)))
         vz_mad = np.median(np.abs(vz - np.median(vz)))
-        n_images = len(np.unique(df_sel[config['frame_col']]))
+        n_images = len(np.unique(df_sel[config['image_id_col']]))
         if n_images ==0:
             logging.error(f'No images for fiducial {fiducial_label}')
             continue
@@ -136,6 +140,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         df_fiducials.at[j, 'vx_mad'] = vx_mad
         df_fiducials.at[j, 'vy_mad'] = vy_mad
         df_fiducials.at[j, 'vz_mad'] = vz_mad
+        df_fiducials.at[j, 'name'] = f'f_{fiducial_label:04d}_z_{int(z_mean):05d}_y_{int(y_mean):05d}_x_{int(x_mean):05d}'.replace('-', 'm')
     outpath = os.path.join(config['fiducial_dir'], "fiducials_unfiltered.tsv")
     df_fiducials.to_csv(outpath, sep='\t', index=False)
     return df_fiducials
@@ -184,23 +189,23 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
 
     for col in ['n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'vx_mad', 'vy_mad', 'vz_mad']:
         outpath = os.path.join(config['fiducial_dir'], f"hist_{col}")
-        plot_histogram(df_fiducials[col], col, 'Detections', '', outpath, config)
+        plot_histogram(df_fiducials[col], col, 'Fiducials', '', outpath, config)
     outpath = os.path.join(config['fiducial_dir'], "x_sd_vs_y_sd")
-    plot_scatter(df_fiducials['x_sd'], df_fiducials['y_sd'], 'x_sd', 'y_sd', 'x_sd vs y_sd', outpath, config)
+    plot_scatter(df_fiducials['x_sd'], df_fiducials['y_sd'], 'x_sd (nm)', 'y_sd (nm)', 'x_sd vs y_sd', outpath, config)
     outpath = os.path.join(config['fiducial_dir'], "x_sd_vs_vx_mad")
-    plot_scatter(df_fiducials['x_sd'], df_fiducials['vx_mad'], 'x_sd', 'vx_mad', 'x_sd vs vx_mad', outpath, config)
+    plot_scatter(df_fiducials['x_sd'], df_fiducials['vx_mad'], 'x_sd (nm)', 'vx_mad (nm)', 'x_sd vs vx_mad', outpath, config)
     outpath = os.path.join(config['fiducial_dir'], "y_sd_vs_vy_mad")
-    plot_scatter(df_fiducials['y_sd'], df_fiducials['vy_mad'], 'y_sd', 'vy_mad', 'y_sd vs vy_mad', outpath, config)
+    plot_scatter(df_fiducials['y_sd'], df_fiducials['vy_mad'], 'y_sd (nm)', 'vy_mad (nm)', 'y_sd vs vy_mad', outpath, config)
     outpath = os.path.join(config['fiducial_dir'], "vx_mad_vs_vy_mad")
-    plot_scatter(df_fiducials['vx_mad'], df_fiducials['vy_mad'], 'vx_mad', 'vy_mad', 'vx_mad vs vy_mad', outpath, config)
+    plot_scatter(df_fiducials['vx_mad'], df_fiducials['vy_mad'], 'vx_mad (nm)', 'vy_mad (nm)', 'vx_mad vs vy_mad', outpath, config)
 
     # set excluded_labels from df.labels to 0 in df
     df['label'] = df['label'].replace(excluded_labels.tolist(), 0)
     df_filtered = df[df['label'] != 0]
     outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
     df_fiducials.to_csv(outpath, sep='\t', index=False)
-    outpath = os.path.join(config['output_dir'], "detections_filtered_fiducuals.csv")
-    df_filtered.to_csv(outpath, index=False)
+    outpath = os.path.join(config['fiducial_dir'], "fiducuals_detections_filtered.tsv")
+    df_filtered.to_csv(outpath, sep = '\t', index=False)
     return  df_filtered, df_fiducials
 
 
@@ -208,13 +213,13 @@ def make_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     # Make correlations between fiducial stats
     logging.info('make_fiducial_correlations')
     n_fiducials = len(df_fiducials)
-    n_images = np.max(df[config['frame_col']]) + 1
+    n_images = np.max(df[config['image_id_col']]) + 1
     logging.info(f'Making fiducial array: n_fiducials: {n_fiducials}, n_images: {n_images}')
     z =  np.full((n_images, n_fiducials), np.nan)
     for i in range(len(df_fiducials)):
         label = df_fiducials.at[i, 'label']
         idx = df['label'] == label
-        frames = df[idx][config['frame_col']]
+        frames = df[idx][config['image_id_col']]
         z[frames, i] = df[idx][config['z_col']]
     # make the column names from z_mean column in df_fiducials
     col_z = df_fiducials['z_mean'].astype(int).astype(str).str.zfill(4).str.replace('-', 'm')
@@ -248,12 +253,19 @@ def make_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
             dz[i,j] = np.abs(df_fiducials.at[i, 'z_mean'] - df_fiducials.at[j, 'z_mean'])
 
     # plot_scatter for all pairs in dx, dy, dz, dz_mad, dzdt_mad
-    outpath = os.path.join(config['fiducial_dir'], "fiducial_z_cor_vs_dz")
-    plot_scatter(z_cor[(z_cor!=0) & (~np.isnan(z_cor))], dz[(z_cor!=0) & (~np.isnan(z_cor))], 'z_cor', 'dz', 'z_cor vs dz', outpath, config)
-    outpath = os.path.join(config['fiducial_dir'], "fiducial_dz_mad_vs_dz")
-    plot_scatter(dz_mad[(dz_mad!=0) & (~np.isnan(dz_mad))], dz[(dz_mad!=0) & (~np.isnan(dz_mad))], 'dz_mad', 'dz', 'dz_mad vs dz', outpath, config)
-    outpath = os.path.join(config['fiducial_dir'], "fiducial_dzdt_mad_vs_dz")
-    plot_scatter(dzdt_mad[(dzdt_mad!=0) & (~np.isnan(dzdt_mad))], dz[(dzdt_mad!=0) & (~np.isnan(dzdt_mad))], 'dzdt_mad', 'dz', 'dzdt_mad vs dz', outpath, config)
+    dimensions = ['x', 'y', 'z']
+    distances = [dx, dy, dz]
+    plot_quantities = [z_cor, dz_mad, dzdt_mad]
+    quantity_names = ['z_cor', 'dz_mad', 'dzdt_mad']
+    for quantity, quantity_name in zip(plot_quantities, quantity_names):
+        for dim, dist in zip(dimensions, distances):
+            xlabel = f'{quantity_name} (nm)'
+            ylabel = f'Distance in {dim} (nm)'
+            outpath = os.path.join(config['fiducial_dir'], f"fiducial_{quantity_name}_vs_d{dim}")
+            idx = (quantity != 0) & (~np.isnan(quantity))
+            plot_scatter(quantity[idx], dist[idx], xlabel, ylabel,
+                         f'{quantity_name} vs distance', outpath, config)
+
 
     # Fill in the distance gaps with the mean for the row and column (or near enough)
     for i in range(n_fiducials):
@@ -275,8 +287,9 @@ def make_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     plt.title("Dendrogram (dz_mad)")
     plt.xlabel("Samples")
     plt.ylabel("Distance")
-    outfile = os.path.join(config['fiducial_dir'], "dendrogram_dz_mad.png")
-    plt.savefig(outfile, dpi=600)
+    outfile = os.path.join(config['fiducial_dir'], "dendrogram_dz_mad")
+    figure_path = construct_plot_path(outfile, "png", config)
+    plt.savefig(figure_path, dpi=600)
     plt.close()
     # Mask the lower triangle
     mask = np.tri(dz_mad.shape[0], k=-1)
@@ -291,18 +304,326 @@ def make_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     plt.title("Dendrogram (dzdt_mad)")
     plt.xlabel("Samples")
     plt.ylabel("Distance")
-    outfile = os.path.join(config['fiducial_dir'], "dendrogram_dzdt_mad.png")
-    plt.savefig(outfile, dpi=600)
+    outfile = os.path.join(config['fiducial_dir'], "dendrogram_dzdt_mad")
+    figure_path = construct_plot_path(outfile, "png", config)
+    plt.savefig(figure_path, dpi=600)
     plt.close()
-
-
     return dz_mad, dzdt_mad
 
+def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> None:
+    # write csv file with quality metrics for fiducials. One row with columns variance of columns in df_fiducials
+    logging.info('make_quality_metrics')
+    outpath = os.path.join(config['fiducial_dir'], "quality_metrics.tsv")
+    df_metrics = pd.DataFrame([[0, 0, 0, 0, 0, 0, 0, 0]],
+                              columns=['x_sd_mean', 'y_sd_mean', 'z_sd_mean', 'vx_mad_mean', 'vy_mad_mean', 'vz_mad_mean', 'z_fiducial_sd', 'z_non_fiducial_sd'])
+    df_metrics['x_sd_mean'] = df_fiducials['x_sd'].mean()
+    df_metrics['y_sd_mean'] = df_fiducials['y_sd'].mean()
+    df_metrics['z_sd_mean'] = df_fiducials['z_sd'].mean()
+    df_metrics['vx_mad_mean'] = df_fiducials['vx_mad'].mean()
+    df_metrics['vy_mad_mean'] = df_fiducials['vy_mad'].mean()
+    df_metrics['vz_mad_mean'] = df_fiducials['vz_mad'].mean()
+    df_metrics['z_fiducial_sd'] = df.loc[df['label']==0,config['z_col']].std()
+    df_metrics['z_non_fiducial_sd'] = df.loc[df['label']!=0,config['z_col']].std()
+    df_metrics.to_csv(outpath, sep = '\t', index = False)
 
 def correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('correct_fiducials')
+    # If x1,... are taken then move them to x2,... first.
+    # Check if backup column x_0 exists, if not then quit
+    if not 'x_0' in df.columns:
+        logging.error('No backup columns found in df')
+        return df_fiducials, df
+    for index, row in df_fiducials.iterrows():
+        correct_fiducial(row.to_dict(), df, config)
     return df_fiducials, df
 
-#def find_cycle_boundaries(df: pd.DataFrame) -> np.ndarray:
-#    cycle_boundaries = find_cycle_boundaries(df)
-#    cycle_intervals = np.column_stack((cycle_boundaries[:-1], cycle_boundaries[1:]))
+def correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
+    fiducial_label = fiducial['label']
+    fiducial_name = fiducial['name']
+    logging.info(f'correct_fiducial: {fiducial_name}')
+    min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
+    min_frame, max_frame = map(int, config['frame_range'].split('-'))
+    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    num_time_points = max_time_point - min_time_point + 1
+    num_frames = max_frame - min_frame + 1
+    num_cycles = max_cycle - min_cycle + 1
+    num_z_steps = max_z_step - min_z_step + 1
+    total_cycles = num_cycles * num_time_points
+    frames_per_cycle = num_frames * num_z_steps
+    varnames = ['x', 'y', 'z']
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
+    # Create array to hold x,y,z for each cycle
+    x_ct = np.zeros((total_cycles, frames_per_cycle), dtype=float)
+    sd_ct = np.zeros((total_cycles, frames_per_cycle), dtype=float)
+    x_ct.fill(np.nan)
+    for k, colname in enumerate(xyz_colnames):
+        logging.info(f'Correcting {colname}')
+        # Get x,y,z values for each cycle
+        for j in range(num_time_points):
+            for i in range(num_cycles):
+                idx = (
+                        (df['label'] == fiducial_label) &
+                    (df[config['cycle_col']] == i + min_cycle) &
+                    (df[config['time_point_col']] == j + min_time_point)
+                )
+                df_sel = df[idx]
+                cycle_index = i + j * num_cycles
+                frame_index = df_sel[config['frame_col']] - min_frame + (df_sel[config['z_step_col']] - min_z_step) * num_frames
+                x_ct[cycle_index, frame_index] = df_sel[colname].values
+                sd_ct[cycle_index, frame_index] = df_sel[sd_colnames[k]].values
+
+        dx_c = make_corrections_for_cycles(x_ct, sd_ct, config)
+        c_z_step = make_corrections_for_zstep(x_ct, sd_ct, dx_c, config)
+        x_ct_cor = apply_corrections_for_zstep(x_ct, c_z_step, config)
+        sd_t = estimate_errors_for_zstep(x_ct_cor, config)
+
+        # Transfer corrected values back to df
+        for j in range(num_time_points):
+            for i in range(num_cycles):
+                idx = (
+                    (df[config['cycle_col']] == i + min_cycle) &
+                    (df[config['time_point_col']] == j + min_time_point)
+                )
+                cycle_index = i + j * num_cycles
+                frame_index = df[idx][config['frame_col']] - min_frame + (df[idx][config['z_step_col']] - min_z_step) * num_frames
+                df.loc[idx, colname] = x_ct_cor[cycle_index, frame_index]
+                df.loc[idx, sd_colnames[k]] = sd_t[frame_index]
+
+        varname = varnames[k]
+        outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
+        outpath = os.path.join(outdir, f"{fiducial_name}_cor_{varname}_vs_frame")
+        df_sel = df[df['label'] == fiducial_label]
+        plot_scatter(df_sel[config['image_id_col']], df_sel[colname], 'image-ID', '{var} (nm)', f"{varname} corrected vs frame",
+                     outpath, config)
+        plotly_scatter(df_sel[config['image_id_col']], df_sel[colname], df_sel[sd_colnames[k]], 'image-ID', '{var} (nm)', f"{varname} corrected vs frame",
+                       outpath, config)
+    return 0
+
+def make_corrections_for_cycles(x_ct: np.ndarray, sd_ct: np.ndarray, config: dict) -> np.ndarray:
+    # Make corrections for cycles - add this number to each cycle of fiducial to correct for drift
+    # There may be nan's since not all fiducials have values at all frames
+    logging.info('make_corrections_for_cycles')
+    x_ct_masked = np.ma.masked_invalid(x_ct)
+    sd_ct_masked = np.ma.masked_invalid(sd_ct)
+    combined_mask = np.logical_or(x_ct_masked.mask, sd_ct_masked.mask)
+    non_zero_mask = sd_ct != 0
+    weights = np.full_like(sd_ct, np.nan, dtype=float)
+    weights[non_zero_mask] = 1 / sd_ct[non_zero_mask] ** 2
+    x_ct_masked_combined = np.ma.masked_array(x_ct, mask=combined_mask)
+    weights_masked_combined = np.ma.masked_array(weights, mask=combined_mask)
+    # Weighted average, ignoring NaNs
+    c_cycle = -np.ma.average(x_ct_masked_combined, axis=1, weights=weights_masked_combined).filled(np.nan)
+    return c_cycle[:, None]
+
+def make_corrections_for_zstep(x_ct: np.ndarray, sd_ct: np.ndarray, dx_c: np.ndarray, config: dict) -> np.ndarray:
+    # Make corrections for zstep
+    logging.info('make_corrections_for_zstep')
+    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+    num_zsteps = max_z_step - min_z_step + 1
+    c_z_step = np.zeros(num_zsteps)
+    # TODO: Remove columns from x_ct, sd_ct that are all NaN as well as corresponding entries in c_z_step
+    # Solve c_z_step that minimises cost function
+    opt = scipy.optimize.minimize(zstep_correction_cost_function, c_z_step,
+                                       args=(x_ct, sd_ct, dx_c, config),
+                                       method='Nelder-Mead',
+                                       options={'disp': True, 'maxiter': 1e5})
+    logging.info(f'Optimisation result: {opt}')
+    ret = opt.x
+    return ret
+
+def apply_corrections_for_zstep(x_ct: np.ndarray, c_z_step: np.ndarray, config: dict) -> np.ndarray:
+    num_zsteps = c_z_step.shape[0]
+    total_frames = x_ct.shape[1]
+    frames_per_zstep = int(total_frames / num_zsteps)
+
+    ct_z_step = np.zeros_like(x_ct)
+    for i in range(num_zsteps):
+        ct_z_step[:, i * frames_per_zstep:(i + 1) * frames_per_zstep] = c_z_step[i]
+    x_ct_cor = x_ct + ct_z_step
+    return x_ct_cor
+
+def estimate_errors_for_zstep(x_ct: np.ndarray, config: dict) -> np.ndarray:
+    logging.info('estimate_errors_for_zstep')
+    sd_t = np.nanstd(x_ct, axis=0)
+    return sd_t
+
+def zstep_correction_cost_function(c_z_step: np.ndarray, x_ct: np.ndarray, sd_ct: np.ndarray, dx_c, config: dict) -> float:
+    # Calculate the cost function for the corrections
+    x_ct_cor = apply_corrections_for_zstep(x_ct, c_z_step, config) + dx_c
+    # sd_t = estimate_errors_for_zstep(x_ct_cor, config)
+    cost = np.nansum(x_ct_cor**2 / sd_ct**2)
+    # print(f'Cost: {cost} sum(c_z_step): {np.sum(c_z_step)}')
+    return cost
+
+def correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info('correct_detections')
+    # if fiducials file does not exist, read them in
+    if not os.path.exists(os.path.join(config['fiducial_dir'], "fiducials_x.npy")):
+        x_ft, xsd_ft = extract_fiducial_detections(df, df_fiducials, config)
+        # Save fiducials to file
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_x.npy")
+        np.save(outpath, x_ft)
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_xsd.npy")
+        np.save(outpath, xsd_ft)
+    else:
+        x_ft = np.load(os.path.join(config['fiducial_dir'], "fiducials_x.npy"))
+        xsd_ft = np.load(os.path.join(config['fiducial_dir'], "fiducials_xsd.npy"))
+
+    # fit fiducials, interpolate across all time points and give uncertainties to interpolated areas
+    x_fit_ft, xsd_fit_ft = fit_fiducial_detections(x_ft, xsd_ft, config)
+    # TODO: Plot x_fit_ft, xsd_fit_ft on x_ft for all fiducials and x,y,z
+    # TODO: Save fitted detections - this is time consuming
+    # group fiducials to be zero centred
+    x_fit_ft, xsd_fit_ft = group_fiducials(x_fit_ft, xsd_fit_ft, config)
+    # TODO: Plot all fiducials in x_fit_ft against eachother for x,y,z
+    # Fit drift correction to zero-centred fiducials - including across time-point boundaries
+    x_t, x_err = make_corrections(x_fit_ft, xsd_fit_ft, config)
+    # TODO: Plot drift correction with error bars
+    # Save drift correction with error bars
+    # correct detections
+    df = apply_corrections(df, x_t, config)
+
+    return df
+
+def make_corrections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> np.ndarray:
+    logging.info('make_corrections')
+    # Make corrections from fitted fiducials in x_ft
+    ntimes = x_ft.shape[2]
+    x_t = zeros((ntimes), dtype=float)
+    x_err = zeros((ntimes), dtype=float)
+    # weight the fiducials by their uncertainties at each time point
+    w = 1 / xsd_ft**2
+    x_t = np.average(x_ft, axis=1, weights=w)
+    x_err = np.sqrt(np.average((x_ft - x_t[:, None])**2, axis=1, weights=w))
+    return x_t, x_err
+
+def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.DataFrame:
+    logging.info('apply_corrections')
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    ndimensions = len(xyz_colnames)
+    for j in range(ndimensions):
+        tidx = df[config['image_id_col']]
+        df[xyz_colnames[j]] = df[xyz_colnames[j]] - x_t[tidx]
+    return df
+
+def group_fiducials(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('group_fiducials')
+    # Group fiducials to be zero centred
+    ndimensions = x_ft.shape[0]
+    nfiducials = x_ft.shape[1]
+    for i in range(nfiducials):
+        for j in range(ndimensions):
+            w = 1 / xsd_ft[j,i,:]**2
+            weighted_average = np.average(x_ft[j,i,:], weights=w[j,i,:])
+            x_ft[j,i,:] = x_ft[j,i,:] - weighted_average
+    return x_ft, xsd_ft
+
+def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('fit_fiducial_detections')
+    # Fit fiducials, interpolate across all time points and give uncertainties to interpolated areas
+    ndim = x_ft.shape[0]
+    nfiducials = x_ft.shape[1]
+    min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
+    min_frame, max_frame = map(int, config['frame_range'].split('-'))
+    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    num_time_points = max_time_point - min_time_point + 1
+    num_frames = max_frame - min_frame + 1
+    num_cycles = max_cycle - min_cycle + 1
+    num_z_steps = max_z_step - min_z_step + 1
+    total_cycles = num_cycles * num_time_points
+    frames_per_cycle = num_frames * num_z_steps
+    total_frames = total_cycles * frames_per_cycle
+    frames_per_time_point = num_cycles * frames_per_cycle
+    fitting_intervals = np.arange(0, total_frames + frames_per_time_point, frames_per_time_point)
+    x_fit_ft = np.zeros_like(x_ft)
+    x_fit_ft.fill(np.nan)
+    xsd_fit_ft = np.zeros_like(xsd_ft)
+    xsd_fit_ft.fill(np.nan)
+    for i in range(nfiducials):
+        for k in range(ndim):
+            # loop over fitting intervals, fitting each interval separately
+            for j in range(len(fitting_intervals)-1):
+                idx = np.arange(fitting_intervals[j], fitting_intervals[j+1])
+                x_fit_ft[k,i,idx], xsd_fit_ft[k,i,idx] = fit_fiducial_step(x_ft[k,i,idx], xsd_ft[k,i,idx], config)
+    return x_fit_ft, xsd_fit_ft
+
+def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    # Fit a fiducial step
+    logging.info('fit_fiducial_step')
+    w = 1 / xt_sd**2
+    non_nan_indices = ~np.isnan(xt) & ~np.isnan(w) & ~np.isinf(w)
+    first_non_nan = np.min(np.where(non_nan_indices))
+    last_non_nan = np.max(np.where(non_nan_indices))
+    x = np.arange(len(xt))
+    y = xt
+
+    regressor = loess(x[non_nan_indices], y[non_nan_indices], weights=w[non_nan_indices], span=0.3, surface = 'direct')
+    regressor.fit()
+    prediction = regressor.predict(x, stderror=True)
+    x_fit = prediction.values
+    xsd_fit = prediction.stderr
+
+    if first_non_nan > 0:
+        x_fit[:first_non_nan] = x_fit[first_non_nan]
+        xsd_fit[:first_non_nan] = np.nanmean(xsd_fit[non_nan_indices]) * 3
+    if last_non_nan < len(x_fit):
+        x_fit[last_non_nan:] = x_fit[last_non_nan]
+        xsd_fit[last_non_nan:] = np.nanmean(xsd_fit[non_nan_indices]) * 3
+    return x_fit, xsd_fit
+
+
+def extract_fiducial_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    # Extract fiducials from the DataFrame and put the x,y,z detections into rows of a numpy array
+    # array rows are fiducials, array columns are image-ID, encompassing the whole range of image-IDs
+    logging.info('extract_fiducial_detections')
+    nfiducials = len(df_fiducials)
+    min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
+    min_frame, max_frame = map(int, config['frame_range'].split('-'))
+    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    num_time_points = max_time_point - min_time_point + 1
+    num_frames = max_frame - min_frame + 1
+    num_cycles = max_cycle - min_cycle + 1
+    num_z_steps = max_z_step - min_z_step + 1
+    total_cycles = num_cycles * num_time_points
+    frames_per_cycle = num_frames * num_z_steps
+    total_frames = total_cycles * frames_per_cycle
+    if np.max(df[config['image_id_col']]) > total_frames:
+        logging.error('Image-ID exceeds total number of frames')
+        return None, None
+
+    x_ft = np.zeros((3,nfiducials, total_frames), dtype=float)
+    x_ft.fill(np.nan)
+    xsd_ft = np.zeros((3,nfiducials, total_frames), dtype=float)
+    xsd_ft.fill(np.nan)
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
+    for i in range(nfiducials):
+        label = df_fiducials.at[i, 'label']
+        logging.info(f'Extracting detections for fiducial {label}')
+        for k, colname in enumerate(xyz_colnames):
+            df_sel = df[df['label'] == label]
+            image_id = df_sel[config['image_id_col']]
+            x_ft[k,i, image_id] = df_sel[colname].values
+            xsd_ft[k,i, image_id] = df_sel[sd_colnames[k]].values
+    return x_ft, xsd_ft
+
+def find_boundaries(df: pd.DataFrame, colname: str) -> np.ndarray:
+    """
+    Finds the boundaries in a DataFrame column where the value in colname changes.
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the column to analyze.
+    colname (str): The name of the column to find boundaries in.
+
+    Returns:
+    np.ndarray: An array of indices representing the boundaries where the column value changes.
+    """
+    boundaries = np.where(np.diff(df[colname]))[0] + 1
+    boundaries = np.insert(boundaries, 0, 0)
+    boundaries = np.append(boundaries, df.shape[0]-1)
+    return boundaries
 

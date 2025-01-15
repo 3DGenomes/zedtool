@@ -6,10 +6,10 @@ import yaml
 import sys
 import logging
 import pandas as pd
-from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, reorder_sweeps
-from zedtool.plots import plot_scatter, plot_histogram, plot_detections_summary, plot_binned_detections_summary, plot_fiducials, plotly_scatter
+from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
+from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
 from zedtool.srxstats import extract_z_correction, z_means_by_marker
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, make_fiducial_correlations
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, make_fiducial_correlations, make_quality_metrics, correct_detections
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Tuple
@@ -21,8 +21,8 @@ from typing import Tuple
 
 
 def main(yaml_config_file: str) -> int:
-    no_display = True
-    # no_display = False
+    # no_display = True
+    no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -46,18 +46,16 @@ def main(yaml_config_file: str) -> int:
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
+    have_correction = False
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     detections_file = config['corrected_detections_file']
     binary_detections_file = os.path.join(config['output_dir'],config['binary_detections_file'])
     corrected_detections_with_original_file = os.path.join(config['output_dir'], "corrected_detections_with_original_z.csv")
     corrections_file = os.path.join(config['output_dir'], "tdz.tsv")
-    plot_detections_summaries = config['plot_detections_summaries']
 
     debug = config['debug']
-    have_correction = False
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
-    z_step_step = config['z_step_step']
 
     if debug and os.path.exists(binary_detections_file) and config['make_caches']:
         logging.info(f"Loading detections from {binary_detections_file}")
@@ -96,16 +94,13 @@ def main(yaml_config_file: str) -> int:
     bin_resolution = config['bin_resolution']
     counts_xyz, x_bins, y_bins, z_bins = bin_detections(det_xyz,bin_resolution)
 
-
     # Calculate moments and variance
     n_xy, mean_xy, sd_xy = bins3d_to_stats2d(counts_xyz, z_bins)
 
     # Plot detections before masking
-    if plot_detections_summaries:
-        plot_detections_summary(df,'detections_summary', config)
-        plot_binned_detections_summary(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
-        # plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", df['z-step'].max()-df['z-step'].min()+1, config)
-        plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", config)
+    if config['plot_detections']:
+        plot_detections(df,'detections_summary', config)
+        plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
 
 
     # Make index into the binned xy image from the detections
@@ -132,43 +127,43 @@ def main(yaml_config_file: str) -> int:
     # Find wobbliness, detections per fiducial, correlation between x, y and z for each fiducial
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
 
+    if config['make_quality_metrics']:
+        make_quality_metrics(df, df_fiducials, config)
+
     # Remove problematic and outlier fiducials
     df_filtered_fiducials, df_fiducials = filter_fiducials(df_fiducials, df, config)
+    # TODO: Check that the the fiducial label is removed from df to enable correction to work later
 
     # Make correlations between fiducials between and within sweeps
     make_fiducial_correlations(df_fiducials, df_filtered_fiducials, config)
 
-    # Plot fiducials
-    #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
-    plot_fiducials(df_fiducials, df_filtered_fiducials, config)
+    if config['plot_fiducials']:
+        plot_fiducials(df_fiducials, df_filtered_fiducials, config)
 
+    if config['plot_summary_stats']:
+        plot_summary_stats(df, det_xyz, config)
+
+    if have_correction and config['plot_z_corrections']:
+        # Plot and compare tdz_srx with the above two
+        plot_scatter(tdz_srx[:, 0], tdz_srx[:, 1], 'image-ID', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame', config)
+        plotly_scatter(tdz_srx[:, 0],tdz_srx[:, 1], None, 'image-ID', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame',config)
+
+    # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
+    # TODO: Test this
+    if config['correct_fiducials'] or config['correct_detections']:
+        df_fiducials = create_backup_columns(df, config)
 
     # Correct fiducials with zstep model
-    # df_fiducials, df = correct_fiducials(df_fiducials, df, config)
+    if config['correct_fiducials']:
+        df_fiducials, df = correct_fiducials(df_fiducials, df, config)
 
-    # Re-order sweeps
+    # Correct detections with (hopefully corrected) fiducials
+    if config['correct_detections']:
+        df = correct_detections(df, df_fiducials, config)
+
+    # TODO: Write df and copy config file to output dir
+    # Re-order sweeps?
     # df = reorder_sweeps(df, config)
-
-    # TODO: Put these into a function and make it optional
-    # Plot detections and other quantities
-    plot_histogram(df[config['z_col']] - df[config['z_step_col']] * z_step_step, 'z - z-step*z_step_step', 'Detections','Detections by z-z-step*z_step_step', 'z_zstep_histogram', config)
-    plot_scatter(df[config['frame_col']], df[config['z_col']], 'frame', 'z', 'z vs frame', 'z_vs_frame', config)
-    plot_scatter(df[config['frame_col']], df[config['photons_col']], 'frame', 'photon-count','photon-count vs frame', 'photon_count_vs_frame', config)
-    plot_scatter(df[config['frame_col']], df[config['z_step_col']], 'frame', 'z-step','z-step vs frame', 'zstep_vs_frame', config)
-    plot_scatter(df[config['frame_col']], df[config['z_col']] - df[config['z_step_col']] * z_step_step, 'frame', 'z - z-step*z_step_step','z - z-step*z_step_step vs frame', 'z_zstep_vs_frame', config)
-
-    z_mean,t = z_means_by_marker(det_xyz,df[config['frame_col']].values)
-    plot_scatter(t, z_mean,'time','mean(z) per frame','mean(z) vs time','z_mean_per_frame_vs_time', config)
-
-    z_mean,cycle = z_means_by_marker(det_xyz,df[config['cycle_col']].values)
-    plot_scatter(cycle,z_mean,'cycle','mean(z) per cycle','mean(z) vs cycle','z_mean_per_cycle_vs_cycle', config)
-
-    z_mean,z_step = z_means_by_marker(det_xyz,df[config['z_step_col']].values)
-    plot_scatter(z_step, z_mean, 'z-step', 'mean(z) per z-step', 'mean(z) vs z-step', 'z_mean_per_z_step_vs_z_step', config)
-
-    if have_correction:
-        # Plot and compare tdz_srx with the above two
-        plot_scatter(tdz_srx[:, 0], tdz_srx[:, 1], 'frame', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame', config)
     return 0
 
 if __name__ == '__main__':
