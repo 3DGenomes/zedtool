@@ -159,6 +159,7 @@ def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int
 
 def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> int:
     #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
+    logging.info("plot_fiducials")
     detections_img_file = 'detections_img.tif'
     fiducials_plot_file = 'fiducials_plot'
     # read in the image and the segmentation from tifs
@@ -197,6 +198,7 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         fiducial_name = df_fiducials.at[j, 'name']
         outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
         os.makedirs(outdir, exist_ok=True)
+        logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
         df_detections_roi = df[df['label'] == fiducial_label]
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_frame")
         plot_scatter(df_detections_roi[config['image_id_col']], df_detections_roi[config['z_col']], 'image-ID', 'z (nm)', "z_vs_frame",

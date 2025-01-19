@@ -54,7 +54,17 @@ def bins3d_to_stats2d(counts_xyz: np.ndarray, z_bins: np.ndarray) -> Tuple[np.nd
     sd_xy = np.sqrt(var_xy)
     return n_xy, moment_1_xy, sd_xy
 
+def median_by_time(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    # Group by time-point and calculate the median for x, y, and z
+    grouped = df.groupby(config['image_id_col']).median()
+    # Extract the median values for x, y, and z
+    median_values = grouped[[config['x_col'], config['y_col'], config['z_col']]].values
+    ret = np.full((3,np.max(grouped.index)+1),np.inf)
+    ret[:,grouped.index] = np.transpose(median_values)
+    return ret
+
 def create_backup_columns(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info("create_backup_columns")
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
     ndims = len(xyz_colnames)
@@ -67,10 +77,11 @@ def create_backup_columns(df: pd.DataFrame, config: dict) -> pd.DataFrame:
                 if backup_from in df.columns:
                     df[backup_to] = df[backup_from]
                     logging.info(f"Copying col {backup_from} -> {backup_to}")
-                backup_from = c
-                backup_to = f"{c}_0"
-                df[backup_to] = df[backup_from]
-                logging.info(f"Copying col {backup_from} -> {backup_to}")
+                if backup_num == 1:
+                    backup_from = c
+                    backup_to = f"{c}_0"
+                    df[backup_to] = df[backup_from]
+                    logging.info(f"Copying col {backup_from} -> {backup_to}")
     return df
 
 def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:

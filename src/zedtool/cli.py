@@ -6,10 +6,11 @@ import yaml
 import sys
 import logging
 import pandas as pd
+import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
 from zedtool.srxstats import extract_z_correction, z_means_by_marker
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, make_fiducial_correlations, make_quality_metrics, correct_detections
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Tuple
@@ -21,8 +22,8 @@ from typing import Tuple
 
 
 def main(yaml_config_file: str) -> int:
-    # no_display = True
-    no_display = False
+    no_display = True
+    # no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -135,7 +136,8 @@ def main(yaml_config_file: str) -> int:
     # TODO: Check that the the fiducial label is removed from df to enable correction to work later
 
     # Make correlations between fiducials between and within sweeps
-    make_fiducial_correlations(df_fiducials, df_filtered_fiducials, config)
+    if config['plot_fiducial_correlations']:
+        plot_fiducial_correlations(df_fiducials, df_filtered_fiducials, config)
 
     if config['plot_fiducials']:
         plot_fiducials(df_fiducials, df_filtered_fiducials, config)
@@ -149,9 +151,8 @@ def main(yaml_config_file: str) -> int:
         plotly_scatter(tdz_srx[:, 0],tdz_srx[:, 1], None, 'image-ID', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame',config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
-    # TODO: Test this
     if config['correct_fiducials'] or config['correct_detections']:
-        df_fiducials = create_backup_columns(df, config)
+        df = create_backup_columns(df, config)
 
     # Correct fiducials with zstep model
     if config['correct_fiducials']:
@@ -161,9 +162,10 @@ def main(yaml_config_file: str) -> int:
     if config['correct_detections']:
         df = correct_detections(df, df_fiducials, config)
 
-    # TODO: Write df and copy config file to output dir
-    # Re-order sweeps?
-    # df = reorder_sweeps(df, config)
+    # Write df and copy config file to output dir
+    df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False)
+    shutil.copy(yaml_config_file, os.path.join(config['output_dir'], 'config.yaml'))
+
     return 0
 
 if __name__ == '__main__':
