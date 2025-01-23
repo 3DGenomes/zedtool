@@ -39,9 +39,9 @@ def bin_detections(det_xyz: np.array,resolution: int) -> Tuple[np.ndarray, np.nd
     y = det_xyz[:,1]
     z = det_xyz[:,2]
     # Add an extra bin to the end for histogramdd() then remove it later
-    x_bins = np.arange(x.min(), x.max() + resolution, resolution)
-    y_bins = np.arange(y.min(), y.max() + resolution, resolution)
-    z_bins = np.arange(z.min(), z.max() + resolution, resolution)
+    x_bins = np.arange(np.nanmin(x), np.nanmax(x) + resolution, resolution)
+    y_bins = np.arange(np.nanmin(y), np.nanmax(y) + resolution, resolution)
+    z_bins = np.arange(np.nanmin(z), np.nanmax(z) + resolution, resolution)
     counts_xyz = np.histogramdd([x, y, z], bins=[x_bins, y_bins, z_bins])
     return counts_xyz[0], x_bins[:-1], y_bins[:-1], z_bins[:-1]
 
@@ -120,6 +120,55 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         filtered_df = filtered_df[(filtered_df[col] >= low) & (filtered_df[col] <= high)]
         logging.info(f"Filtered {col} between {low} and {high}: {filtered_df.shape[0]} rows")
     return filtered_df
+
+
+import numpy as np
+
+
+def fwhm_from_points(x, bins=100):
+    """
+    Computes the Full Width at Half Maximum (FWHM) of a distribution
+    represented by an array of x-values.
+
+    Parameters:
+        x (array-like): Array of x-values (data points).
+        bins (int): Number of bins to use for the histogram.
+
+    Returns:
+        float: The FWHM value.
+    """
+    # If x is zero length or all nan, return nan
+    if len(x) == 0 or np.all(np.isnan(x)):
+        return np.nan
+
+    counts, bin_edges = np.histogram(x, bins=bins, density=True)
+
+    peak_index = np.argmax(counts)
+    peak_value = counts[peak_index]
+    half_max = peak_value / 2
+
+    left_crossing = None
+    right_crossing = None
+
+    for i in range(len(counts) - 1):
+        # Check for crossings
+        if counts[i] <= half_max < counts[i + 1]:
+            # Linear interpolation for left crossing
+            left_crossing = bin_edges[i] + (bin_edges[i + 1] - bin_edges[i]) * (
+                        (half_max - counts[i]) / (counts[i + 1] - counts[i]))
+        if counts[i] >= half_max > counts[i + 1]:
+            # Linear interpolation for right crossing
+            right_crossing = bin_edges[i] + (bin_edges[i + 1] - bin_edges[i]) * (
+                        (half_max - counts[i]) / (counts[i + 1] - counts[i]))
+
+    # Ensure crossings were found
+    if left_crossing is None or right_crossing is None:
+        raise ValueError("Could not find two crossings at half-maximum.")
+
+    fwhm_value = right_crossing - left_crossing
+    return fwhm_value
+
+
 
 def reorder_sweeps(df: pd.DataFrame, config: dict) -> pd.DataFrame: # TODO:
     # Reorder sweeps based on the z-step

@@ -127,20 +127,27 @@ def main(yaml_config_file: str) -> int:
 
     # Find wobbliness, detections per fiducial, correlation between x, y and z for each fiducial
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
-
-    if config['make_quality_metrics']:
-        make_quality_metrics(df, df_fiducials, config)
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_unfiltered.tsv")
+    df_fiducials.to_csv(outpath, sep='\t', index=False)
 
     # Remove problematic and outlier fiducials
-    df_filtered_fiducials, df_fiducials = filter_fiducials(df_fiducials, df, config)
-    # TODO: Check that the the fiducial label is removed from df to enable correction to work later
+    df_filtered_fiducial_detections, df_fiducials = filter_fiducials(df_fiducials, df, config)
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
+    df_fiducials.to_csv(outpath, sep='\t', index=False)
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_detections_filtered.tsv")
+    df_filtered_fiducial_detections.to_csv(outpath, sep = '\t', index=False)
+
+    if config['make_quality_metrics']:
+        df_metrics = make_quality_metrics(df, df_fiducials, config)
+        outpath = os.path.join(config['fiducial_dir'], "quality_metrics_before_correction.tsv")
+        df_metrics.to_csv(outpath, sep='\t', index=False)
 
     # Make correlations between fiducials between and within sweeps
     if config['plot_fiducial_correlations']:
-        plot_fiducial_correlations(df_fiducials, df_filtered_fiducials, config)
+        plot_fiducial_correlations(df_fiducials, df_filtered_fiducial_detections, config)
 
     if config['plot_fiducials']:
-        plot_fiducials(df_fiducials, df_filtered_fiducials, config)
+        plot_fiducials(df_fiducials, df_filtered_fiducial_detections, config)
 
     if config['plot_summary_stats']:
         plot_summary_stats(df, det_xyz, config)
@@ -161,6 +168,12 @@ def main(yaml_config_file: str) -> int:
     # Correct detections with (hopefully corrected) fiducials
     if config['correct_detections']:
         df = correct_detections(df, df_fiducials, config)
+
+    if config['make_quality_metrics']:
+        df_fiducials = make_fiducial_stats(df_fiducials, df, config)
+        df_metrics = make_quality_metrics(df, df_fiducials, config)
+        outpath = os.path.join(config['fiducial_dir'], "quality_metrics_after_correction.tsv")
+        df_metrics.to_csv(outpath, sep='\t', index=False)
 
     # Write df and copy config file to output dir
     df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False)
