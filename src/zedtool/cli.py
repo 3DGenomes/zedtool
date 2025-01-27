@@ -10,16 +10,13 @@ import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
 from zedtool.srxstats import extract_z_correction, z_means_by_marker
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Tuple
 
 # Prints some debugging plots for an SRX dataset.
-# Takes a corrected and an uncorrected table of detections, registers the rows and finds the corrections.
 # Write out a table with both corrected and uncorrected z.
-
-
 
 def main(yaml_config_file: str) -> int:
     no_display = True
@@ -47,48 +44,39 @@ def main(yaml_config_file: str) -> int:
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
-    have_correction = False
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
-    detections_file = config['corrected_detections_file']
+    detections_file = config['detections_file']
     binary_detections_file = os.path.join(config['output_dir'],config['binary_detections_file'])
-    corrected_detections_with_original_file = os.path.join(config['output_dir'], "corrected_detections_with_original_z.csv")
-    corrections_file = os.path.join(config['output_dir'], "tdz.tsv")
 
     debug = config['debug']
+    noclobber = config['noclobber']
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
 
-    if debug and os.path.exists(binary_detections_file) and config['make_caches']:
+    if noclobber and os.path.exists(binary_detections_file) and config['make_caches']:
         logging.info(f"Loading detections from {binary_detections_file}")
         df = pd.read_pickle(binary_detections_file)
     else:
         logging.info(f"Reading detections from {detections_file}")
         df = pd.read_csv(detections_file)
-        df = filter_detections(df, config)
-        if config['debug']:
+        if config['make_caches']:
             df.to_pickle(binary_detections_file)
 
     logging.info(f"Loaded {df.shape[0]} rows")
 
-    # if we have uncorrected_detections_file then we need to extract z-corrections
-    if 'uncorrected_detections_file' in config:
-        have_correction = True
-        if not os.path.exists(corrected_detections_with_original_file):
-            logging.info(f"Reading uncorrected detections from {config['uncorrected_detections_file']}")
-            df_orig = pd.read_csv(config['uncorrected_detections_file'])
-            df_orig = filter_detections(df_orig, config)
-            df_tdz,df_cor = extract_z_correction(df, df_orig)
-            df_cor.to_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv", index=False)
-            df_tdz.to_csv(corrections_file, index=False, sep='\t')
-            df_cor_orig_z = pd.read_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv")
-        else:
-            logging.info(f"Loading z-corrections from {corrections_file}")
-            df_tdz = pd.read_csv(corrections_file, sep='\t')
-            df_cor_orig_z = pd.read_csv(f"{config['output_dir']}/corrected_detections_with_original_z.csv")
-        tdz_srx = df_tdz.values
-    else:
-        tdz_srx = np.zeros((1,2))
-        df_cor_orig_z = df
+    if config['apply_drift_correction']:
+        drift_correction_file = config['drift_correction_file']
+        logging.info("Applying drift correction from {drift_correction_file")
+        # read corrections from tsv file
+        df_corrections = pd.read_csv(drift_correction_file, sep='\t')
+        x_t = np.zeros((3,df_corrections.shape[0]))
+        x_t[0] = df_corrections['x'].values
+        x_t[1] = df_corrections['y'].values
+        x_t[2] = df_corrections['z'].values
+        df = apply_corrections(df, x_t, config)
+
+    df = filter_detections(df, config)
+    logging.info(f"Filtered to {df.shape[0]} rows")
 
     # Combine x,y,x into a single array with shape (n,3)
     det_xyz = np.vstack((df[config['x_col']].values, df[config['y_col']].values, df[config['z_col']].values)).T
@@ -103,23 +91,23 @@ def main(yaml_config_file: str) -> int:
         plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
 
-
     # Make index into the binned xy image from the detections
     x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
 
-    # # Mask on density to remove bright/dim areas
-    # # Mostly unused but can speed up processing and remove background
-    # mask_xy = make_density_mask_2d(n_xy, config)
-    # logging.info(f"Before masking: {np.sum(mask_xy)} detections")
-    # # Select detections in mask_xy
-    # idx = mask_detections(mask_xy, x_idx, y_idx)
-    # logging.info(f"After masking: {np.sum(idx)} detections")
-    # # Apply masks
-    # det_xyz = det_xyz[idx, :]
-    # df = df[idx]
-    # x_idx = x_idx[idx]
-    # y_idx = y_idx[idx]
-    # z_idx = z_idx[idx]
+    if config['mask_on_density']:
+        # Mask on density to remove bright/dim areas
+        # Mostly unused but can speed up processing and remove background
+        mask_xy = make_density_mask_2d(n_xy, config)
+        logging.info(f"Before masking: {np.sum(mask_xy)} detections")
+        # Select detections in mask_xy
+        idx = mask_detections(mask_xy, x_idx, y_idx)
+        logging.info(f"After masking: {np.sum(idx)} detections")
+        # Apply masks
+        det_xyz = det_xyz[idx, :]
+        df = df[idx]
+        x_idx = x_idx[idx]
+        y_idx = y_idx[idx]
+        z_idx = z_idx[idx]
 
     # Find fiducials
     # Treat n_xy as an image and segment, expand segmented areas, make labels and attached to df. Save centroids and labels
@@ -151,11 +139,6 @@ def main(yaml_config_file: str) -> int:
 
     if config['plot_summary_stats']:
         plot_summary_stats(df, det_xyz, config)
-
-    if have_correction and config['plot_z_corrections']:
-        # Plot and compare tdz_srx with the above two
-        plot_scatter(tdz_srx[:, 0], tdz_srx[:, 1], 'image-ID', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame', config)
-        plotly_scatter(tdz_srx[:, 0],tdz_srx[:, 1], None, 'image-ID', 'dz(nm)', 'dz(nm) relative to start', 'dz_vs_frame',config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
     if config['correct_fiducials'] or config['correct_detections']:

@@ -141,6 +141,7 @@ def fwhm_from_points(x, bins=100):
     if len(x) == 0 or np.all(np.isnan(x)):
         return np.nan
 
+    x = x[~np.isnan(x)]
     counts, bin_edges = np.histogram(x, bins=bins, density=True)
 
     peak_index = np.argmax(counts)

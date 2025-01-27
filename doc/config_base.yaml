@@ -1,0 +1,64 @@
+---
+# Experiment-specific elements. Customise for each experiment by replacing variables with the appropriate values.
+output_dir: /home/jmarkham/work/zedtool/tests/xypatch_2b # all output files will be saved under this directory
+detections_file: /home/jmarkham/work/zedtool/tests/xypatch/corrected_detections.csv
+drift_correction_file: /home/jmarkham/work/zedtool/tests/xypatch_2b/drift_correction.tsv
+binary_detections_file: /home/jmarkham/work/zedtool/tests/xypatch_2b/detections.npy # used to cache detections if make_caches==1
+
+bin_resolution: 20 # bin size in nm for binned image
+z_step_step: -100 # step size in nm for one step in the z-direction (be careful you get the sign right!)
+debug: 1 # Potentially controls verbosity and plot output.
+noclobber: 1 # If 1, will not overwrite cached intermediate results
+make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
+
+# Detection filtering - based on either desnsity in the binned image or columns in the detections file
+n_min_cutoff: 1 # remove detections based on their density in the binned x,y image
+n_max_cutoff: 10000000000
+select_cols: x,y # comma separated list of selection criteria for ranges
+select_ranges: 0-20000,0-30000 # comma separated list of ranges
+
+# Column names specific to the input file format
+# image-ID,cycle,z-step,frame,time-point
+frame_col: frame # frame number within the cycle
+image_id_col: image-ID # frame number within the experiment
+z_step_col: z-step
+cycle_col: cycle
+time_point_col: time-point
+x_col: x
+y_col: y
+z_col: z
+x_sd_col: precisionx
+y_sd_col: precisiony
+z_sd_col: precisionz
+chisq_col: chisq
+photons_col: photon-count
+
+# Constants used for segmenting, filtering and fitting to fiducials
+median_filter_disc_radius: 1 # used to remove speckle noise from the binned image
+filling_disc_radius: 5 # used to fill holes in the fiducial mask
+dilation_disc_radius: 10 # used to expand the fiducial mask
+min_fiducial_size: 100 # min pixels in a fiducial
+min_fiducial_detections: 10 # minimum number of detections in a fiducial; if only_fiducials==1 then this is also the segmentation threshold
+max_detections_per_image: 1.1
+quantile_tail_cutoff: 0.0
+polynomial_degree: 2 # polynomial degree used when fitting to fiducials
+use_weights_in_fit: 0 # use weighting when fitting to fiducials
+only_fiducials: 1 # non-zero if ALL the "bright spots" in the binned image are taken to be fiducials. If 0, Otsu threshold image otherwise use min_fiducial_detections
+
+# Number of frames, z-steps, cycles, time-points to expect in the data. These must match the experiment.
+frame_range: 0-999 # frames per z-step
+z_step_range: 0-29 # z-steps per cycle
+cycle_range: 0-4 # cycles per time-point
+time_point_range: 0-28 # time-points per experiment
+
+# Select what to compute and plot by setting the following to 0 or 1
+apply_drift_correction: 0 # apply a pre-made drift correction to detections
+mask_on_density: 0 # remove detections based on density in the binned image.
+make_quality_metrics: 1 # compute quality metrics for fiducials - before and after z-step and drift correction
+plot_per_fiducial_fitting: 1 # make debugging images about extracting drift correction from fiducials
+plot_fiducial_correlations: 0 # plot correlations between fiducials - can be time consuming!
+plot_summary_stats: 1 # plots summary statistics for all detections
+plot_detections: 1  # plot all detections as images - binned in x-y and projected in all three dimensions
+plot_fiducials: 1 # plot the fiducials prior to correction
+correct_fiducials: 1  # correct fiducial detections for z-step
+correct_detections: 1 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections

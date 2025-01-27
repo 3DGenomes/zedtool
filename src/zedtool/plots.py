@@ -191,6 +191,7 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
     imp.save(figure_path, quality=95)
 
     # foreach roi, plot the dependence of z on config['image_id_col'], config['z_step_col'], config['cycle_col']
+    # Also plot histogram of x,y,x
     for j in range(len(df_fiducials)):
         # columns = [config['image_id_col'], config['z_step_col'], config['frame_col'], config['time_point_col'], config['cycle_col']]
         columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]
@@ -200,29 +201,60 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         os.makedirs(outdir, exist_ok=True)
         logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
         df_detections_roi = df[df['label'] == fiducial_label]
+        x = df_detections_roi[config['x_col']]
+        y = df_detections_roi[config['y_col']]
+        z = df_detections_roi[config['z_col']]
+        z_step = df_detections_roi[config['z_step_col']]
+        z_step_step = config['z_step_step']
+        adjusted_z = z - z_step * z_step_step
+
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_frame")
-        plot_scatter(df_detections_roi[config['image_id_col']], df_detections_roi[config['z_col']], 'image-ID', 'z (nm)', "z_vs_frame",
-                     outpath, config)
-        plotly_scatter(df_detections_roi[config['image_id_col']], df_detections_roi[config['z_col']], None, 'image-ID', 'z (nm)', "z_vs_frame",
-                       outpath, config)
+        image_id = df_detections_roi[config['image_id_col']]
+        plot_scatter(image_id, z, 'image-ID', 'z (nm)', "z_vs_frame", outpath, config)
+        plotly_scatter(image_id, z, None, 'image-ID', 'z (nm)', "z_vs_frame", outpath, config)
 
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_z_zstep")
-        plot_scatter(df_detections_roi[config['z_col']] - df_detections_roi[config['z_step_col']] * config['z_step_step'], df_detections_roi[config['z_col']], 'z - z-step*z_step_step (nm)',
-                     'z (nm)', 'z vs z - z-step*z_step_step', outpath, config)
+        plot_scatter(adjusted_z, z, 'z - z-step*z_step_step (nm)','z (nm)', 'z vs z - z-step*z_step_step', outpath, config)
 
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_zstep")
-        plot_scatter(df_detections_roi[config['z_step_col']], df_detections_roi[config['z_col']], 'z_step',
-                     'z (nm)', 'z vs zstep', outpath, config)
+        plot_scatter(z_step, z, 'z_step', 'z (nm)', 'z vs zstep', outpath, config)
+
+        outpath = os.path.join(outdir, f"{fiducial_name}_hist")
+        fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+        # Plot histograms
+        axs[0, 0].hist(x, bins=100, color='blue', alpha=0.7)
+        axs[0, 0].set_title('Histogram of x')
+        axs[0, 0].set_xlabel('x nm')
+        axs[0, 0].set_ylabel('Frequency')
+
+        axs[0, 1].hist(y, bins=100, color='green', alpha=0.7)
+        axs[0, 1].set_title('Histogram of y')
+        axs[0, 1].set_xlabel('y nm')
+        axs[0, 1].set_ylabel('Frequency')
+
+        axs[1, 0].hist(z, bins=100, color='red', alpha=0.7)
+        axs[1, 0].set_title('Histogram of z')
+        axs[1, 0].set_xlabel('z nm')
+        axs[1, 0].set_ylabel('Frequency')
+
+        axs[1, 1].hist(adjusted_z, bins=100, color='purple', alpha=0.7)
+        axs[1, 1].set_title('Histogram of z - z_step * z_step_step')
+        axs[1, 1].set_xlabel('Adjusted z - z_step * z_step_step  nm')
+        axs[1, 1].set_ylabel('Frequency')
+        # Adjust layout
+        plt.tight_layout()
+        plt.savefig(outpath, dpi=300)
+        plt.close()
 
         for col in columns:
             fig, ax = plt.subplots(2, 2, figsize=(12, 9))
-            sc = ax[0, 0].scatter(df_detections_roi[config['x_col']], df_detections_roi[config['z_col']], s=0.05, c=df_detections_roi[col], alpha=0.25)
+            sc = ax[0, 0].scatter(x, z, s=0.05, c=df_detections_roi[col], alpha=0.25)
             ax[0, 0].set_xlabel('x (nm)')
             ax[0, 0].set_ylabel('z (nm)')
-            ax[0, 1].scatter(df_detections_roi[config['y_col']], df_detections_roi[config['z_col']], s=0.05, c=df_detections_roi[col], alpha=0.25)
+            ax[0, 1].scatter(y, z, s=0.05, c=df_detections_roi[col], alpha=0.25)
             ax[0, 1].set_xlabel('y (nm)')
             ax[0, 1].set_ylabel('z (nm)')
-            ax[1, 0].scatter(df_detections_roi[config['x_col']], df_detections_roi[config['y_col']], s=0.05, c=df_detections_roi[col], alpha=0.25)
+            ax[1, 0].scatter(x, y, s=0.05, c=df_detections_roi[col], alpha=0.25)
             ax[1, 0].set_xlabel('x (nm)')
             ax[1, 0].set_ylabel('y (nm)')
             # Use make_axes_locatable to create an inset axis for the colorbar
