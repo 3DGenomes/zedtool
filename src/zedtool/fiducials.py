@@ -544,6 +544,7 @@ def correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     # group fiducials to be zero centred
     x_fit_ft, xsd_fit_ft = group_fiducials(x_fit_ft, xsd_fit_ft, config)
     # Fit drift correction to zero-centred fiducials - including across time-point boundaries
+    # TODO: Compare median with weighted mean in make_corrections
     x_t, x_err = make_corrections(x_fit_ft, xsd_fit_ft, config)
     if config['plot_per_fiducial_fitting']:
         plot_fitted_fiducials(df_fiducials, x_fit_ft, xsd_fit_ft,x_t, config)
@@ -617,6 +618,9 @@ def make_corrections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> np.n
     logging.info('make_corrections')
     # Make corrections from fitted fiducials in x_ft
     # weight the fiducials by their uncertainties at each time point
+    w = np.zeros_like(x_ft)
+    xsd_f = np.sqrt(np.sum(xsd_ft*xsd_ft, axis=2))
+    w[:] = 1 / xsd_f[:, :, np.newaxis]
     w = 1 / xsd_ft
     x_t = np.average(x_ft, axis=1, weights=w)
     x_err = np.sqrt(np.average((x_ft - x_t[:, None])**2, axis=1, weights=w))

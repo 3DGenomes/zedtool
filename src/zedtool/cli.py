@@ -19,8 +19,8 @@ from typing import Tuple
 # Write out a table with both corrected and uncorrected z.
 
 def main(yaml_config_file: str) -> int:
-    no_display = True
-    # no_display = False
+    # no_display = True
+    no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode

@@ -163,10 +163,15 @@ def fwhm_from_points(x, bins=100):
                         (half_max - counts[i]) / (counts[i + 1] - counts[i]))
 
     # Ensure crossings were found
-    if left_crossing is None or right_crossing is None:
+    if left_crossing is None and right_crossing is None:
         raise ValueError("Could not find two crossings at half-maximum.")
+    elif left_crossing is None:
+        fwhm_value = right_crossing - np.nanmin(x)
+    elif right_crossing is None:
+        fwhm_value = np.nanmax(x) - left_crossing
+    else:
+        fwhm_value = right_crossing - left_crossing
 
-    fwhm_value = right_crossing - left_crossing
     return fwhm_value
 
 
