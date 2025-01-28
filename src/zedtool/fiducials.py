@@ -544,7 +544,6 @@ def correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     # group fiducials to be zero centred
     x_fit_ft, xsd_fit_ft = group_fiducials(x_fit_ft, xsd_fit_ft, config)
     # Fit drift correction to zero-centred fiducials - including across time-point boundaries
-    # TODO: Compare median with weighted mean in make_corrections
     x_t, x_err = make_corrections(x_fit_ft, xsd_fit_ft, config)
     if config['plot_per_fiducial_fitting']:
         plot_fitted_fiducials(df_fiducials, x_fit_ft, xsd_fit_ft,x_t, config)
@@ -618,6 +617,7 @@ def make_corrections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> np.n
     logging.info('make_corrections')
     # Make corrections from fitted fiducials in x_ft
     # weight the fiducials by their uncertainties at each time point
+    # TODO: Compare median with weighted mean in make_corrections()
     w = np.zeros_like(x_ft)
     xsd_f = np.sqrt(np.sum(xsd_ft*xsd_ft, axis=2))
     w[:] = 1 / xsd_f[:, :, np.newaxis]
@@ -637,7 +637,42 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
         df[xyz_colnames[j]] = df[xyz_colnames[j]] - x_t[j, tidx]
     return df
 
+
+def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    nfiducials = x_ft.shape[1]
+    ndimensions = x_ft.shape[0]
+    x_ret = x_ft.copy()
+    w = 1 / xsd_ft
+
+    def apply_offsets(offsets, x):
+        ndimensions = x.shape[0]
+        nfiducials = x.shape[1]
+        x_shifted = x.copy()
+        # Apply offset to all fiducials except the first
+        for i in range(1, nfiducials):
+            for j in range(ndimensions):
+                x_shifted[j, i, :] += offsets[j*(nfiducials - 1) + (i - 1)]
+        if(np.any(np.isnan(x_shifted))):
+            logging.error('NaN in x_shifted')
+        return x_shifted
+
+    def variance_cost(offsets, x, w):
+        x_shifted = apply_offsets(offsets, x)
+        # TODO: Include w in this calculation
+        return np.sum(np.nanvar(x_shifted, axis=1))
+
+    initial_offsets = np.zeros(ndimensions*(nfiducials - 1))
+    result = scipy.optimize.minimize(variance_cost, initial_offsets, args=(x_ret, w),
+                                     method='L-BFGS-B',options = {'maxiter': 1e3, 'disp': True})
+    optimal_offsets = result.x
+    x_ret = apply_offsets(optimal_offsets, x_ret)
+    return x_ret, xsd_ft
+
 def group_fiducials(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
+    return x_ret, xsd_ret
+
+def group_fiducials_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     logging.info('group_fiducials')
     # Group fiducials to be zero centred
     ndimensions = x_ft.shape[0]
@@ -662,6 +697,7 @@ def group_fiducials(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple
     # Try and group them together closer with a second pass
     # This is a bit of a hack, but it seems to work.
     # TODO: hold x_ret[:,0,:] constant and, for each j, use optimize to find the offsets that minimize the total variance of x[j,:,:]
+
     for k in range(np.min((nfiducials,10))):
         for i in range(nfiducials):
             for j in range(ndimensions):
