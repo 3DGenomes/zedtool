@@ -15,11 +15,12 @@ setup(
     version=get_version(),
     author='John Markham',
     author_email='john.markham@gmail.com',
-	packages=['zedtool', 'zedtool.detections','zedtool.fiducials','zedtool.plots','zedtool.srxstats','zedtool.image', 'zedtool.cli'],
+	packages=['zedtool'],
     url='https://github.com/johnfmarkham/zedtool',
     description='Z Estimate Diagnostics Tool',
     package_dir = {'zedtool':'src/zedtool'},
     package_data = {'zedtool': ['test/*']},
     install_requires=parse_requirements("requirements.txt"),
     python_requires=">=3.10",
+    include_package_data=True
 )

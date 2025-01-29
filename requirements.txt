@@ -6,5 +6,5 @@ plotly==5.22.0
 PyYAML==6.0.2
 scikit_learn==1.2.0
 scipy==1.10.0
-skimage==0.0
+scikit-image==0.19.3
 tifffile==2021.7.2

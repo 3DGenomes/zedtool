@@ -361,6 +361,8 @@ def correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict
     return df_fiducials, df
 
 def correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
+    correct_z_only = 1 # Correct only z for z-step for now
+
     fiducial_label = fiducial['label']
     fiducial_name = fiducial['name']
     logging.info(f'correct_fiducial: {fiducial_name}')
@@ -382,6 +384,9 @@ def correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
     sd_ct = np.zeros((total_cycles, frames_per_cycle), dtype=float)
     x_ct.fill(np.nan)
     for k, colname in enumerate(xyz_colnames):
+        # Skip x and y
+        if correct_z_only and k<2:
+            continue
         logging.info(f'Correcting {fiducial_label} {fiducial_name}:{colname}')
         # Get x,y,z values for each cycle
         for j in range(num_time_points):
