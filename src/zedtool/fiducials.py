@@ -62,6 +62,10 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     # If only_fiducials is set to True, keep all fiducials
     if config['only_fiducials']:
         is_high = np.ones(len(df_fiducials), dtype=bool)
+    # Exclude fiducials in config['excluded_fiducials'] by setting is_high to False
+    excluded_fiducials =  pd.Series([int(num) for num in config['excluded_fiducials'].split(",")])
+    is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
+    # Set excluded_labels from df_fiducials.labels to 0 in df
     excluded_labels = df_fiducials[is_high==False]['label']
     # scatter plot of log_intensity vs area, with the two clusters colored differently
     plot_scatter(df_fiducials['log_intensity'], df_fiducials['area'], 'log10(mean_intensity+1)', 'area (bins)', 'Segmentation classification', 'segmentation_classification_plot', config)
