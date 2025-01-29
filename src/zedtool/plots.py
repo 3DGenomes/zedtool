@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import logging
 import plotly.express as px
-
 import numpy as np
-import matplotlib
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tifffile
 from PIL import Image, ImageDraw, ImageFont
-from zedtool.srxstats import extract_z_correction, z_means_by_marker
+from zedtool.srxstats import z_means_by_marker
 
 # Prints some debugging plots for an SRX dataset.
 # Takes a corrected and an uncorrected table of detections, registers the rows and finds the corrections.

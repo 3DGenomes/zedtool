@@ -9,18 +9,14 @@ import pandas as pd
 import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
-from zedtool.srxstats import extract_z_correction, z_means_by_marker
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from typing import Tuple
 
 # Prints some debugging plots for an SRX dataset.
 # Write out a table with both corrected and uncorrected z.
 
 def main(yaml_config_file: str) -> int:
-    # no_display = True
-    no_display = False
+    no_display = True
+    # no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -34,13 +30,13 @@ def main(yaml_config_file: str) -> int:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+    debug = config['debug']
     # set up logging
-    logging.basicConfig(level=logging.DEBUG if config['debug'] else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
     logger = logging.getLogger()
     stdout_handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     stdout_handler.setFormatter(formatter)
-    logger.addHandler(stdout_handler)
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
@@ -48,7 +44,7 @@ def main(yaml_config_file: str) -> int:
     detections_file = config['detections_file']
     binary_detections_file = os.path.join(config['output_dir'],config['binary_detections_file'])
 
-    debug = config['debug']
+
     noclobber = config['noclobber']
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)

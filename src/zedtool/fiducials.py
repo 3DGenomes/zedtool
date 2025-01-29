@@ -542,11 +542,11 @@ def correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
         x_fit_ft = np.load(outpath_x)
         xsd_fit_ft = np.load(outpath_xsd)
     # group fiducials to be zero centred
-    x_fit_ft, xsd_fit_ft = group_fiducials(x_fit_ft, xsd_fit_ft, config)
+    x_fit_ft, xsd_fit_ft = group_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
     # Fit drift correction to zero-centred fiducials - including across time-point boundaries
     x_t, x_err = make_corrections(x_fit_ft, xsd_fit_ft, config)
     if config['plot_per_fiducial_fitting']:
-        plot_fitted_fiducials(df_fiducials, x_fit_ft, xsd_fit_ft,x_t, config)
+        plot_fitted_fiducials(df_fiducials, x_fit_ft, xsd_fit_ft, config)
     # plot_median_of_detections(df, x_t, config)
     # Save and plot drift correction with error bars
     df_drift = pd.DataFrame({
@@ -578,7 +578,7 @@ def plot_median_of_detections(df: pd.DataFrame, x_cor: np.ndarray, config: dict)
                      f'Median {x_col[j]} vs image-ID', outpath, config)
     return x_cor
 
-def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, x_t: np.ndarray, config: dict) -> int:
+def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, config: dict) -> int:
     logging.info('plot_fitted_fiducials')
 
     ndims = x_fit_ft.shape[0]
@@ -595,6 +595,7 @@ def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_
                            x_fit_ft[k,j,:], xsd_fit_ft[k,j,:],
                            'image-ID', f'{x_col[k]} (nm)', f'{x_col[k]} fit vs frame', outpath, config)
 
+    x_t, xsd_t = combine_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
     for k in range(ndims):
         logging.info(f'Plotting combined fitted corrections for {x_col[k]}')
         outdir = config['output_dir']
@@ -604,7 +605,7 @@ def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_
         for j in range(nfiducials):
             label = df_fiducials.label[j]
             plt.scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], s=0.1, label=f'{label}')
-        plt.scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], s=0.2, c='black', label='fit')
+        plt.scatter(np.arange(x_fit_ft.shape[2]), x_t[k,:], s=0.1, c='black', marker = 'o', label='fit')
         plt.legend()
         plt.xlabel('image-ID')
         plt.ylabel(f"{x_col[k]} (nm)")
@@ -613,17 +614,20 @@ def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_
         plt.close()
     return 0
 
-def make_corrections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> np.ndarray:
-    logging.info('make_corrections')
-    # Make corrections from fitted fiducials in x_ft
-    # weight the fiducials by their uncertainties at each time point
+def combine_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> pd.DataFrame:
+    logging.info('combine_fiducial_fits')
+    # Combine the fits for all fiducials
     # TODO: Compare median with weighted mean in make_corrections()
     w = np.zeros_like(x_ft)
     xsd_f = np.sqrt(np.sum(xsd_ft*xsd_ft, axis=2))
     w[:] = 1 / xsd_f[:, :, np.newaxis]
-    w = 1 / xsd_ft
     x_t = np.average(x_ft, axis=1, weights=w)
     x_err = np.sqrt(np.average((x_ft - x_t[:, None])**2, axis=1, weights=w))
+    return x_t, x_err
+
+def make_corrections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> np.ndarray:
+    logging.info('make_corrections')
+    x_t, x_err = combine_fiducial_fits(x_ft, xsd_ft, config)
     # Make the corrections start at zero
     x_t = x_t - x_t[:, [0]]
     return x_t, x_err
@@ -639,10 +643,11 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
 
 
 def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    # Finds the offsets that minimise the variance of the fiducial fits at each time point
     nfiducials = x_ft.shape[1]
     ndimensions = x_ft.shape[0]
     x_ret = x_ft.copy()
-    w = 1 / xsd_ft
+    w = 1 / xsd_ft*xsd_ft # weight to be used in the cost function
 
     def apply_offsets(offsets, x):
         ndimensions = x.shape[0]
@@ -658,22 +663,30 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tupl
 
     def variance_cost(offsets, x, w):
         x_shifted = apply_offsets(offsets, x)
-        # TODO: Include w in this calculation
-        return np.sum(np.nanvar(x_shifted, axis=1))
+        # At each time point, calculate the variance of the fiducial fits across time points
+        # Weight this by the uncertainties at each time point
+        var_t = np.nanvar(x_shifted, axis=1)
+        weight_t = np.sum(w, axis=1)
+        ret = np.sum(var_t * weight_t)
+        # logging.info(f'Cost: {ret} offsets: {offsets}')
+        return ret
 
     initial_offsets = np.zeros(ndimensions*(nfiducials - 1))
+    initial_cost = variance_cost(initial_offsets, x_ret, w)
     result = scipy.optimize.minimize(variance_cost, initial_offsets, args=(x_ret, w),
-                                     method='L-BFGS-B',options = {'maxiter': 1e3, 'disp': True})
+                                     method='L-BFGS-B',options = {'maxiter': 1e5, 'disp': True})
     optimal_offsets = result.x
+    final_cost = result.fun
+    logging.info(f'Initial cost: {initial_cost} Final cost: {final_cost}')
     x_ret = apply_offsets(optimal_offsets, x_ret)
     return x_ret, xsd_ft
 
-def group_fiducials(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+def group_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
     return x_ret, xsd_ret
 
-def group_fiducials_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    logging.info('group_fiducials')
+def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('group_fiducial_fits_round_robin')
     # Group fiducials to be zero centred
     ndimensions = x_ft.shape[0]
     nfiducials = x_ft.shape[1]
@@ -694,10 +707,8 @@ def group_fiducials_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config: di
             weighted_average = np.ma.average(x_ft_masked_combined, weights=w_masked_combined)
             weighted_average = np.average(x_ft[j,i,:], weights=w[j,i,:])
             x_ret[j,i,:] = x_ft[j,i,:] - weighted_average
-    # Try and group them together closer with a second pass
+    # Try and group them together closer with a second pass of "round robin" squeezing
     # This is a bit of a hack, but it seems to work.
-    # TODO: hold x_ret[:,0,:] constant and, for each j, use optimize to find the offsets that minimize the total variance of x[j,:,:]
-
     for k in range(np.min((nfiducials,10))):
         for i in range(nfiducials):
             for j in range(ndimensions):
@@ -765,6 +776,9 @@ def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) 
                 if np.sum(xsd_fit_ft[k,i,idx] == 0) > 0:
                     xsd_fit_ft[k, i, idx] = xsd_fit_ft[k,i,fitting_intervals[j]]
                     x_fit_ft[k, i, idx] = x_fit_ft[k,i,fitting_intervals[j]]
+    # Check if there are any zeros left in xsd_fit_ft
+    if np.sum(xsd_fit_ft == 0) > 0:
+        logging.error('Zeros in xsd_fit_ft')
     return x_fit_ft, xsd_fit_ft
 
 def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_index: int, y: np.ndarray, ysd: np.ndarray, y_fit: np.ndarray, ysd_fit: np.ndarray, config: dict) -> int:
