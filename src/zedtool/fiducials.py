@@ -682,8 +682,21 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tupl
     return x_ret, xsd_ft
 
 def group_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
+    # x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
+    # x_ret, xsd_ret = group_fiducial_fits_round_robin(x_ft, xsd_ft, config)
+    x_ret, xsd_ret = group_fiducial_fits_to_zero(x_ft, xsd_ft, config)
     return x_ret, xsd_ret
+
+def group_fiducial_fits_to_zero(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('group_fiducial_fits_to_zero')
+    ndimensions = x_ft.shape[0]
+    nfiducials = x_ft.shape[1]
+    for i in range(nfiducials):
+        for j in range(ndimensions):
+            w = 1 / xsd_ft**2
+            weighted_average = np.average(x_ft[j,i,:], weights=w[j,i,:])
+            x_ft[j,i,:] = x_ft[j,i,:] - weighted_average
+    return x_ft, xsd_ft
 
 def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     logging.info('group_fiducial_fits_round_robin')
@@ -746,6 +759,7 @@ def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) 
             # loop over fitting intervals, fitting each interval separately
             for j in range(len(fitting_intervals)-1):
                 idx = np.arange(fitting_intervals[j], fitting_intervals[j+1])
+                logging.info(f'fit_fiducial_step: fid_idx: {i} dim_idx: {k} seg_idx: {j} ')
                 x_fit_ft[k,i,idx], xsd_fit_ft[k,i,idx] = fit_fiducial_step(x_ft[k,i,idx], xsd_ft[k,i,idx], config)
                 y = x_ft[k,i,idx]
                 ysd = xsd_ft[k,i,idx]
@@ -807,7 +821,6 @@ def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_
     return 0
 
 def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    logging.info('fit_fiducial_step')
     polynomial_degree = config['polynomial_degree']
     use_weights_in_fit = (config['use_weights_in_fit']!=0)
     extrapolate_to_end = True

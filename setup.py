@@ -1,16 +1,25 @@
 #control version
+from setuptools import setup, find_packages
+
+def parse_requirements(filename):
+    with open(filename) as f:
+        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+def get_version():
+    version_file = os.path.join('src', 'zedtool', 'VERSION')
+    with open(version_file) as f:
+        return f.read().strip()
 
 setup(
     name='zedtool',
-    version='0.1',
+    version=get_version(),
     author='John Markham',
     author_email='john.markham@gmail.com',
-    
-packages=['zedtool', 'zedtool.detections','zedtool.fiducials','zedtool.plots','zedtool.srxstats','zedtool.image', 'zedtool.cli'],
-    url='',
+	packages=['zedtool', 'zedtool.detections','zedtool.fiducials','zedtool.plots','zedtool.srxstats','zedtool.image', 'zedtool.cli'],
+    url='https://github.com/johnfmarkham/zedtool',
     description='Z Estimate Diagnostics Tool',
     package_dir = {'zedtool':'src/zedtool'},
     package_data = {'zedtool': ['test/*']},
-    requires=['NumPy (>=1.6)', 
-        "Scipy (>= 0.1)", " Skimage (>= 0.2)"],
+    install_requires=parse_requirements("requirements.txt"),
+    python_requires=">=3.10",
 )

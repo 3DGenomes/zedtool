@@ -32,11 +32,7 @@ def main(yaml_config_file: str) -> int:
             print(exc)
     debug = config['debug']
     # set up logging
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
-    logger = logging.getLogger()
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    stdout_handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
@@ -150,6 +146,8 @@ def main(yaml_config_file: str) -> int:
 
     if config['make_quality_metrics']:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_after_correction.tsv")
+        df_fiducials.to_csv(outpath, sep='\t', index=False)
         df_metrics = make_quality_metrics(df, df_fiducials, config)
         outpath = os.path.join(config['fiducial_dir'], "quality_metrics_after_correction.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False)

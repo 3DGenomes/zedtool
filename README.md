@@ -8,6 +8,7 @@ To install ZEDTool from source:
 
 ```bash
 git clone https://github.com/johnfmarkham/zedtool.git
+conda env create --file=linux_env.yaml
 cd zedtool
 pip install .
 ```
@@ -113,6 +114,6 @@ python -m zedtool --config config.yaml
 
 ## License
 
-This package is licensed under the MIT License.
+This package is licensed under the BSD 3-Clause License.
 
 
