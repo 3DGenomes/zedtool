@@ -84,7 +84,7 @@ You can disable/enable various processing steps and visualizations by setting th
 - `plot_fiducial_correlations`: Plot correlations between fiducials. Normally not necessary. Can be slow!
 - `plot_fiducials`: Plot fiducials before any correction.
 - `plot_summary_stats`: Generate summary statistics plots for detections.
-- `correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations.
+- `correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.
 - `correct_detections`: Apply drift correction to all detections.
 - `plot_per_fiducial_fitting`: Generate debugging images for individual fiducial drift corrections. Normally not necessary. Can be slow!
 
