@@ -63,7 +63,10 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     if config['only_fiducials']:
         is_high = np.ones(len(df_fiducials), dtype=bool)
     # Exclude fiducials in config['excluded_fiducials'] by setting is_high to False
-    excluded_fiducials =  pd.Series([int(num) for num in config['excluded_fiducials'].split(",")])
+    if config['excluded_fiducials'] != None:
+        excluded_fiducials =  pd.Series([int(num) for num in str(config['excluded_fiducials']).split(",")])
+    else:
+        excluded_fiducials = pd.Series([])
     is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
     # Set excluded_labels from df_fiducials.labels to 0 in df
     excluded_labels = df_fiducials[is_high==False]['label']
