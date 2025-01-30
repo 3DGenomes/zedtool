@@ -10,6 +10,8 @@ import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections
+from zedtool import __version__
+
 
 # Prints some debugging plots for an SRX dataset.
 # Write out a table with both corrected and uncorrected z.
@@ -22,7 +24,8 @@ def main(yaml_config_file: str) -> int:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
     else:
         matplotlib.use('TkAgg')  # Use the 'TkAgg' backend if a display is available
-
+    print_ascii_logo()
+    print_version()
     print(f"Reading config file: {yaml_config_file}")
     # read yaml config file
     with open(yaml_config_file, 'r') as stream:
@@ -39,7 +42,6 @@ def main(yaml_config_file: str) -> int:
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     detections_file = config['detections_file']
     binary_detections_file = os.path.join(config['output_dir'],config['binary_detections_file'])
-
 
     noclobber = config['noclobber']
     os.makedirs(config['output_dir'], exist_ok=True)
@@ -158,9 +160,24 @@ def main(yaml_config_file: str) -> int:
 
     return 0
 
+def print_version() -> str:
+    ret = f"Version: {__version__}"
+    print(ret)
+    return ret
+
+def print_ascii_logo() -> str:
+    ret = """
+ +-+-+-+-+-+-+-+
+ |Z|e|d|T|o|o|l|
+ +-+-+-+-+-+-+-+
+     """
+    print(ret)
+    return ret
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: zedtools.py <config_file>")
+        print("Usage: zedtool.py <config_file>")
+        print_version()
         sys.exit(1)
     ret = main(sys.argv[1])
     print(ret)

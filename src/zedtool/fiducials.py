@@ -655,6 +655,7 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
 
 
 def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('minimize_fiducial_fit_variance')
     # Finds the offsets that minimise the variance of the fiducial fits at each time point
     nfiducials = x_ft.shape[1]
     ndimensions = x_ft.shape[0]
@@ -694,9 +695,13 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray) -> Tupl
     return x_ret, xsd_ft
 
 def group_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    # x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
-    # x_ret, xsd_ret = group_fiducial_fits_round_robin(x_ft, xsd_ft, config)
-    x_ret, xsd_ret = group_fiducial_fits_to_zero(x_ft, xsd_ft, config)
+    group_by = "optimise" # "round_robin" or "zero" or "optimise"
+    if group_by == "optimise":
+        x_ret, xsd_ret = minimize_fiducial_fit_variance(x_ft, xsd_ft)
+    elif group_by == "round_robin":
+        x_ret, xsd_ret = group_fiducial_fits_round_robin(x_ft, xsd_ft, config)
+    elif group_by == "zero":
+        x_ret, xsd_ret = group_fiducial_fits_to_zero(x_ft, xsd_ft, config)
     return x_ret, xsd_ret
 
 def group_fiducial_fits_to_zero(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
