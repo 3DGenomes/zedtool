@@ -161,14 +161,14 @@ def main(yaml_config_file: str) -> int:
     return 0
 
 def print_version() -> str:
-    ret = f"Version: {__version__}"
+    ret = f"  Version: {__version__}\n"
     print(ret)
     return ret
 
 def print_ascii_logo() -> str:
     ret = """
  +-+-+-+-+-+-+-+
- |Z|e|d|T|o|o|l|
+ |z|e|d|t|o|o|l|
  +-+-+-+-+-+-+-+
      """
     print(ret)
