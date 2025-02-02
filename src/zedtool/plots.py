@@ -8,6 +8,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tifffile
 from PIL import Image, ImageDraw, ImageFont
 from zedtool.srxstats import z_means_by_marker
+from zedtool.detections import fwhm_from_points
 
 # Prints some debugging plots for an SRX dataset.
 # Takes a corrected and an uncorrected table of detections, registers the rows and finds the corrections.
@@ -155,11 +156,26 @@ def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int
     plot_scatter(z_step, z_mean, 'z-step', 'mean(z) per z-step (nm)', 'mean(z) vs z-step', 'z_mean_per_z_step_vs_z_step',
                  config)
 
+def stats_text(x: np.ndarray,title: str) -> str:
+    # Calculate some statistics
+    n = len(x)
+    mean_x = np.mean(x)
+    sd_x = np.std(x)
+    fwhm_x = fwhm_from_points(x)
+    text = f"{title}\n"
+    text += f"n = {n}\n"
+    text += f"mean = {mean_x:.2f}\n"
+    text += f"sd = {sd_x:.2f}\n"
+    text += f"fwhm = {fwhm_x:.2f}\n"
+    return text
+
 def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> int:
     #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
     logging.info("plot_fiducials")
     detections_img_file = 'detections_img.tif'
     fiducials_plot_file = 'fiducials_plot'
+    dimnames = ['x', 'y', 'z']
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
     # scale the image to 0-255
@@ -206,10 +222,13 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         z_step_step = config['z_step_step']
         adjusted_z = z - z_step * z_step_step
 
-        outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_frame")
-        image_id = df_detections_roi[config['image_id_col']]
-        plot_scatter(image_id, z, 'image-ID', 'z (nm)', "z_vs_frame", outpath, config)
-        plotly_scatter(image_id, z, None, 'image-ID', 'z (nm)', "z_vs_frame", outpath, config)
+        for k in range(len(dimnames)):
+            outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
+            image_id = df_detections_roi[config['image_id_col']]
+            col_id = xyz_colnames[k]
+            vals = df_detections_roi[col_id]
+            plot_scatter(image_id, vals, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
+            plotly_scatter(image_id, vals, None, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
 
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_z_zstep")
         plot_scatter(adjusted_z, z, 'z - z-step*z_step_step (nm)','z (nm)', 'z vs z - z-step*z_step_step', outpath, config)
@@ -221,16 +240,22 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         fig, axs = plt.subplots(2, 2, figsize=(12, 10))
         # Plot histograms
         axs[0, 0].hist(x, bins=100, color='blue', alpha=0.7)
+        axs[0, 0].annotate(stats_text(x, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
         axs[0, 0].set_title('Histogram of x')
         axs[0, 0].set_xlabel('x nm')
         axs[0, 0].set_ylabel('Frequency')
 
         axs[0, 1].hist(y, bins=100, color='green', alpha=0.7)
+        axs[0, 1].annotate(stats_text(y, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
         axs[0, 1].set_title('Histogram of y')
         axs[0, 1].set_xlabel('y nm')
         axs[0, 1].set_ylabel('Frequency')
 
         axs[1, 0].hist(z, bins=100, color='red', alpha=0.7)
+        axs[1, 0].annotate(stats_text(z, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
         axs[1, 0].set_title('Histogram of z')
         axs[1, 0].set_xlabel('z nm')
         axs[1, 0].set_ylabel('Frequency')

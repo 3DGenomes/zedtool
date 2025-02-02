@@ -121,7 +121,7 @@ def main(yaml_config_file: str) -> int:
 
     if config['make_quality_metrics']:
         df_metrics = make_quality_metrics(df, df_fiducials, config)
-        outpath = os.path.join(config['fiducial_dir'], "quality_metrics_before_correction.tsv")
+        outpath = os.path.join(config['output_dir'], "quality_metrics_before_correction.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False)
 
     # Make correlations between fiducials between and within sweeps
@@ -151,7 +151,7 @@ def main(yaml_config_file: str) -> int:
         outpath = os.path.join(config['fiducial_dir'], "fiducials_after_correction.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False)
         df_metrics = make_quality_metrics(df, df_fiducials, config)
-        outpath = os.path.join(config['fiducial_dir'], "quality_metrics_after_correction.tsv")
+        outpath = os.path.join(config['output_dir'], "quality_metrics_after_correction.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False)
 
     # Write df and copy config file to output dir
