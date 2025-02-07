@@ -132,19 +132,18 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
 
 def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int:
     # Plot detections and other quantities
-    z_step_step = config['z_step_step']
 
     # plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", df['z-step'].max()-df['z-step'].min()+1, config)
     plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", config)
-    plot_histogram(df[config['z_col']] - df[config['z_step_col']] * z_step_step, 'z - z-step*z_step_step (nm)', 'Detections',
-                   'Detections by z-z-step*z_step_step', 'z_zstep_histogram', config)
+    plot_histogram(df[config['deltaz_col']], f"{config['deltaz_col']} (nm)", 'Detections',
+                   'Detections delta z', 'delta_z_histogram', config)
     plot_scatter(df[config['image_id_col']], df[config['z_col']], 'image-ID', 'z (nm)', 'z vs frame', 'z_vs_frame', config)
     plot_scatter(df[config['image_id_col']], df[config['photons_col']], 'image-ID', 'photon-count', 'photon-count vs frame',
                  'photon_count_vs_frame', config)
     plot_scatter(df[config['image_id_col']], df[config['z_step_col']], 'image-ID', 'z-step', 'z-step vs frame',
                  'zstep_vs_frame', config)
-    plot_scatter(df[config['z_col']] - df[config['z_step_col']] * z_step_step, df[config['z_col']],
-                 'z - z-step*z_step_step (nm)', 'z (nm)', 'z vs z - z-step*z_step_step', 'z_vs_z_zstep', config)
+    plot_scatter(df[config['deltaz_col']] , df[config['z_col']],
+                 'delta z (nm)', 'z (nm)', 'z vs delta z', 'z_vs_delta_z', config)
 
     z_mean, t = z_means_by_marker(det_xyz, df[config['image_id_col']].values)
     plot_scatter(t, z_mean, 'time', 'mean(z) per frame (nm)', 'mean(z) vs time', 'z_mean_per_frame_vs_time', config)
@@ -174,7 +173,8 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
     logging.info("plot_fiducials")
     detections_img_file = 'detections_img.tif'
     fiducials_plot_file = 'fiducials_plot'
-    dimnames = ['x', 'y', 'z']
+    dimnames = config['dimnames']
+    dimnames = [item.strip() for item in dimnames.split(",")]
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
@@ -208,7 +208,7 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
     # Also plot histogram of x,y,x
     for j in range(len(df_fiducials)):
         # columns = [config['image_id_col'], config['z_step_col'], config['frame_col'], config['time_point_col'], config['cycle_col']]
-        columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]
+        columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col'], config['deltaz_col']]
         fiducial_label = df_fiducials.at[j, 'label']
         fiducial_name = df_fiducials.at[j, 'name']
         outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
@@ -218,9 +218,9 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         x = df_detections_roi[config['x_col']]
         y = df_detections_roi[config['y_col']]
         z = df_detections_roi[config['z_col']]
+        deltaz = df_detections_roi[config['deltaz_col']]
         z_step = df_detections_roi[config['z_step_col']]
         z_step_step = config['z_step_step']
-        adjusted_z = z - z_step * z_step_step
 
         for k in range(len(dimnames)):
             outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
@@ -230,8 +230,8 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
             plot_scatter(image_id, vals, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
             plotly_scatter(image_id, vals, None, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
 
-        outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_z_zstep")
-        plot_scatter(adjusted_z, z, 'z - z-step*z_step_step (nm)','z (nm)', 'z vs z - z-step*z_step_step', outpath, config)
+        outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_delta_z")
+        plot_scatter(deltaz, z, 'delta z (nm)','z (nm)', 'z vs delta z', outpath, config)
 
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_zstep")
         plot_scatter(z_step, z, 'z_step', 'z (nm)', 'z vs zstep', outpath, config)
@@ -260,9 +260,9 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         axs[1, 0].set_xlabel('z nm')
         axs[1, 0].set_ylabel('Frequency')
 
-        axs[1, 1].hist(adjusted_z, bins=100, color='purple', alpha=0.7)
-        axs[1, 1].set_title('Histogram of z - z_step * z_step_step')
-        axs[1, 1].set_xlabel('Adjusted z - z_step * z_step_step  nm')
+        axs[1, 1].hist(deltaz, bins=100, color='purple', alpha=0.7)
+        axs[1, 1].set_title('Histogram of delta z')
+        axs[1, 1].set_xlabel('delta z nm')
         axs[1, 1].set_ylabel('Frequency')
         # Adjust layout
         plt.tight_layout()

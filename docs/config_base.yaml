@@ -7,6 +7,8 @@ drift_correction_file: /home/jmarkham/work/zedtool/tests/xypatch/drift_correctio
 
 bin_resolution: 20 # bin size in nm for binned image
 z_step_step: -100 # step size in nm for one step in the z-direction (be careful you get the sign right!)
+
+#Debugging settings
 debug: 1 # Potentially controls verbosity and plot output.
 noclobber: 1 # If 1, will not overwrite cached intermediate results
 make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
@@ -16,6 +18,11 @@ n_min_cutoff: 1 # remove detections based on their density in the binned x,y ima
 n_max_cutoff: 10000000000
 select_cols: x,y # comma separated list of selection criteria for ranges
 select_ranges: 0-10000,20000-30000 # comma separated list of ranges
+
+# Plot labels
+dimnames: x,y,z
+timename: t
+deltazname: deltaz
 
 # Number of frames, z-steps, cycles, time-points to expect in the data
 frame_range: 0-199 # frames per z-step

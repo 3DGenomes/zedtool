@@ -99,19 +99,21 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
     colnames = config['select_cols']
     ranges = config['select_ranges']
+    if colnames == '' or ranges == '' or colnames is None or ranges is None:
+        return df
     # Split colnames and ranges into lists
     columns = colnames.split(',')
     range_list = ranges.split(',')
 
     # Ensure columns and ranges have the same length
     if len(columns) != len(range_list):
-        raise ValueError("The number of columns and ranges must match")
+        raise ValueError(f"The number of columns and ranges must match: {colnames} vs {ranges}")
 
     # Start with the full DataFrame
     filtered_df = df.copy()
     logging.info(f"Initial number of rows: {filtered_df.shape[0]}")
-    # TODO: Build up idx and filter once.
 
+    # TODO: Build up idx and filter once.
     # Apply filters for each column and range
     for col, r in zip(columns, range_list):
         # Parse the range (e.g., "1.0-3.2" -> 1.0, 3.2)
@@ -122,7 +124,6 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     return filtered_df
 
 
-import numpy as np
 
 
 def fwhm_from_points(x, bins=100):

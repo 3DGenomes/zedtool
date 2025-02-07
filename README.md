@@ -41,6 +41,10 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `noclobber`: If set to 1, prevents overwriting cached intermediate results. Safest to leave = 0.
 - `make_caches`: If set to 1, saves detections to a binary file for faster subsequent loading.
 
+### **Plot Labels**
+- `dimnames`: Axis labels for spatial dimensions (default=x,y,z)
+- `timename`: Axis labels for time dimension (default=t)
+
 ### **Detection Filtering**
 - `n_min_cutoff`: Minimum detection density in the binned x,y image to retain detections.
 - `n_max_cutoff`: Maximum detection density in the binned x,y image.
@@ -60,6 +64,7 @@ These specify how different columns in the detections file are named:
 - `x_sd_col`, `y_sd_col`, `z_sd_col`: Precision values for x, y, and z coordinates.
 - `photons_col`: Photon count.
 - `chisq_col`: Chi-squared value of the fit (not currently used but may be in future versions).
+- `deltaz_col`: Distance of z relative to focal plane or putative biplane midpoint. (default=deltaz)
 
 ### **Fiducial Segmentation and Filtering**
 - `excluded_fiducials`: Comma-separated list of fiducials to exclude from drift correction.
@@ -105,11 +110,17 @@ z_step_range: 0-60
 cycle_range: 0-4 
 time_point_range: 0-0 
 
+# Binning and debugging
 bin_resolution: 20 
 z_step_step: -100 
 debug: 1 
 noclobber: 1 
 make_caches: 1 
+
+# Plot labels
+dimnames: x,y,z
+timename: t
+deltazname: deltaz
 
 # Detection filtering
 n_min_cutoff: 1 

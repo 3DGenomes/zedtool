@@ -30,7 +30,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     segmentation_mask_file = 'segmentation_mask.tif'
     detections_img_file = 'detections_img.tif'
     fiducial_mask_file = 'fiducial_mask.tif'
-    plot_histogram(np.log10(img[img>0]), 'log10(intensity)', 'Fiducials', 'Histogram of log10(intensity) of fiducials', 'histogram_log_intensity', config)
+    plot_histogram(np.log10(img[img>0]), 'log10(bin)', 'Number of bins', 'Histogram of binned detections image', 'histogram_binned_detections', config)
     image_path = os.path.join(config['output_dir'], detections_img_file)
     tifffile.imsave(image_path, img)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_filter_disc_radius))
@@ -91,9 +91,8 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     # Make stats for fiducials
     logging.info('make_fiducial_stats')
     # Add columns to df_fiducials for stats
+    df_fiducials['name'] = ''
     df_fiducials['n_detections'] = 0
-    df_fiducials['n_images'] = 0
-    df_fiducials['detections_per_image'] = 0
     df_fiducials['x_mean'] = 0
     df_fiducials['x_sd'] = 0
     df_fiducials['x_fwhm'] = 0
@@ -105,7 +104,11 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     df_fiducials['z_fwhm'] = 0
     df_fiducials['photons_mean'] = 0
     df_fiducials['photons_sd'] = 0
-    df_fiducials['name'] = ''
+    df_fiducials['n_images'] = 0
+    df_fiducials['detections_per_image'] = 0
+    df_fiducials['vx_mad'] = 0
+    df_fiducials['vy_mad'] = 0
+    df_fiducials['vz_mad'] = 0
     for j in range(len(df_fiducials)):
         fiducial_label = df_fiducials.at[j,'label']
         logging.info(f'Processing fiducial {fiducial_label}')
@@ -140,13 +143,17 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         detections_per_image = n_detections/n_images
         photons_mean = np.mean(df_sel[config['photons_col']])
         photons_sd = np.std(df_sel[config['photons_col']])
+        df_fiducials.at[j, 'name'] = f'f_{fiducial_label:04d}_z_{int(z_mean):05d}_y_{int(y_mean):05d}_x_{int(x_mean):05d}'.replace('-', 'm')
         df_fiducials.at[j, 'n_detections'] = n_detections
-        df_fiducials.at[j, 'x_sd'] = x_sd
         df_fiducials.at[j, 'x_mean'] = x_mean
-        df_fiducials.at[j, 'y_sd'] = y_sd
+        df_fiducials.at[j, 'x_sd'] = x_sd
+        df_fiducials.at[j, 'x_fwhm'] = x_fwhm
         df_fiducials.at[j, 'y_mean'] = y_mean
-        df_fiducials.at[j, 'z_sd'] = z_sd
+        df_fiducials.at[j, 'y_fwhm'] = y_fwhm
+        df_fiducials.at[j, 'y_sd'] = y_sd
         df_fiducials.at[j, 'z_mean'] = z_mean
+        df_fiducials.at[j, 'z_sd'] = z_sd
+        df_fiducials.at[j, 'z_fwhm'] = z_fwhm
         df_fiducials.at[j, 'n_images'] = n_images
         df_fiducials.at[j, 'detections_per_image'] = detections_per_image
         df_fiducials.at[j, 'photons_mean'] = photons_mean
@@ -154,10 +161,6 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         df_fiducials.at[j, 'vx_mad'] = vx_mad
         df_fiducials.at[j, 'vy_mad'] = vy_mad
         df_fiducials.at[j, 'vz_mad'] = vz_mad
-        df_fiducials.at[j, 'x_fwhm'] = x_fwhm
-        df_fiducials.at[j, 'y_fwhm'] = y_fwhm
-        df_fiducials.at[j, 'z_fwhm'] = z_fwhm
-        df_fiducials.at[j, 'name'] = f'f_{fiducial_label:04d}_z_{int(z_mean):05d}_y_{int(y_mean):05d}_x_{int(x_mean):05d}'.replace('-', 'm')
     return df_fiducials
 
 
@@ -410,8 +413,6 @@ def correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
         c_z_step = make_corrections_for_zstep(x_ct, sd_ct, dx_c, config)
         x_ct_cor = apply_corrections_for_zstep(x_ct, c_z_step, config)
         sd_t = estimate_errors_for_zstep(x_ct_cor, config)
-        # Plot fitted values on top of original values
-        # plot_fiduciual_zstep_fit(fiducial_label,k,x_ct, sd_t, dx_c, c_z_step, config)
         # Transfer corrected values back to df
         for j in range(num_time_points):
             for i in range(num_cycles):
@@ -429,30 +430,62 @@ def correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
         outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
         outpath = os.path.join(outdir, f"{fiducial_name}_cor_{varname}_vs_frame")
         df_sel = df[df['label'] == fiducial_label]
+        # Plot fitted values on top of original values
+        # if config['plot_per_fiducial_fitting']:
+        plot_fiduciual_zstep_fit(fiducial_label,df_sel, config)
         plot_scatter(df_sel[config['image_id_col']], df_sel[colname], 'image-ID', f'{varname} (nm)', f"{varname} corrected for z-step vs frame",
                      outpath, config)
         plotly_scatter(df_sel[config['image_id_col']], df_sel[colname], df_sel[sd_colnames[k]], 'image-ID', f'{varname} (nm)', f"{varname} corrected for z-step vs frame",
                        outpath, config)
     return 0
 
-def plot_fiduciual_zstep_fit(fiducial_index: int, dimension_index: int, y: np.ndarray, ysd: np.ndarray, cycle_fit: np.ndarray, z_fit: np.ndarray, config: dict) -> int:
+def plot_fiduciual_zstep_fit(fiducial_index: int, df: pd.DataFrame, config: dict) -> int:
     logging.info('plot_fiduciual_zstep_fit')
-    dimensions = ['x', 'y', 'z']
-    dim = dimensions[dimension_index]
+    dimnames =config['dimnames']
+    dimnames = [item.strip() for item in dimnames.split(",")]
+    ndim = len(dimnames)
     outdir = os.path.join(config['output_dir'], "fiducial_zstep_fit")
     os.makedirs(outdir, exist_ok=True)
-    outpath = os.path.join(outdir, f"f_{fiducial_index}_d_{dim}_fit")
-    x = np.arange(len(y))
-    plt.figure(figsize=(10, 6))
-    sc = plt.scatter(x, y, c = ysd, s = 0.1, label='Original Data')
-    plt.colorbar(sc, label='sd')
-    # plt.scatter(x, y_fit, s=0.1, label='Fit')
-    plt.xlabel('image-ID')
-    plt.ylabel(f"{dim} (nm)")
-    plt.title(f'Fit for {dim}  fid={fiducial_index} tp={interval_index}')
-    plt.legend()
-    plt.savefig(outpath)
-    plt.close()
+    for j in range(ndim):
+        dim = dimnames[j]
+        outpath = os.path.join(outdir, f"f_{fiducial_index}_d_{dim}_fit")
+        x = df[config['image_id_col']]
+        y_cor_col = config[f'{dim}_col']
+        y_cor_sd_col = config[f'{dim}_sd_col']
+        y_orig_col = f'{y_cor_col}_0'
+        y_orig_sd_col = f'{y_cor_sd_col}_0'
+        y_cor = df[y_cor_col]
+        y_cor_sd = df[y_cor_sd_col]
+        y_orig = df[y_orig_col]
+        y_orig_sd = df[y_orig_sd_col]
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
+        sc1 = ax1.scatter(x, y_orig, s=0.1, c=y_orig_sd, label='Original')
+        ax1.set_xlabel('image-ID')
+        ax1.set_ylabel(f"{dim} (nm)")
+        ax1.set_title(f'Original {dim} fit for fid={fiducial_index}')
+        ax1.legend()
+        cbar1 = plt.colorbar(sc1, ax=ax1)
+        cbar1.set_label('Original SD')
+
+        sc2 = ax2.scatter(x, y_cor, s=0.1, c=y_cor_sd, label='Corrected')
+        ax2.set_xlabel('image-ID')
+        ax2.set_ylabel(f"{dim} (nm)")
+        ax2.set_title(f'Corrected {dim} fit for fid={fiducial_index}')
+        ax2.legend()
+        cbar2 = plt.colorbar(sc2, ax=ax2)
+        cbar2.set_label('Corrected SD')
+
+        # Determine the combined y-range
+        y_min = min(y_orig.min(), y_cor.min())
+        y_max = max(y_orig.max(), y_cor.max())
+        # Set the same y-range for both axes
+        ax1.set_ylim(y_min, y_max)
+        ax2.set_ylim(y_min, y_max)
+
+        plt.tight_layout()
+        plt.savefig(outpath)
+        plt.close()
     return 0
 
 def make_corrections_for_cycles(x_ct: np.ndarray, sd_ct: np.ndarray, config: dict) -> np.ndarray:
@@ -465,7 +498,7 @@ def make_corrections_for_cycles(x_ct: np.ndarray, sd_ct: np.ndarray, config: dic
     combined_mask = np.logical_or(x_ct_masked.mask, sd_ct_masked.mask)
     non_zero_mask = sd_ct != 0
     weights = np.full_like(sd_ct, np.nan, dtype=float)
-    weights[non_zero_mask] = 1 / sd_ct[non_zero_mask]
+    weights[non_zero_mask] = 1 / sd_ct[non_zero_mask]**2
     x_ct_masked_combined = np.ma.masked_array(x_ct, mask=combined_mask)
     weights_masked_combined = np.ma.masked_array(weights, mask=combined_mask)
     # Weighted average, ignoring NaNs
@@ -488,7 +521,7 @@ def make_corrections_for_zstep(x_ct: np.ndarray, sd_ct: np.ndarray, dx_c: np.nda
         combined_mask = np.logical_or(x_ct_masked.mask, sd_ct_masked.mask)
         non_zero_mask = sd_ct_z != 0
         weights = np.full_like(sd_ct_z, np.nan, dtype=float)
-        weights[non_zero_mask] = 1 / sd_ct_z[non_zero_mask]
+        weights[non_zero_mask] = 1 / sd_ct_z[non_zero_mask]**2
         x_ct_masked_combined = np.ma.masked_array(x_ct_z, mask=combined_mask)
         weights_masked_combined = np.ma.masked_array(weights, mask=combined_mask)
         # Weighted average, ignoring NaNs
@@ -496,6 +529,12 @@ def make_corrections_for_zstep(x_ct: np.ndarray, sd_ct: np.ndarray, dx_c: np.nda
             c_z_step[i] = -np.ma.average(x_ct_masked_combined, weights=weights_masked_combined)
 
     return c_z_step
+
+def apply_corrections_for_cycles(x_ct: np.ndarray, dx_c: np.ndarray, config: dict) -> np.ndarray:
+    # Apply corrections for cycles
+    logging.info('apply_corrections_for_cycles')
+    x_ct_cor = x_ct + dx_c
+    return x_ct_cor
 
 def apply_corrections_for_zstep(x_ct: np.ndarray, c_z_step: np.ndarray, config: dict) -> np.ndarray:
     num_zsteps = c_z_step.shape[0]
@@ -511,7 +550,7 @@ def apply_corrections_for_zstep(x_ct: np.ndarray, c_z_step: np.ndarray, config: 
 def estimate_errors_for_zstep(x_ct: np.ndarray, config: dict) -> np.ndarray:
     logging.info('estimate_errors_for_zstep')
     valid_counts = np.sum(~np.isnan(x_ct), axis=0)
-    idx = valid_counts > 1
+    idx = valid_counts > 2 # Need at least 3 values to estimate sd and avoid tiny values
     sd_t = np.full(x_ct.shape[1], np.nan)
     sd_t[idx] = np.nanstd(x_ct[:, idx], axis=0)
     return sd_t
@@ -612,7 +651,7 @@ def combine_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) ->
     method = "weighted_mean" # "median" or "weighted_mean"
     w = np.zeros_like(x_ft)
     xsd_f = np.sqrt(np.sum(xsd_ft*xsd_ft, axis=2))
-    w[:] = 1 / xsd_f[:, :, np.newaxis]
+    w[:] = 1 / xsd_f[:, :, np.newaxis]**2
     if method == "median":
         x_t = np.median(x_ft, axis=1)
     elif method == "weighted_mean":
@@ -648,6 +687,15 @@ def make_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_f
     x_t = x_t - x_t[:, [0]]
     return x_t, xsd_t
 
+def compute_deltaz(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info('add_deltaz_column')
+    # Add a column to the dataframe that is the relative z position
+    if not config['deltaz_col'] in df.columns:
+        df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+    else:
+        logging.warning('Column deltaz already exists in df')
+    return df
+
 def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.DataFrame:
     logging.info('apply_corrections')
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
@@ -655,6 +703,9 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
     for j in range(ndimensions):
         tidx = df[config['image_id_col']]
         df[xyz_colnames[j]] = df[xyz_colnames[j]] - x_t[j, tidx]
+    # Correct deltaz if it exists
+    if config['deltaz_col'] in df.columns:
+        df[config['deltaz_col']] = df[config['deltaz_col']] - x_t[2, df[config['image_id_col']]]
     return df
 
 def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray,config: dict) -> Tuple[np.ndarray, np.ndarray]:
@@ -665,11 +716,10 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray,config: 
     nfiducials = x_ft.shape[1]
     ndimensions = x_ft.shape[0]
     x_ret = x_ft.copy()
-    w = 1 / xsd_ft*xsd_ft # weight to be used in the cost function
+    w = 1 / xsd_ft**2 # weight to be used in the cost function
 
     def apply_offsets(offsets, x):
-        ndimensions = x.shape[0]
-        nfiducials = x.shape[1]
+        nfiducials = x.shape[0]
         x_shifted = x.copy()
         # Apply offset to all fiducials except the first
         x_shifted[1:nfiducials, :] += offsets[:nfiducials-1, np.newaxis]
@@ -729,7 +779,7 @@ def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config
     # Group fiducials to be zero centred
     ndimensions = x_ft.shape[0]
     nfiducials = x_ft.shape[1]
-    w = 1 / xsd_ft
+    w = 1 / xsd_ft**2
     # group to zero first
     x_ret, xsd_ft = group_fiducial_fits_to_zero(x_ft, xsd_ft, config)
     # Try and group them together closer with a second pass of "round robin" squeezing
@@ -809,8 +859,9 @@ def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) 
 
 def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_index: int, y: np.ndarray, ysd: np.ndarray, y_fit: np.ndarray, ysd_fit: np.ndarray, config: dict) -> int:
     logging.info('plot_fiduciual_step_fit')
-    dimensions = ['x', 'y', 'z']
-    dim = dimensions[dimension_index]
+    dimnames = config['dimnames']
+    dimnames = [item.strip() for item in dimnames.split(",")]
+    dim = dimnames[dimension_index]
     outdir = os.path.join(config['output_dir'], "fiducial_step_fit")
     os.makedirs(outdir, exist_ok=True)
     outpath = os.path.join(outdir, f"fidx_{fiducial_index}_i_{interval_index}_d_{dim}_fit")

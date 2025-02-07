@@ -8,8 +8,9 @@ import logging
 import pandas as pd
 import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
-from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_scatter, plotly_scatter
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections
+from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections, compute_deltaz
+from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool import __version__
 
 
@@ -33,6 +34,8 @@ def main(yaml_config_file: str) -> int:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+            return 1
+    config = config_update(config_default(), config) # Update defaults with settings from file
     debug = config['debug']
     # set up logging
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
@@ -46,6 +49,10 @@ def main(yaml_config_file: str) -> int:
     noclobber = config['noclobber']
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
+    if not config_validate(config):
+        return 1
+    if debug:
+        config_print(config)
 
     if noclobber and os.path.exists(binary_detections_file) and config['make_caches']:
         logging.info(f"Loading detections from {binary_detections_file}")
@@ -57,6 +64,8 @@ def main(yaml_config_file: str) -> int:
             df.to_pickle(binary_detections_file)
 
     logging.info(f"Loaded {df.shape[0]} rows")
+    if not config_validate_detections(df, config):
+        return 1
 
     if config['apply_drift_correction']:
         drift_correction_file = config['drift_correction_file']
@@ -69,6 +78,7 @@ def main(yaml_config_file: str) -> int:
         x_t[2] = df_corrections['z'].values
         df = apply_corrections(df, x_t, config)
 
+    df = compute_deltaz(df, config) # add deltaz column
     df = filter_detections(df, config)
     logging.info(f"Filtered to {df.shape[0]} rows")
 
