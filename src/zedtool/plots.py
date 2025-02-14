@@ -95,7 +95,7 @@ def plot_detections(df: np.ndarray, filename: str, config: dict) -> int:
     ax[1, 1].hist(df[config['z_col']], bins=100)
     ax[1, 1].set_xlabel('z (nm)')
     ax[1, 1].set_ylabel('count')
-    figure_path = construct_plot_path("detections_summary", "png", config)
+    figure_path = construct_plot_path(filename, "png", config)
     plt.savefig(figure_path, dpi=600)
     plt.close()
 
@@ -126,7 +126,7 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
     ax[2, 0].set_ylabel('mean(z) nm')
     ax[2, 1].set_xlabel('log_10(n)')
     ax[2, 1].set_ylabel('mean(z) nm')
-    figure_path = construct_plot_path("binned_detections_summary", "png", config)
+    figure_path = construct_plot_path(filename, "png", config)
     fig.savefig(figure_path, dpi=600)
     plt.close()
 
@@ -174,7 +174,6 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
     detections_img_file = 'detections_img.tif'
     fiducials_plot_file = 'fiducials_plot'
     dimnames = config['dimnames']
-    dimnames = [item.strip() for item in dimnames.split(",")]
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
@@ -220,7 +219,6 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         z = df_detections_roi[config['z_col']]
         deltaz = df_detections_roi[config['deltaz_col']]
         z_step = df_detections_roi[config['z_step_col']]
-        z_step_step = config['z_step_step']
 
         for k in range(len(dimnames)):
             outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
@@ -236,6 +234,7 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_zstep")
         plot_scatter(z_step, z, 'z_step', 'z (nm)', 'z vs zstep', outpath, config)
 
+        # Plot distributions in x,y,z,deltaz
         outpath = os.path.join(outdir, f"{fiducial_name}_hist")
         fig, axs = plt.subplots(2, 2, figsize=(12, 10))
         # Plot histograms
@@ -269,6 +268,22 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         plt.savefig(outpath, dpi=300)
         plt.close()
 
+        # Plot x,y,z dependence on deltaz
+        fig, ax = plt.subplots(3, 1, figsize=(12, 9))
+        outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
+        figure_path = construct_plot_path(outpath, "png", config)
+        ax[0].scatter(deltaz, x, s=0.05, c='blue', alpha=0.25)
+        ax[0].set_xlabel('delta z (nm)')
+        ax[0].set_ylabel('x (nm)')
+        ax[1].scatter(deltaz, y, s=0.05, c='green', alpha=0.25)
+        ax[1].set_xlabel('delta z (nm)')
+        ax[1].set_ylabel('y (nm)')
+        ax[2].scatter(deltaz, z, s=0.05, c='red', alpha=0.25)
+        ax[2].set_xlabel('delta z (nm)')
+        ax[2].set_ylabel('z (nm)')
+        plt.savefig(figure_path, dpi=600)
+        plt.close()
+        # Plot detections colour coded by possible covariates
         for col in columns:
             fig, ax = plt.subplots(2, 2, figsize=(12, 9))
             sc = ax[0, 0].scatter(x, z, s=0.05, c=df_detections_roi[col], alpha=0.25)
@@ -290,4 +305,61 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
             plt.savefig(figure_path, dpi=600)
             plt.close()
     return 0
+
+def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict) -> int:
+    dimnames =config['dimnames']
+    ndim = len(dimnames)
+    quantities = ['deltaz_cor', 'sd', 'fwhm']
+    units = ['', 'nm', 'nm']
+    for unit,fiducial_stat in zip (units, quantities):
+        logging.info(f"Plotting fiducial stat {fiducial_stat}")
+        outdir = os.path.join(config['fiducial_dir'])
+        os.makedirs(outdir, exist_ok=True)
+        outpath = os.path.join(outdir, f"{fiducial_stat}_vs_xyz")
+        fig, axs = plt.subplots(3, 3, figsize=(12, 10))
+        for j in range(len(dimnames)):
+            for k in range(len(dimnames)):
+                y_col = f"{dimnames[k]}_{fiducial_stat}"
+                x_col = f"{dimnames[j]}_mean"
+                x = df_fiducials[x_col]
+                y = df_fiducials[y_col]
+                axs[j, k].set_title(f"{y_col} vs {x_col}")
+                axs[j, k].set_xlabel(f"{x_col} (nm)")
+                axs[j, k].set_ylabel(f"{y_col} {unit}")
+                axs[j, k].scatter(x,y)
+        plt.tight_layout()
+        plt.savefig(outpath, dpi=300)
+        plt.close()
+
+    # plot photons versus x_mean, y_mean, z_mean in a 3 panel plot
+    outdir = os.path.join(config['fiducial_dir'])
+    outpath = os.path.join(outdir, "photons_vs_xyz")
+    fig, axs = plt.subplots(3, 1, figsize=(12, 4))
+    for j in range(ndim):
+        x_col = f"{dimnames[j]}_mean"
+        x = df_fiducials[x_col]
+        y = df_fiducials['photons_mean']
+        axs[j].scatter(x, y)
+        axs[j].set_title(f"mean photons vs {x_col}")
+        axs[j].set_xlabel(f"{x_col} (nm)")
+        axs[j].set_ylabel("photons")
+    plt.tight_layout()
+    plt.savefig(outpath, dpi=300)
+    plt.close()
+
+def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
+    # Save a 3D array to a TIFF file
+    maxpixel = np.max(counts_xyz)
+    imgfile = construct_plot_path(filename, "tif", config)
+    logging.info(f"Saving as binned image to {imgfile}. Max pixel value: {maxpixel}.")
+    # Reverse the order of the dimensions indices to match the order of the axes in the image
+    img =  np.transpose(counts_xyz, (2, 1, 0))
+
+    if maxpixel < 256:
+        tifffile.imsave(imgfile, img.astype(np.uint8), imagej=True)
+    elif maxpixel < 16384:
+        tifffile.imsave(imgfile, img.astype(np.uint16), imagej=True)
+    else:
+        tifffile.imsave(imgfile, img.astype(np.float32), imagej=True)
+
 

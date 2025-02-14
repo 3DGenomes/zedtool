@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
-from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats
+from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections, compute_deltaz
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool import __version__
@@ -41,6 +41,8 @@ def main(yaml_config_file: str) -> int:
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    matplotlib.set_loglevel("error")
+    logging.getLogger('matplotlib').propagate = False
 
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     detections_file = config['detections_file']
@@ -94,6 +96,7 @@ def main(yaml_config_file: str) -> int:
     if config['plot_detections']:
         plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
+        save_to_tiff_3d(counts_xyz,"binned_detections", config)
 
     # Make index into the binned xy image from the detections
     x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
@@ -133,6 +136,8 @@ def main(yaml_config_file: str) -> int:
         df_metrics = make_quality_metrics(df, df_fiducials, config)
         outpath = os.path.join(config['output_dir'], "quality_metrics_before_correction.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False)
+        # Only plot before correction
+        plot_fiducial_quality_metrics(df_fiducials, config)
 
     # Make correlations between fiducials between and within sweeps
     if config['plot_fiducial_correlations']:
@@ -152,19 +157,20 @@ def main(yaml_config_file: str) -> int:
     if config['correct_fiducials']:
         df_fiducials, df = correct_fiducials(df_fiducials, df, config)
 
-    # Correct detections with (hopefully corrected) fiducials
+    # Correct detections using (possibly corrected) fiducials
     if config['correct_detections']:
         df = correct_detections(df, df_fiducials, config)
 
     if config['make_quality_metrics']:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
-        outpath = os.path.join(config['fiducial_dir'], "fiducials_after_correction.tsv")
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_corrected.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False)
         df_metrics = make_quality_metrics(df, df_fiducials, config)
-        outpath = os.path.join(config['output_dir'], "quality_metrics_after_correction.tsv")
+        outpath = os.path.join(config['output_dir'], "quality_metrics_corrected.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False)
 
     # Write df and copy config file to output dir
+    df = compute_deltaz(df, config) # update deltaz column
     df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False)
     shutil.copy(yaml_config_file, os.path.join(config['output_dir'], 'config.yaml'))
 

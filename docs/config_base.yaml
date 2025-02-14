@@ -19,11 +19,6 @@ n_max_cutoff: 10000000000
 select_cols: x,y # comma separated list of selection criteria for ranges
 select_ranges: 0-10000,20000-30000 # comma separated list of ranges
 
-# Plot labels
-dimnames: x,y,z
-timename: t
-deltazname: deltaz
-
 # Number of frames, z-steps, cycles, time-points to expect in the data
 frame_range: 0-199 # frames per z-step
 z_step_range: 0-60 # z-steps per cycle
@@ -45,6 +40,7 @@ y_sd_col: precisiony
 z_sd_col: precisionz
 photons_col: photon-count
 chisq_col: chisq # chi-squared value of the fit - currently not used but could be in the future
+deltazname: deltaz # created if it does not exist
 
 # Constants used for segmenting, filtering and fitting to fiducials
 excluded_fiducials: # comma separated list of fiducials to exclude

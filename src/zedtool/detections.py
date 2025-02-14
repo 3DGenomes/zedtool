@@ -124,8 +124,6 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     return filtered_df
 
 
-
-
 def fwhm_from_points(x, bins=100):
     """
     Computes the Full Width at Half Maximum (FWHM) of a distribution
@@ -174,8 +172,6 @@ def fwhm_from_points(x, bins=100):
         fwhm_value = right_crossing - left_crossing
 
     return fwhm_value
-
-
 
 def reorder_sweeps(df: pd.DataFrame, config: dict) -> pd.DataFrame: # TODO:
     # Reorder sweeps based on the z-step

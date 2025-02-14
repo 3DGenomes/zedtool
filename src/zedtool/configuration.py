@@ -6,8 +6,9 @@ def config_default() -> dict:
     config = {
         'detections_file': 'tests/input.csv',
         'output_dir': 'tests/output',
-        'binary_detections_file': 'tests/detections.npy',
-        'drift_correction_file': 'tests/drift_correction.tsv',
+        'binary_detections_file': 'detections.npy',
+        'drift_correction_file': 'drift_correction.tsv',
+        'binned_detections_file': 'binned_detections.tif',
         'bin_resolution': 20,
         'z_step_step': -100,
         # Debugging settings
@@ -15,8 +16,8 @@ def config_default() -> dict:
         'noclobber': 0,
         'make_caches': 0,
         # Plot labels
-        'dimnames': 'x,y,z',
-        'timename': 't',
+        'dimnames': ['x','y','z'], # not from config file
+        'timename': 't', # not from config file
         # Filtering settings
         'n_min_cutoff': 1,
         'n_max_cutoff': 10000000000,
@@ -54,17 +55,19 @@ def config_default() -> dict:
         'polynomial_degree': 2,
         'use_weights_in_fit': 0,
         'only_fiducials': 0,
+        'consensus_method': 'median',
         # steps
         'apply_drift_correction': 0,
+        'save_binned_detections': 0,
         'mask_on_density': 0,
-        'make_quality_metrics': 1,
-        'plot_per_fiducial_fitting': 1,
+        'make_quality_metrics': 0,
+        'plot_per_fiducial_fitting': 0,
         'plot_fiducial_correlations': 0,
-        'plot_summary_stats': 1,
-        'plot_detections': 1,
-        'plot_fiducials': 1,
-        'correct_fiducials': 1,
-        'correct_detections': 1
+        'plot_summary_stats': 0,
+        'plot_detections': 0,
+        'plot_fiducials': 0,
+        'correct_fiducials': 0,
+        'correct_detections': 0
     }
     return config
 

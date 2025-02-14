@@ -41,10 +41,6 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `noclobber`: If set to 1, prevents overwriting cached intermediate results. Safest to leave = 0.
 - `make_caches`: If set to 1, saves detections to a binary file for faster subsequent loading.
 
-### **Plot Labels**
-- `dimnames`: Axis labels for spatial dimensions (default=x,y,z)
-- `timename`: Axis labels for time dimension (default=t)
-
 ### **Detection Filtering**
 - `n_min_cutoff`: Minimum detection density in the binned x,y image to retain detections.
 - `n_max_cutoff`: Maximum detection density in the binned x,y image.
@@ -117,11 +113,6 @@ debug: 1
 noclobber: 1 
 make_caches: 1 
 
-# Plot labels
-dimnames: x,y,z
-timename: t
-deltazname: deltaz
-
 # Detection filtering
 n_min_cutoff: 1 
 n_max_cutoff: 10000000000
@@ -144,6 +135,7 @@ y_sd_col: precisiony
 z_sd_col: precisionz
 photons_col: photon-count
 chisq_col: chisq 
+deltazname: deltaz
 
 # Constants used for segmenting, filtering and fitting
 excluded_fiducials: 
