@@ -67,6 +67,7 @@ def config_default() -> dict:
         'plot_detections': 0,
         'plot_fiducials': 0,
         'correct_fiducials': 0,
+        'deconvolve_z': 0,
         'correct_detections': 0
     }
     return config

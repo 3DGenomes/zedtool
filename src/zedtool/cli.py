@@ -11,6 +11,7 @@ from zedtool.detections import filter_detections, mask_detections, bin_detection
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections, compute_deltaz
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
+from zedtool.deconvolution import deconvolve_z
 from zedtool import __version__
 
 
@@ -18,8 +19,8 @@ from zedtool import __version__
 # Write out a table with both corrected and uncorrected z.
 
 def main(yaml_config_file: str) -> int:
-    no_display = True
-    # no_display = False
+    # no_display = True
+    no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -98,7 +99,8 @@ def main(yaml_config_file: str) -> int:
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
         save_to_tiff_3d(counts_xyz,"binned_detections", config)
 
-    # Make index into the binned xy image from the detections
+    # Make index into the binned xyz image from the detections
+    # x_idx gives the bin x-index for each detection, similarly for y and z
     x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
 
     if config['mask_on_density']:
@@ -160,6 +162,9 @@ def main(yaml_config_file: str) -> int:
     # Correct detections using (possibly corrected) fiducials
     if config['correct_detections']:
         df = correct_detections(df, df_fiducials, config)
+
+    if config['deconvolve_z']:
+        df = deconvolve_z(df, df_fiducials, n_xy, x_idx, y_idx, config)
 
     if config['make_quality_metrics']:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
