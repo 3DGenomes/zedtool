@@ -4,8 +4,8 @@ import pandas as pd
 
 def config_default() -> dict:
     config = {
-        'detections_file': 'tests/input.csv',
-        'output_dir': 'tests/output',
+        'detections_file': 'input.csv',
+        'output_dir': 'output',
         'binary_detections_file': 'detections.npy',
         'drift_correction_file': 'drift_correction.tsv',
         'binned_detections_file': 'binned_detections.tif',
@@ -66,9 +66,9 @@ def config_default() -> dict:
         'plot_summary_stats': 0,
         'plot_detections': 0,
         'plot_fiducials': 0,
-        'correct_fiducials': 0,
+        'zstep_correct_fiducials': 0,
         'deconvolve_z': 0,
-        'correct_detections': 0
+        'drift_correct_detections': 0
     }
     return config
 
@@ -125,10 +125,10 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
         min_quantity = df[config[quantity_col]].min()
         max_quantity = df[config[quantity_col]].max()
         if min_quantity < min_range or max_quantity > max_range:
-            logging.error(f"Range for {quantity} out of bounds: {min_quantity} < {min_range} or {max_quantity} > {max_range}")
+            logging.error(f"Range for {quantity} out of bounds: Either min({quantity})={min_quantity} < {min_range} or max({quantity})={max_quantity} > {max_range}")
             ret = 0
         if min_quantity != min_range or max_quantity != max_range:
-            logging.warning(f"Range for {quantity} not filled: {min_quantity} != {min_range} or {max_quantity} != {max_range}")
+            logging.warning(f"Range for {quantity} not filled: Either min({quantity})={min_quantity} != {min_range} or max({quantity})={max_quantity} != {max_range}")
     # Check max for image-ID
     min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
     min_frame, max_frame = map(int, config['frame_range'].split('-'))

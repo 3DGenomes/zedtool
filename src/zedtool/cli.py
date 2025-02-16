@@ -9,7 +9,7 @@ import pandas as pd
 import shutil
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, correct_fiducials, plot_fiducial_correlations, make_quality_metrics, correct_detections, apply_corrections, compute_deltaz
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections, apply_corrections, compute_deltaz
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool.deconvolution import deconvolve_z
 from zedtool import __version__
@@ -19,8 +19,8 @@ from zedtool import __version__
 # Write out a table with both corrected and uncorrected z.
 
 def main(yaml_config_file: str) -> int:
-    # no_display = True
-    no_display = False
+    no_display = True
+    # no_display = False
     # Check if running in headless mode
     if os.getenv('DISPLAY') is None or os.getenv('SLURM_JOBID') is not None or no_display == True:
         matplotlib.use('agg')  # Use the 'agg' backend for headless mode
@@ -46,12 +46,16 @@ def main(yaml_config_file: str) -> int:
     logging.getLogger('matplotlib').propagate = False
 
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
+    config['cache_dir'] = os.path.join(config['output_dir'],'cache')
     detections_file = config['detections_file']
-    binary_detections_file = os.path.join(config['output_dir'],config['binary_detections_file'])
+    binary_detections_file = os.path.join(config['output_dir'], config['cache_dir'], config['binary_detections_file'])
 
     noclobber = config['noclobber']
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
+    if config['make_caches']:
+        os.makedirs(config['cache_dir'], exist_ok=True)
+
     if not config_validate(config):
         return 1
     if debug:
@@ -152,16 +156,17 @@ def main(yaml_config_file: str) -> int:
         plot_summary_stats(df, det_xyz, config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
-    if config['correct_fiducials'] or config['correct_detections']:
+    if config['zstep_correct_fiducials'] or config['drift_correct_detections']:
         df = create_backup_columns(df, config)
 
     # Correct fiducials with zstep model
-    if config['correct_fiducials']:
-        df_fiducials, df = correct_fiducials(df_fiducials, df, config)
+    if config['zstep_correct_fiducials']:
+        df_fiducials, df = zstep_correct_fiducials(df_fiducials, df, config)
 
     # Correct detections using (possibly corrected) fiducials
-    if config['correct_detections']:
-        df = correct_detections(df, df_fiducials, config)
+    # df_fiducials gets consensus and fitting error
+    if config['drift_correct_detections']:
+        df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
     if config['deconvolve_z']:
         df = deconvolve_z(df, df_fiducials, n_xy, x_idx, y_idx, config)

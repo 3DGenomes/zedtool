@@ -75,6 +75,7 @@ These specify how different columns in the detections file are named:
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 2.
 - `use_weights_in_fit`: Whether to use precision values in the fit.
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. If you want to find the fiducials automatically then set this to 0.
+- `consensus_method`: Method for determining the consensus z value for a fiducial. Options are 'weighted_mean' and 'median' (default).
 
 ### **Computation and Plotting Options**
 You can disable/enable various processing steps and visualizations by setting these values to 0/1. These are listed  below in the order in which they are performed.
@@ -85,8 +86,8 @@ You can disable/enable various processing steps and visualizations by setting th
 - `plot_fiducial_correlations`: Plot correlations between fiducials. Normally not necessary. Can be slow!
 - `plot_fiducials`: Plot fiducials before any correction.
 - `plot_summary_stats`: Generate summary statistics plots for detections.
-- `correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.
-- `correct_detections`: Apply drift correction to all detections.
+- `zstep_correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.
+- `drift_correct_detections`: Apply drift correction to all detections.
 - `plot_per_fiducial_fitting`: Generate debugging images for individual fiducial drift corrections. Normally not necessary. Can be slow!
 
 ## Example Configuration File

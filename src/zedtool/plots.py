@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import plotly.express as px
+import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -134,26 +135,34 @@ def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int
     # Plot detections and other quantities
 
     # plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", df['z-step'].max()-df['z-step'].min()+1, config)
+
+    plot_histogram(df[config['x_sd_col']], f"{config['x_sd_col']} (nm)", 'Detections',
+                   f"Detections {config['x_sd_col']}", 'x_sd_histogram', config)
+    plot_histogram(df[config['y_sd_col']], f"{config['y_sd_col']} (nm)", 'Detections',
+                   f"Detections {config['y_sd_col']}", 'y_sd_histogram', config)
+    plot_histogram(df[config['z_sd_col']], f"{config['z_sd_col']} (nm)", 'Detections',
+                   f"Detections {config['z_sd_col']}", 'z_sd_histogram', config)
     plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", config)
     plot_histogram(df[config['deltaz_col']], f"{config['deltaz_col']} (nm)", 'Detections',
                    'Detections delta z', 'delta_z_histogram', config)
-    plot_scatter(df[config['image_id_col']], df[config['z_col']], 'image-ID', 'z (nm)', 'z vs frame', 'z_vs_frame', config)
-    plot_scatter(df[config['image_id_col']], df[config['photons_col']], 'image-ID', 'photon-count', 'photon-count vs frame',
-                 'photon_count_vs_frame', config)
-    plot_scatter(df[config['image_id_col']], df[config['z_step_col']], 'image-ID', 'z-step', 'z-step vs frame',
-                 'zstep_vs_frame', config)
+    plot_scatter(df[config['image_id_col']], df[config['z_col']], f"{config['image_id_col']}", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['image_id_col']}", 'z_vs_t', config)
+    plot_scatter(df[config['image_id_col']], df[config['photons_col']], f"{config['image_id_col']}", f"{config['photons_col']}", f"{config['photons_col']} vs {config['image_id_col']}",
+                 'photon_count_vs_t', config)
+    plot_scatter(df[config['image_id_col']], df[config['z_step_col']], f"{config['image_id_col']}", f"{config['z_step_col']}", f"{config['z_step_col']} vs {config['image_id_col']}",
+                 'zstep_vs_t', config)
     plot_scatter(df[config['deltaz_col']] , df[config['z_col']],
-                 'delta z (nm)', 'z (nm)', 'z vs delta z', 'z_vs_delta_z', config)
+                 f"{config['deltaz_col']} (nm)", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['deltaz_col']}", 'z_vs_delta_z', config)
 
-    z_mean, t = z_means_by_marker(det_xyz, df[config['image_id_col']].values)
-    plot_scatter(t, z_mean, 'time', 'mean(z) per frame (nm)', 'mean(z) vs time', 'z_mean_per_frame_vs_time', config)
-
-    z_mean, cycle = z_means_by_marker(det_xyz, df[config['cycle_col']].values)
-    plot_scatter(cycle, z_mean, 'cycle', 'mean(z) per cycle (nm)', 'mean(z) vs cycle', 'z_mean_per_cycle_vs_cycle', config)
-
+    for colname in [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
+        z_mean, t = z_means_by_marker(det_xyz, df[colname].values)
+        plot_scatter(t, z_mean, colname, f'mean(z) per {colname} (nm)', f"mean(z) vs {colname}", f'z_mean_per_{colname}_vs_{colname}', config)
+    # For zstep, save as a tsv file with diff(z_mean)
+    # This file can be useful in determining z_step_step empirically if it's not known
     z_mean, z_step = z_means_by_marker(det_xyz, df[config['z_step_col']].values)
-    plot_scatter(z_step, z_mean, 'z-step', 'mean(z) per z-step (nm)', 'mean(z) vs z-step', 'z_mean_per_z_step_vs_z_step',
-                 config)
+    df_z = pd.DataFrame({'z_step': z_step, 'z_mean': z_mean})
+    df_z['diff_z_mean'] = df_z['z_mean'].diff()
+    df_z.to_csv(os.path.join(config['output_dir'], 'z_mean_vs_z_step.tsv'), sep='\t', index=False)
+
 
 def stats_text(x: np.ndarray,title: str) -> str:
     # Calculate some statistics
@@ -219,6 +228,7 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         z = df_detections_roi[config['z_col']]
         deltaz = df_detections_roi[config['deltaz_col']]
         z_step = df_detections_roi[config['z_step_col']]
+        n_detections = len(x)
 
         for k in range(len(dimnames)):
             outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
@@ -267,18 +277,22 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         plt.tight_layout()
         plt.savefig(outpath, dpi=300)
         plt.close()
+        # Set point size to suit number of detections
+        point_size = 100 / np.max([n_detections,1])
+        point_size = np.max([point_size, 0.05])
+        point_size = np.min([point_size, 1.0])
 
         # Plot x,y,z dependence on deltaz
         fig, ax = plt.subplots(3, 1, figsize=(12, 9))
         outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
         figure_path = construct_plot_path(outpath, "png", config)
-        ax[0].scatter(deltaz, x, s=0.05, c='blue', alpha=0.25)
+        ax[0].scatter(deltaz, x, s=point_size, c='blue', alpha=0.25)
         ax[0].set_xlabel('delta z (nm)')
         ax[0].set_ylabel('x (nm)')
-        ax[1].scatter(deltaz, y, s=0.05, c='green', alpha=0.25)
+        ax[1].scatter(deltaz, y, s=point_size, c='green', alpha=0.25)
         ax[1].set_xlabel('delta z (nm)')
         ax[1].set_ylabel('y (nm)')
-        ax[2].scatter(deltaz, z, s=0.05, c='red', alpha=0.25)
+        ax[2].scatter(deltaz, z, s=point_size, c='red', alpha=0.25)
         ax[2].set_xlabel('delta z (nm)')
         ax[2].set_ylabel('z (nm)')
         plt.savefig(figure_path, dpi=600)
@@ -286,19 +300,21 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
         # Plot detections colour coded by possible covariates
         for col in columns:
             fig, ax = plt.subplots(2, 2, figsize=(12, 9))
-            sc = ax[0, 0].scatter(x, z, s=0.05, c=df_detections_roi[col], alpha=0.25)
+            sc = ax[0, 0].scatter(x, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
             ax[0, 0].set_xlabel('x (nm)')
             ax[0, 0].set_ylabel('z (nm)')
-            ax[0, 1].scatter(y, z, s=0.05, c=df_detections_roi[col], alpha=0.25)
+            ax[0, 1].scatter(y, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
             ax[0, 1].set_xlabel('y (nm)')
             ax[0, 1].set_ylabel('z (nm)')
-            ax[1, 0].scatter(x, y, s=0.05, c=df_detections_roi[col], alpha=0.25)
+            ax[1, 0].scatter(x, y, s=point_size, c=df_detections_roi[col], alpha=0.25)
             ax[1, 0].set_xlabel('x (nm)')
             ax[1, 0].set_ylabel('y (nm)')
             # Use make_axes_locatable to create an inset axis for the colorbar
             divider = make_axes_locatable(ax[1, 1])
             cax = divider.append_axes("right", size="15%", pad=0.2)
             cbar = plt.colorbar(sc, cax=cax, label=col)
+            cbar.set_alpha(1.0)  # Set colorbar alpha to 1.0 (fully opaque) - otherwise its too transparent
+            cbar.draw_all()  # Redraw to apply the alpha setting
             ax[1, 1].set_axis_off()
             outpath = os.path.join(outdir, f"{fiducial_name}_{col}")
             figure_path = construct_plot_path(outpath, "png", config)

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from typing import Tuple
 import logging
+import scipy
 
 def make_density_mask_2d(n_xy: np.ndarray, config: dict) -> np.ndarray:
     # Make a mask for the density of detections in the x-y plane
@@ -124,7 +125,7 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     return filtered_df
 
 
-def fwhm_from_points(x, bins=100):
+def fwhm_from_points_bins(x, bins=100):
     """
     Computes the Full Width at Half Maximum (FWHM) of a distribution
     represented by an array of x-values.
@@ -173,6 +174,56 @@ def fwhm_from_points(x, bins=100):
 
     return fwhm_value
 
-def reorder_sweeps(df: pd.DataFrame, config: dict) -> pd.DataFrame: # TODO:
-    # Reorder sweeps based on the z-step
-    return df
+import numpy as np
+from scipy.stats import gaussian_kde
+
+def fwhm_from_points(x, bins=100):
+    """
+    Computes the Full Width at Half Maximum (FWHM) of a distribution
+    represented by an array of x-values using a smoothed fit to the histogram.
+
+    Parameters:
+        x (array-like): Array of x-values (data points).
+        bins (int): Number of bins to use for the histogram.
+
+    Returns:
+        float: The FWHM value.
+    """
+    # If x is zero length or all nan, return nan
+    if len(x) == 0 or np.all(np.isnan(x)):
+        return np.nan
+
+    x = x[~np.isnan(x)]
+    kde = scipy.stats.gaussian_kde(x, bw_method='scott')
+    x_grid = np.linspace(np.min(x), np.max(x), bins)
+    kde_values = kde(x_grid)
+
+    peak_index = np.argmax(kde_values)
+    peak_value = kde_values[peak_index]
+    half_max = peak_value / 2
+
+    left_crossing = None
+    right_crossing = None
+
+    for i in range(len(kde_values) - 1):
+        # Check for crossings
+        if kde_values[i] <= half_max < kde_values[i + 1]:
+            # Linear interpolation for left crossing
+            left_crossing = x_grid[i] + (x_grid[i + 1] - x_grid[i]) * (
+                        (half_max - kde_values[i]) / (kde_values[i + 1] - kde_values[i]))
+        if kde_values[i] >= half_max > kde_values[i + 1]:
+            # Linear interpolation for right crossing
+            right_crossing = x_grid[i] + (x_grid[i + 1] - x_grid[i]) * (
+                        (half_max - kde_values[i]) / (kde_values[i + 1] - kde_values[i]))
+
+    # Ensure crossings were found
+    if left_crossing is None and right_crossing is None:
+        raise ValueError("Could not find two crossings at half-maximum.")
+    elif left_crossing is None:
+        fwhm_value = right_crossing - np.nanmin(x)
+    elif right_crossing is None:
+        fwhm_value = np.nanmax(x) - left_crossing
+    else:
+        fwhm_value = right_crossing - left_crossing
+
+    return fwhm_value

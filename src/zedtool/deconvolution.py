@@ -6,16 +6,25 @@ import logging
 import sklearn
 import os
 import matplotlib.pyplot as plt
-from typing import Tuple
+
+def deconvolve_z_within_time_point(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
+    logging.info("deconvolve_z_within_time_point")
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    for time_point in range(min_time_point, max_time_point + 1):
+        logging.info(f"Deconvolving z for time-point {time_point}")
+        idx = df[config['time_point_col']] == time_point
+        df_time_point = df.loc[idx, :]
+        df_time_point = deconvolve_z(df_time_point, df_fiducials, n_xy, x_idx, y_idx, config)
+        df.loc[idx, :] = df_time_point
+    return df
 
 def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
     logging.info("deconvolve_z")
-    # TODO: This needs to be aware of time steps and process each separately
-    # Deconvolve z using the z distribution from the fiducials as that of the Gaussian mixture model
-    bin_threshold = 1000
+    bin_threshold = 10
+    # TODO: Optionally specify sigma_fit and sigma_target
     sigma_fit = np.median(df_fiducials['z_sd'])
-    # sigma_target = config['sigma_target']
     sigma_target = (np.median(df_fiducials['x_sd']) + np.median(df_fiducials['y_sd'])) / 2
+    logging.info(f"Squeezing {np.sum(n_xy > bin_threshold)} bins. sigma_fit = {sigma_fit}\tsigma_target = {sigma_target}")
     # Find all the bins in n_xy that have more than bin_threshold detections and loop over them with their x,y coords
     for x in range(n_xy.shape[0]):
         for y in range(n_xy.shape[1]):
@@ -34,14 +43,19 @@ def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray,
 
 def deconvolve_kmeans(z: np.ndarray, sigma_fit: float, sigma_target: float, config: dict) -> np.ndarray:
     logging.info("deconvolve_kmeans")
+    # Deconvolve z using the x,y distribution from the fiducials as a target distribution
+    # Squeezes the z distribution of detections in each bin to the x,y distribution of fiducials
+    # Uses k-means to find the peaks in the z distribution
+    # Increase k until the peaks are not too small and they are not too close together
     max_k = 4
-    proximity_threshold = 2
+    proximity_threshold = 1.5
     k = 0
     for i in range(1, max_k + 1):
         kmeans = sklearn.cluster.KMeans(n_clusters=i, random_state=0, n_init=1)
         kmeans.fit(z.reshape(-1, 1))
         cluster_means = kmeans.cluster_centers_.flatten()
         cluster_sds = np.zeros(i)
+        # TODO: exclude tiny and narrow cluster from squeezing but not from k limiting
         # compute the standard deviation of each cluster
         for j in range(i):
             cluster_sds[j] = np.std(z[kmeans.labels_ == j])
@@ -54,20 +68,15 @@ def deconvolve_kmeans(z: np.ndarray, sigma_fit: float, sigma_target: float, conf
         k = i
         kmeans_best = kmeans
 
+    logging.info(f"Points: {len(z)} Clusters: {k}")
     if k == 0:
-        print("All clusters are too narrow or too close together")
         return z
-
-    # Assign each z value to the cluster with the closest mean
+    # Squeeze each z value to the cluster with the closest mean
     z_deconv = np.zeros_like(z)
     for i, mean in enumerate(kmeans_best.cluster_centers_.flatten()):
         mask = (kmeans_best.labels_ == i)
         z_deconv[mask] = mean + (z[mask] - mean) * (sigma_target / sigma_fit)
-    print(f"Number of clusters: {k}")
-    print(f"Cluster means: {kmeans.cluster_centers_}")
-    # plot_deconvolution(z, z_deconv, config)
     return z_deconv
-
 
 def deconvolve_mog(z: np.ndarray, sigma_fit: float, sigma_target: float, config: dict) -> np.ndarray:
     logging.info("deconvolve_mog")
@@ -98,7 +107,6 @@ def deconvolve_mog(z: np.ndarray, sigma_fit: float, sigma_target: float, config:
         mask = (labels == i)
         z_adjusted[mask] = mean + (z[mask] - mean) * (sigma_target / sigma_fit)
     # plot a histogram of the z values before and after deconvolution
-    # if config['plot_deconvolution']:
     plot_deconvolution(z, z_adjusted, config)
     return z_adjusted
 
