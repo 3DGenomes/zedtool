@@ -31,7 +31,6 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 ### **Input and Output**
 - `detections_file`: Path to the input file containing detections.
 - `output_dir`: Directory where all output files will be stored.
-- `binary_detections_file`: Path to a cached binary version of the detections file (used if `make_caches` is enabled).
 - `drift_correction_file`: File containing drift correction values (used if `apply_drift_correction` is enabled).
 
 ### **Binning and Debugging Options**
@@ -39,7 +38,7 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `z_step_step`: Step size in nm for one step in the Z direction (sign must match microscope).
 - `debug`: Controls verbosity and plot output (1 for enabled).
 - `noclobber`: If set to 1, prevents overwriting cached intermediate results. Safest to leave = 0.
-- `make_caches`: If set to 1, saves detections to a binary file for faster subsequent loading.
+- `make_caches`: If set to 1, saves detections and corrections to binary files for faster subsequent loading.
 
 ### **Detection Filtering**
 - `n_min_cutoff`: Minimum detection density in the binned x,y image to retain detections.

@@ -159,3 +159,14 @@ def z_means_by_marker(det_xyz: np.ndarray, marker: np.ndarray) -> Tuple[np.ndarr
     # Avoid division by zero and calculate mean values
     z_mean = np.divide(sum, count, out=np.zeros_like(sum), where=count != 0)
     return z_mean,t
+
+def z_max_by_marker(det_xyz: np.ndarray, marker: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    unique_markers = np.unique(marker)
+    z_max = np.zeros_like(unique_markers, dtype=float)
+
+    for i, m in enumerate(unique_markers):
+        z_max[i] = np.max(det_xyz[marker == m, 2])
+
+    return z_max, unique_markers
+
+

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from typing import Tuple
@@ -34,7 +34,7 @@ def mask_detections(mask_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray) -
     return(idx.astype(bool))
 
 def bin_detections(det_xyz: np.array,resolution: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    logging.info("Binning detections...")
+    logging.info("bin_detections")
     # bin detections into a 3D grid
     x = det_xyz[:,0]
     y = det_xyz[:,1]
@@ -47,6 +47,7 @@ def bin_detections(det_xyz: np.array,resolution: int) -> Tuple[np.ndarray, np.nd
     return counts_xyz[0], x_bins[:-1], y_bins[:-1], z_bins[:-1]
 
 def bins3d_to_stats2d(counts_xyz: np.ndarray, z_bins: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    logging.info("bins3d_to_stats2d")
     # Calculate moments and sd from 3D bins
     n_xy = np.sum(counts_xyz,axis=2)
     moment_1_xy = np.sum(counts_xyz * z_bins, axis=2) / (n_xy + 1)
@@ -125,7 +126,31 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     return filtered_df
 
 
-def fwhm_from_points_bins(x, bins=100):
+def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.DataFrame:
+    logging.info('apply_corrections')
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    ndimensions = len(xyz_colnames)
+    for j in range(ndimensions):
+        tidx = df[config['image_id_col']]
+        df[xyz_colnames[j]] = df[xyz_colnames[j]] - x_t[j, tidx]
+    # Correct deltaz if it exists
+    if config['deltaz_col'] in df.columns:
+        df[config['deltaz_col']] = df[config['deltaz_col']] - x_t[2, df[config['image_id_col']]]
+    return df
+
+def compute_deltaz(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info('add_deltaz_column')
+    # TODO: What if z_step_col does not exist but deltaz_col does?
+    # Add a column to the dataframe that is the relative z position
+    if not config['deltaz_col'] in df.columns:
+        df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+    else:
+        logging.warning('Column deltaz already exists in df, overwriting')
+        df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+    return df
+
+
+def fwhm_from_points(x):
     """
     Computes the Full Width at Half Maximum (FWHM) of a distribution
     represented by an array of x-values.
@@ -142,8 +167,13 @@ def fwhm_from_points_bins(x, bins=100):
         return np.nan
 
     x = x[~np.isnan(x)]
+    if len(x) <10000:
+        bins =100
+    else:
+        bins = 1000
     counts, bin_edges = np.histogram(x, bins=bins, density=True)
-
+    # smooth counts
+    counts = scipy.ndimage.gaussian_filter1d(counts, 1)
     peak_index = np.argmax(counts)
     peak_value = counts[peak_index]
     half_max = peak_value / 2
@@ -171,59 +201,5 @@ def fwhm_from_points_bins(x, bins=100):
         fwhm_value = np.nanmax(x) - left_crossing
     else:
         fwhm_value = right_crossing - left_crossing
-
     return fwhm_value
 
-import numpy as np
-from scipy.stats import gaussian_kde
-
-def fwhm_from_points(x, bins=100):
-    """
-    Computes the Full Width at Half Maximum (FWHM) of a distribution
-    represented by an array of x-values using a smoothed fit to the histogram.
-
-    Parameters:
-        x (array-like): Array of x-values (data points).
-        bins (int): Number of bins to use for the histogram.
-
-    Returns:
-        float: The FWHM value.
-    """
-    # If x is zero length or all nan, return nan
-    if len(x) == 0 or np.all(np.isnan(x)):
-        return np.nan
-
-    x = x[~np.isnan(x)]
-    kde = scipy.stats.gaussian_kde(x, bw_method='scott')
-    x_grid = np.linspace(np.min(x), np.max(x), bins)
-    kde_values = kde(x_grid)
-
-    peak_index = np.argmax(kde_values)
-    peak_value = kde_values[peak_index]
-    half_max = peak_value / 2
-
-    left_crossing = None
-    right_crossing = None
-
-    for i in range(len(kde_values) - 1):
-        # Check for crossings
-        if kde_values[i] <= half_max < kde_values[i + 1]:
-            # Linear interpolation for left crossing
-            left_crossing = x_grid[i] + (x_grid[i + 1] - x_grid[i]) * (
-                        (half_max - kde_values[i]) / (kde_values[i + 1] - kde_values[i]))
-        if kde_values[i] >= half_max > kde_values[i + 1]:
-            # Linear interpolation for right crossing
-            right_crossing = x_grid[i] + (x_grid[i + 1] - x_grid[i]) * (
-                        (half_max - kde_values[i]) / (kde_values[i + 1] - kde_values[i]))
-
-    # Ensure crossings were found
-    if left_crossing is None and right_crossing is None:
-        raise ValueError("Could not find two crossings at half-maximum.")
-    elif left_crossing is None:
-        fwhm_value = right_crossing - np.nanmin(x)
-    elif right_crossing is None:
-        fwhm_value = np.nanmax(x) - left_crossing
-    else:
-        fwhm_value = right_crossing - left_crossing
-
-    return fwhm_value

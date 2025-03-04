@@ -5,7 +5,10 @@ import pandas as pd
 import logging
 import sklearn
 import os
+import scipy
+import multiprocessing
 import matplotlib.pyplot as plt
+# from threadpoolctl import threadpool_limits
 
 def deconvolve_z_within_time_point(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
     logging.info("deconvolve_z_within_time_point")
@@ -19,12 +22,15 @@ def deconvolve_z_within_time_point(df: pd.DataFrame, df_fiducials: pd.DataFrame,
     return df
 
 def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
+    # multiprocessing_works_with_sklearn = False
+    # if multiprocessing_works_with_sklearn and config['multiprocessing']:
+    if config['multiprocessing']:
+        return deconvolve_z_parallel(df, df_fiducials, n_xy, x_idx, y_idx, config)
     logging.info("deconvolve_z")
-    bin_threshold = 10
-    # TODO: Optionally specify sigma_fit and sigma_target
-    sigma_fit = np.median(df_fiducials['z_sd'])
-    sigma_target = (np.median(df_fiducials['x_sd']) + np.median(df_fiducials['y_sd'])) / 2
-    logging.info(f"Squeezing {np.sum(n_xy > bin_threshold)} bins. sigma_fit = {sigma_fit}\tsigma_target = {sigma_target}")
+    bin_threshold = config['decon_bin_threshold']
+    min_cluster_sd = config['decon_min_cluster_sd']
+    sd_shrink_ratio = config['decon_sd_shrink_ratio']
+    logging.info(f"Squeezing {np.sum(n_xy > bin_threshold)} bins.")
     # Find all the bins in n_xy that have more than bin_threshold detections and loop over them with their x,y coords
     for x in range(n_xy.shape[0]):
         for y in range(n_xy.shape[1]):
@@ -33,49 +39,104 @@ def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray,
                 idx = (x_idx == x) & (y_idx == y)
                 # Get the z values of these detections
                 z = df.loc[idx, 'z'].to_numpy()
-                # Get the z values of the fiducials in this bin
                 # Deconvolve the z values
                 # z_deconv = deconvolve_mog(z, sigma_fit, sigma_target, config)
-                z_deconv = deconvolve_kmeans(z, sigma_fit, sigma_target, config)
+                z_deconv = deconvolve_kmeans(z, min_cluster_sd, sd_shrink_ratio, config)
                 # Replace the z values in the dataframe
                 df.loc[idx, 'z'] = z_deconv
     return df
 
-def deconvolve_kmeans(z: np.ndarray, sigma_fit: float, sigma_target: float, config: dict) -> np.ndarray:
-    logging.info("deconvolve_kmeans")
-    # Deconvolve z using the x,y distribution from the fiducials as a target distribution
-    # Squeezes the z distribution of detections in each bin to the x,y distribution of fiducials
-    # Uses k-means to find the peaks in the z distribution
-    # Increase k until the peaks are not too small and they are not too close together
-    max_k = 4
-    proximity_threshold = 1.5
-    k = 0
-    for i in range(1, max_k + 1):
-        kmeans = sklearn.cluster.KMeans(n_clusters=i, random_state=0, n_init=1)
-        kmeans.fit(z.reshape(-1, 1))
-        cluster_means = kmeans.cluster_centers_.flatten()
-        cluster_sds = np.zeros(i)
-        # TODO: exclude tiny and narrow cluster from squeezing but not from k limiting
-        # compute the standard deviation of each cluster
-        for j in range(i):
-            cluster_sds[j] = np.std(z[kmeans.labels_ == j])
-        # check if any cluster has a standard deviation less than the target
-        if np.any(cluster_sds < sigma_target):
-            break
-        # check if any two clusters are within proximity_threshold * their SDs of each other
-        if np.any(np.abs(cluster_means[1:] - cluster_means[:-1]) < proximity_threshold * (cluster_sds[1:] + cluster_sds[:-1])):
-            break
-        k = i
-        kmeans_best = kmeans
+def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
+    logging.info("deconvolve_z_parallel")
+    min_cluster_sd = config['decon_min_cluster_sd']
+    sd_shrink_ratio = config['decon_sd_shrink_ratio']
+    nbins = np.sum(n_xy > config['decon_bin_threshold'])
+    # bin_x and bin_y are coordinates of bins with more than bin_threshold detections
+    bin_x, bin_y = np.where(n_xy > config['decon_bin_threshold'])
 
-    logging.info(f"Points: {len(z)} Clusters: {k}")
+    tasks = [(df.loc[(x_idx == bin_x[i]) & (y_idx == bin_y[i]), 'z'].to_numpy(),
+              min_cluster_sd, sd_shrink_ratio, config) for i in range(nbins)]
+
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(deconvolve_kmeans, tasks)
+
+    for i,z_deconv in zip(np.arange(nbins),results):
+        df.loc[(x_idx == bin_x[i]) & (y_idx == bin_y[i]), 'z'] = z_deconv
+    return df
+
+def deconvolve_kmeans(z: np.ndarray, min_cluster_sd: float, sd_shrink_ratio: float, config: dict) -> np.ndarray:
+    # logging.info("deconvolve_kmeans_sklearn")
+    # Squeezes the z distribution of the peaks in z by an amount sd_shrink_ratio to a minimum of min_cluster_sd
+    # Uses k-means to find the peaks in the z distribution
+    # Increase k until the peaks are too small or close together then squeeze if possible
+    max_k = config['decon_kmeans_max_k']
+    proximity_threshold = config['decon_kmeans_proximity_threshold']
+    min_cluster_detections = config['decon_kmeans_min_cluster_detections']
+
+    k = 0
+    sizes_string = ''
+    for i in range(1, max_k + 1):
+        #with threadpool_limits(limits=1, user_api="blas"):
+        kmeans_version = 'scipy' # 'scipy' or 'sklearn'
+        if kmeans_version== 'sklearn':
+            kmeans = sklearn.cluster.KMeans(n_clusters=i, random_state=0, n_init=1)
+            kmeans.fit(z.reshape(-1, 1))
+            cluster_means = kmeans.cluster_centers_.flatten()
+            labels = kmeans.labels_
+        elif kmeans_version == 'scipy':
+            centroids, labels = scipy.cluster.vq.kmeans2(z.reshape(-1, 1), i, minit='++')
+            cluster_means = centroids.flatten()
+        else:
+            raise ValueError(f"Unknown kmeans_version called in deconvolve_kmeans(): {kmeans_version}")
+        cluster_sds = np.zeros(i)
+        cluster_n = np.zeros(i)
+        # compute the size and standard deviation of each cluster
+        for j in range(i):
+            cluster_sds[j] = np.std(z[labels == j])
+            cluster_n[j] = np.sum(labels == j)
+
+        # check if any cluster has fewer than min_cluster_size detections
+        if np.any(cluster_n < min_cluster_detections):
+            break
+        # Order clusters by ascending cluster_means
+        sorted_indices = np.argsort(cluster_means)
+        cluster_means_sorted = cluster_means[sorted_indices]
+        cluster_sds_sorted = cluster_sds[sorted_indices]
+
+        cluster_separations = np.abs(cluster_means_sorted[1:] - cluster_means_sorted[:-1])
+        # check if any two clusters are within proximity_threshold * their SDs of each other
+        if np.any(cluster_separations < proximity_threshold * (cluster_sds_sorted[1:] + cluster_sds_sorted[:-1])):
+            break
+        # Save the clustering because this is the one we're using
+        k = i
+        labels_k = labels.copy()
+        cluster_means_k = cluster_means.copy()
+        cluster_sds_k = cluster_sds.copy()
+        sizes_string = ', '.join([str(int(cluster_n[j])) for j in range(k)])
+
+    logging.info(f"Deconvolve - Points: {len(z)} Clusters: {k} Cluster Sizes: {sizes_string}")
+
     if k == 0:
         return z
-    # Squeeze each z value to the cluster with the closest mean
-    z_deconv = np.zeros_like(z)
-    for i, mean in enumerate(kmeans_best.cluster_centers_.flatten()):
-        mask = (kmeans_best.labels_ == i)
-        z_deconv[mask] = mean + (z[mask] - mean) * (sigma_target / sigma_fit)
+    # Squeeze each z value to the mean of its cluster
+    z_deconv = np.copy(z)
+    for i in range(k):
+        mask = (labels_k == i)
+        # Only shrink the cluster if it is larger than min_cluster_sd
+        if cluster_sds_k[i] > min_cluster_sd:
+            z_deconv[mask] = cluster_means_k[i] + (z[mask] - cluster_means_k[i]) * sd_shrink_ratio
+
+    debug = True
+    if debug:
+        filename = f"clusters_{k}_points_{len(z)}_{sizes_string}"
+        plot_deconvolution(z, z_deconv, filename, config)
+        # print out the cluster stats for debugging into filename.tsv
+        with open(os.path.join(config['output_dir'], f'cluster_plots/{filename}.tsv'), 'w') as f:
+            f.write('mean\tsd\tsize\tmin\tmax\tmedian\n')
+            for i in range(k):
+                cluster_data = z[labels_k == i]
+                f.write(
+                    f"{np.mean(cluster_data)}\t{np.std(cluster_data)}\t{np.sum(labels == i)}\t{np.min(cluster_data)}\t{np.max(cluster_data)}\t{np.median(cluster_data)}\n")
     return z_deconv
 
 def deconvolve_mog(z: np.ndarray, sigma_fit: float, sigma_target: float, config: dict) -> np.ndarray:
@@ -110,10 +171,14 @@ def deconvolve_mog(z: np.ndarray, sigma_fit: float, sigma_target: float, config:
     plot_deconvolution(z, z_adjusted, config)
     return z_adjusted
 
-def plot_deconvolution(z: np.ndarray, z_adjusted: np.ndarray, config: dict):
+def plot_deconvolution(z: np.ndarray, z_adjusted: np.ndarray, filename: str, config: dict):
     logging.info("plot_deconvolution")
+    plt.figure()
     plt.hist(z, bins=100, alpha=0.5, label='Before')
     plt.hist(z_adjusted, bins=100, alpha=0.5, label='After')
     plt.legend()
-    plt.savefig(os.path.join(config['output_dir'], 'deconvolution.png'))
+    outdir = os.path.join(config['output_dir'], 'cluster_plots')
+    os.makedirs(outdir, exist_ok=True)
+    outfile = os.path.join(outdir, f'{filename}.png')
+    plt.savefig(outfile)
     plt.close()

@@ -2,7 +2,6 @@
 # Experiment-specific elements. Customise for each experiment by replacing variables with the appropriate values.
 detections_file: /home/jmarkham/work/zedtool/tests/input.csv # input file with detections
 output_dir: /home/jmarkham/work/zedtool/tests/xypatch # all output files will be saved under this directory
-binary_detections_file: /home/jmarkham/work/zedtool/tests/xypatch/detections.npy # used to cache detections if make_caches==1
 drift_correction_file: /home/jmarkham/work/zedtool/tests/xypatch/drift_correction.tsv # used to supply drift correction if apply_drift_correction==1
 
 bin_resolution: 20 # bin size in nm for binned image

@@ -11,11 +11,13 @@ def config_default() -> dict:
         'binned_detections_file': 'binned_detections.tif',
         'bin_resolution': 20,
         'z_step_step': -100,
-        # Debugging settings
+        # Debugging and misc settings
         'debug': 0,
         'noclobber': 0,
         'make_caches': 0,
-        # Plot labels
+        'multiprocessing': 1,
+        'float_format': '%.5g', # '%.2f',
+        # Plot labels - globals, not from config file
         'dimnames': ['x','y','z'], # not from config file
         'timename': 't', # not from config file
         # Filtering settings
@@ -43,6 +45,9 @@ def config_default() -> dict:
         'photons_col': 'photon-count',
         'chisq_col': 'chisq',
         'deltaz_col': 'deltaz',
+        'log_likelihood_col': 'log-likelihood',
+        'llr_col': 'llr',
+        'probe_col': 'vis',
         # fiducial settings
         'excluded_fiducials': None,
         'median_filter_disc_radius': 1,
@@ -56,6 +61,13 @@ def config_default() -> dict:
         'use_weights_in_fit': 0,
         'only_fiducials': 0,
         'consensus_method': 'median',
+        # Deconvolution settings
+        'decon_min_cluster_sd': 10,
+        'decon_sd_shrink_ratio': 0.25,
+        'decon_bin_threshold': 100,
+        'decon_kmeans_max_k': 5,
+        'decon_kmeans_proximity_threshold': 2,
+        'decon_kmeans_min_cluster_detections': 5,
         # steps
         'apply_drift_correction': 0,
         'save_binned_detections': 0,

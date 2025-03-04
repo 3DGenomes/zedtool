@@ -7,8 +7,9 @@ import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tifffile
+import multiprocessing
 from PIL import Image, ImageDraw, ImageFont
-from zedtool.srxstats import z_means_by_marker
+from zedtool.srxstats import z_means_by_marker, z_max_by_marker
 from zedtool.detections import fwhm_from_points
 
 # Prints some debugging plots for an SRX dataset.
@@ -26,7 +27,6 @@ def construct_plot_path(filename: str, filetype: str, config: dict) -> str:
     if use_plots_dir:
         dir_path, file_name = os.path.split(figure_path)
         if os.path.basename(dir_path) != "plots":
-            figure_dir = os.path.join(dir_path, "plots")
             figure_path = os.path.join(dir_path, "plots", file_name)
     # If figure_dir doesn't exist, create it
     figure_dir = os.path.dirname(figure_path)
@@ -75,7 +75,8 @@ def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename
     plt.close()
     return 0
 
-def plot_detections(df: np.ndarray, filename: str, config: dict) -> int:
+def plot_detections(df: pd.DataFrame, filename: str, config: dict):
+    logging.info("plot_detections")
     # plot projections  of det_xyz
     fig, ax = plt.subplots(2, 2, figsize=(12, 9))
     # scatter plot of x,y in top left
@@ -100,7 +101,8 @@ def plot_detections(df: np.ndarray, filename: str, config: dict) -> int:
     plt.savefig(figure_path, dpi=600)
     plt.close()
 
-def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np.ndarray, filename: str, config: dict) -> int:
+def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np.ndarray, filename: str, config: dict):
+    logging.info("plot_binned_detections_stats")
     fig, ax = plt.subplots(3, 2, figsize=(12, 8))
     plt.subplots_adjust(hspace=0.5)
     im=ax[0, 0].imshow(np.log10(1+n_xy).T,origin='lower')
@@ -131,7 +133,7 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
     fig.savefig(figure_path, dpi=600)
     plt.close()
 
-def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int:
+def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
     # Plot detections and other quantities
 
     # plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", df['z-step'].max()-df['z-step'].min()+1, config)
@@ -146,7 +148,10 @@ def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int
     plot_histogram(df[config['deltaz_col']], f"{config['deltaz_col']} (nm)", 'Detections',
                    'Detections delta z', 'delta_z_histogram', config)
     plot_scatter(df[config['image_id_col']], df[config['z_col']], f"{config['image_id_col']}", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['image_id_col']}", 'z_vs_t', config)
+    plotly_scatter(df[config['image_id_col']], df[config['z_col']],None, f"{config['image_id_col']}", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['image_id_col']}", 'z_vs_t', config)
     plot_scatter(df[config['image_id_col']], df[config['photons_col']], f"{config['image_id_col']}", f"{config['photons_col']}", f"{config['photons_col']} vs {config['image_id_col']}",
+                 'photon_count_vs_t', config)
+    plotly_scatter(df[config['image_id_col']], df[config['photons_col']], None, f"{config['image_id_col']}", f"{config['photons_col']}", f"{config['photons_col']} vs {config['image_id_col']}",
                  'photon_count_vs_t', config)
     plot_scatter(df[config['image_id_col']], df[config['z_step_col']], f"{config['image_id_col']}", f"{config['z_step_col']}", f"{config['z_step_col']} vs {config['image_id_col']}",
                  'zstep_vs_t', config)
@@ -159,9 +164,11 @@ def plot_summary_stats(df: np.ndarray, det_xyz: np.ndarray, config: dict) -> int
     # For zstep, save as a tsv file with diff(z_mean)
     # This file can be useful in determining z_step_step empirically if it's not known
     z_mean, z_step = z_means_by_marker(det_xyz, df[config['z_step_col']].values)
-    df_z = pd.DataFrame({'z_step': z_step, 'z_mean': z_mean})
+    z_max, z_step = z_max_by_marker(det_xyz, df[config['z_step_col']].values)
+    df_z = pd.DataFrame({'z_step': z_step, 'z_mean': z_mean, 'z_max': z_max})
     df_z['diff_z_mean'] = df_z['z_mean'].diff()
-    df_z.to_csv(os.path.join(config['output_dir'], 'z_mean_vs_z_step.tsv'), sep='\t', index=False)
+    df_z['diff_z_max'] = df_z['z_max'].diff()
+    df_z.to_csv(os.path.join(config['output_dir'], 'z_mean_max_vs_z_step.tsv'), sep='\t', index=False)
 
 
 def stats_text(x: np.ndarray,title: str) -> str:
@@ -177,13 +184,11 @@ def stats_text(x: np.ndarray,title: str) -> str:
     text += f"fwhm = {fwhm_x:.2f}\n"
     return text
 
-def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> int:
-    #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
-    logging.info("plot_fiducials")
+def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:
+    # Plot the fiducials on the detections image so that they can be identified in the image
+    logging.info("plot_fiducial_rois")
     detections_img_file = 'detections_img.tif'
     fiducials_plot_file = 'fiducials_plot'
-    dimnames = config['dimnames']
-    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
     # scale the image to 0-255
@@ -211,122 +216,142 @@ def plot_fiducials(df_fiducials: np.ndarray, df: np.ndarray, config: dict) -> in
     imfile = os.path.join(config['output_dir'], fiducials_plot_file)
     figure_path = construct_plot_path(imfile, "png", config)
     imp.save(figure_path, quality=95)
-
-    # foreach roi, plot the dependence of z on config['image_id_col'], config['z_step_col'], config['cycle_col']
-    # Also plot histogram of x,y,x
-    for j in range(len(df_fiducials)):
-        # columns = [config['image_id_col'], config['z_step_col'], config['frame_col'], config['time_point_col'], config['cycle_col']]
-        columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col'], config['deltaz_col']]
-        fiducial_label = df_fiducials.at[j, 'label']
-        fiducial_name = df_fiducials.at[j, 'name']
-        outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
-        os.makedirs(outdir, exist_ok=True)
-        logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
-        df_detections_roi = df[df['label'] == fiducial_label]
-        x = df_detections_roi[config['x_col']]
-        y = df_detections_roi[config['y_col']]
-        z = df_detections_roi[config['z_col']]
-        deltaz = df_detections_roi[config['deltaz_col']]
-        z_step = df_detections_roi[config['z_step_col']]
-        n_detections = len(x)
-
-        for k in range(len(dimnames)):
-            outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
-            image_id = df_detections_roi[config['image_id_col']]
-            col_id = xyz_colnames[k]
-            vals = df_detections_roi[col_id]
-            plot_scatter(image_id, vals, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
-            plotly_scatter(image_id, vals, None, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
-
-        outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_delta_z")
-        plot_scatter(deltaz, z, 'delta z (nm)','z (nm)', 'z vs delta z', outpath, config)
-
-        outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_zstep")
-        plot_scatter(z_step, z, 'z_step', 'z (nm)', 'z vs zstep', outpath, config)
-
-        # Plot distributions in x,y,z,deltaz
-        outpath = os.path.join(outdir, f"{fiducial_name}_hist")
-        fig, axs = plt.subplots(2, 2, figsize=(12, 10))
-        # Plot histograms
-        axs[0, 0].hist(x, bins=100, color='blue', alpha=0.7)
-        axs[0, 0].annotate(stats_text(x, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
-                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
-        axs[0, 0].set_title('Histogram of x')
-        axs[0, 0].set_xlabel('x nm')
-        axs[0, 0].set_ylabel('Frequency')
-
-        axs[0, 1].hist(y, bins=100, color='green', alpha=0.7)
-        axs[0, 1].annotate(stats_text(y, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
-                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
-        axs[0, 1].set_title('Histogram of y')
-        axs[0, 1].set_xlabel('y nm')
-        axs[0, 1].set_ylabel('Frequency')
-
-        axs[1, 0].hist(z, bins=100, color='red', alpha=0.7)
-        axs[1, 0].annotate(stats_text(z, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
-                           bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
-        axs[1, 0].set_title('Histogram of z')
-        axs[1, 0].set_xlabel('z nm')
-        axs[1, 0].set_ylabel('Frequency')
-
-        axs[1, 1].hist(deltaz, bins=100, color='purple', alpha=0.7)
-        axs[1, 1].set_title('Histogram of delta z')
-        axs[1, 1].set_xlabel('delta z nm')
-        axs[1, 1].set_ylabel('Frequency')
-        # Adjust layout
-        plt.tight_layout()
-        plt.savefig(outpath, dpi=300)
-        plt.close()
-        # Set point size to suit number of detections
-        point_size = 100 / np.max([n_detections,1])
-        point_size = np.max([point_size, 0.05])
-        point_size = np.min([point_size, 1.0])
-
-        # Plot x,y,z dependence on deltaz
-        fig, ax = plt.subplots(3, 1, figsize=(12, 9))
-        outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
-        figure_path = construct_plot_path(outpath, "png", config)
-        ax[0].scatter(deltaz, x, s=point_size, c='blue', alpha=0.25)
-        ax[0].set_xlabel('delta z (nm)')
-        ax[0].set_ylabel('x (nm)')
-        ax[1].scatter(deltaz, y, s=point_size, c='green', alpha=0.25)
-        ax[1].set_xlabel('delta z (nm)')
-        ax[1].set_ylabel('y (nm)')
-        ax[2].scatter(deltaz, z, s=point_size, c='red', alpha=0.25)
-        ax[2].set_xlabel('delta z (nm)')
-        ax[2].set_ylabel('z (nm)')
-        plt.savefig(figure_path, dpi=600)
-        plt.close()
-        # Plot detections colour coded by possible covariates
-        for col in columns:
-            fig, ax = plt.subplots(2, 2, figsize=(12, 9))
-            sc = ax[0, 0].scatter(x, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
-            ax[0, 0].set_xlabel('x (nm)')
-            ax[0, 0].set_ylabel('z (nm)')
-            ax[0, 1].scatter(y, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
-            ax[0, 1].set_xlabel('y (nm)')
-            ax[0, 1].set_ylabel('z (nm)')
-            ax[1, 0].scatter(x, y, s=point_size, c=df_detections_roi[col], alpha=0.25)
-            ax[1, 0].set_xlabel('x (nm)')
-            ax[1, 0].set_ylabel('y (nm)')
-            # Use make_axes_locatable to create an inset axis for the colorbar
-            divider = make_axes_locatable(ax[1, 1])
-            cax = divider.append_axes("right", size="15%", pad=0.2)
-            cbar = plt.colorbar(sc, cax=cax, label=col)
-            cbar.set_alpha(1.0)  # Set colorbar alpha to 1.0 (fully opaque) - otherwise its too transparent
-            cbar.draw_all()  # Redraw to apply the alpha setting
-            ax[1, 1].set_axis_off()
-            outpath = os.path.join(outdir, f"{fiducial_name}_{col}")
-            figure_path = construct_plot_path(outpath, "png", config)
-            plt.savefig(figure_path, dpi=600)
-            plt.close()
     return 0
 
-def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict) -> int:
+def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:
+    #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
+    logging.info("plot_fiducials")
+    # Plot summary image first
+    plot_fiducial_rois(df_fiducials, df, config)
+
+    nfiducials = len(df_fiducials)
+    fiducial_names = df_fiducials['name']
+    fiducial_labels = df_fiducials['label']
+
+    tasks = [(fiducial_labels[j], fiducial_names[j],
+              df[df['label']==fiducial_labels[j]], config) for j in range(nfiducials)]
+
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(plot_fiducial, tasks)
+
+    return 0
+
+def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd.DataFrame, config: dict) -> int:
+    # foreach roi, plot the dependence of z on config['image_id_col'], config['z_step_col'], config['cycle_col'],...
+    # Also plot histogram of x,y,x
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    dimnames = config['dimnames']
+    outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
+    os.makedirs(outdir, exist_ok=True)
+    logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
+
+    x = df_detections_roi[config['x_col']]
+    y = df_detections_roi[config['y_col']]
+    z = df_detections_roi[config['z_col']]
+    deltaz = df_detections_roi[config['deltaz_col']]
+    z_step = df_detections_roi[config['z_step_col']]
+    n_detections = len(x)
+
+    for k in range(len(dimnames)):
+        outpath = os.path.join(outdir, f"{fiducial_name}_{dimnames[k]}_vs_frame")
+        image_id = df_detections_roi[config['image_id_col']]
+        col_id = xyz_colnames[k]
+        vals = df_detections_roi[col_id]
+        plot_scatter(image_id, vals, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
+        plotly_scatter(image_id, vals, None, 'image-ID', f'{dimnames[k]} (nm)', f"{dimnames[k]} vs frame", outpath, config)
+
+    outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_delta_z")
+    plot_scatter(deltaz, z, 'delta z (nm)','z (nm)', 'z vs delta z', outpath, config)
+
+    outpath = os.path.join(outdir, f"{fiducial_name}_z_vs_zstep")
+    plot_scatter(z_step, z, 'z_step', 'z (nm)', 'z vs zstep', outpath, config)
+
+    # Plot distributions in x,y,z,deltaz
+    outpath = os.path.join(outdir, f"{fiducial_name}_hist")
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    # Plot histograms
+    axs[0, 0].hist(x, bins=100, color='blue', alpha=0.7)
+    axs[0, 0].annotate(stats_text(x, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                       bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
+    axs[0, 0].set_title('Histogram of x')
+    axs[0, 0].set_xlabel('x nm')
+    axs[0, 0].set_ylabel('Frequency')
+
+    axs[0, 1].hist(y, bins=100, color='green', alpha=0.7)
+    axs[0, 1].annotate(stats_text(y, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                       bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
+    axs[0, 1].set_title('Histogram of y')
+    axs[0, 1].set_xlabel('y nm')
+    axs[0, 1].set_ylabel('Frequency')
+
+    axs[1, 0].hist(z, bins=100, color='red', alpha=0.7)
+    axs[1, 0].annotate(stats_text(z, "Summary"), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                       bbox=dict(facecolor='white', alpha=0.5), ha='right', va='top')
+    axs[1, 0].set_title('Histogram of z')
+    axs[1, 0].set_xlabel('z nm')
+    axs[1, 0].set_ylabel('Frequency')
+
+    axs[1, 1].hist(deltaz, bins=100, color='purple', alpha=0.7)
+    axs[1, 1].set_title('Histogram of delta z')
+    axs[1, 1].set_xlabel('delta z nm')
+    axs[1, 1].set_ylabel('Frequency')
+    # Adjust layout
+    plt.tight_layout()
+    plt.savefig(outpath, dpi=300)
+    plt.close()
+    # Set point size to suit number of detections
+    point_size = 100 / np.max([n_detections,1])
+    point_size = np.max([point_size, 0.05])
+    point_size = np.min([point_size, 1.0])
+
+    # Plot x,y,z dependence on deltaz
+    fig, ax = plt.subplots(3, 1, figsize=(12, 9))
+    outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
+    figure_path = construct_plot_path(outpath, "png", config)
+    ax[0].scatter(deltaz, x, s=point_size, c='blue', alpha=0.25)
+    ax[0].set_xlabel('delta z (nm)')
+    ax[0].set_ylabel('x (nm)')
+    ax[1].scatter(deltaz, y, s=point_size, c='green', alpha=0.25)
+    ax[1].set_xlabel('delta z (nm)')
+    ax[1].set_ylabel('y (nm)')
+    ax[2].scatter(deltaz, z, s=point_size, c='red', alpha=0.25)
+    ax[2].set_xlabel('delta z (nm)')
+    ax[2].set_ylabel('z (nm)')
+    plt.savefig(figure_path, dpi=600)
+    plt.close()
+    # Plot detections colour coded by possible covariates
+    columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col'],
+               config['deltaz_col'], config['photons_col'] ]
+    for col in columns:
+        fig, ax = plt.subplots(2, 2, figsize=(12, 9))
+        sc = ax[0, 0].scatter(x, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        ax[0, 0].set_xlabel('x (nm)')
+        ax[0, 0].set_ylabel('z (nm)')
+        ax[0, 1].scatter(y, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        ax[0, 1].set_xlabel('y (nm)')
+        ax[0, 1].set_ylabel('z (nm)')
+        ax[1, 0].scatter(x, y, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        ax[1, 0].set_xlabel('x (nm)')
+        ax[1, 0].set_ylabel('y (nm)')
+        # Use make_axes_locatable to create an inset axis for the colorbar
+        divider = make_axes_locatable(ax[1, 1])
+        cax = divider.append_axes("right", size="15%", pad=0.2)
+        cbar = plt.colorbar(sc, cax=cax, label=col)
+        cbar.set_alpha(1.0)  # Set colorbar alpha to 1.0 (fully opaque) - otherwise it's too transparent
+        cbar.draw_all()  # Redraw to apply the alpha setting
+        ax[1, 1].set_axis_off()
+        outpath = os.path.join(outdir, f"{fiducial_name}_cov_{col}")
+        figure_path = construct_plot_path(outpath, "png", config)
+        plt.savefig(figure_path, dpi=600)
+        plt.close()
+    return 0
+
+
+def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict):
     dimnames =config['dimnames']
     ndim = len(dimnames)
-    quantities = ['deltaz_cor', 'sd', 'fwhm']
-    units = ['', 'nm', 'nm']
+    quantities = ['deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
+    units = ['', 'nm', 'nm', '']
     for unit,fiducial_stat in zip (units, quantities):
         logging.info(f"Plotting fiducial stat {fiducial_stat}")
         outdir = os.path.join(config['fiducial_dir'])
@@ -364,6 +389,7 @@ def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict) -> int
     plt.close()
 
 def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
+    logging.info("save_to_tiff_3d")
     # Save a 3D array to a TIFF file
     maxpixel = np.max(counts_xyz)
     imgfile = construct_plot_path(filename, "tif", config)

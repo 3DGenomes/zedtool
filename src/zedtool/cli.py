@@ -7,17 +7,14 @@ import sys
 import logging
 import pandas as pd
 import shutil
-from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns
+from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns, compute_deltaz, apply_corrections
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections, apply_corrections, compute_deltaz
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool.deconvolution import deconvolve_z
 from zedtool import __version__
-
-
-# Prints some debugging plots for an SRX dataset.
-# Write out a table with both corrected and uncorrected z.
-
+# Makes QC plots and metrics for an SMLM dataset.
+# Optionally corrects drift and z-step errors.
 def main(yaml_config_file: str) -> int:
     no_display = True
     # no_display = False
@@ -36,44 +33,49 @@ def main(yaml_config_file: str) -> int:
         except yaml.YAMLError as exc:
             print(exc)
             return 1
+    # Set up config. This carries all the global variables and is not changed after this.
     config = config_update(config_default(), config) # Update defaults with settings from file
-    debug = config['debug']
-    # set up logging
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s')
-    # quieten matplotlib
-    logging.getLogger('matplotlib').setLevel(logging.WARNING)
-    matplotlib.set_loglevel("error")
-    logging.getLogger('matplotlib').propagate = False
-
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     config['cache_dir'] = os.path.join(config['output_dir'],'cache')
-    detections_file = config['detections_file']
-    binary_detections_file = os.path.join(config['output_dir'], config['cache_dir'], config['binary_detections_file'])
-
-    noclobber = config['noclobber']
+    # Make output directories (requires config)
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
     if config['make_caches']:
         os.makedirs(config['cache_dir'], exist_ok=True)
-
+    # set up logging (requires output_dir to exist)
+    logfile = os.path.join(config['output_dir'], 'zedtool.log')
+    print(f"Writing log output to {logfile}")
+    logging.basicConfig(filename=logfile, level=logging.DEBUG if config['debug'] else logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+    # Add a StreamHandler to output logs to stdout
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG if config['debug'] else logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(console_handler)
+    # quieten matplotlib
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib').propagate = False
+    # Check config (requires logging)
     if not config_validate(config):
         return 1
-    if debug:
+    if config['debug']:
         config_print(config)
 
-    if noclobber and os.path.exists(binary_detections_file) and config['make_caches']:
+    # read detections and cache if needed
+    binary_detections_file = os.path.join(config['output_dir'], config['cache_dir'], 'detections.pkl')
+    if config['noclobber'] and os.path.exists(binary_detections_file) and config['make_caches']:
         logging.info(f"Loading detections from {binary_detections_file}")
         df = pd.read_pickle(binary_detections_file)
     else:
-        logging.info(f"Reading detections from {detections_file}")
-        df = pd.read_csv(detections_file)
+        logging.info(f"Reading detections from {config['detections_file']}")
+        df = pd.read_csv(config['detections_file'])
         if config['make_caches']:
             df.to_pickle(binary_detections_file)
-
+    # make sure detections are consistent with config
     logging.info(f"Loaded {df.shape[0]} rows")
     if not config_validate_detections(df, config):
         return 1
-
+    # Apply a pre-computed drift correction read from a file
     if config['apply_drift_correction']:
         drift_correction_file = config['drift_correction_file']
         logging.info("Applying drift correction from {drift_correction_file")
@@ -84,9 +86,11 @@ def main(yaml_config_file: str) -> int:
         x_t[1] = df_corrections['y'].values
         x_t[2] = df_corrections['z'].values
         df = apply_corrections(df, x_t, config)
-
+    # Add any missing columnns
     df = compute_deltaz(df, config) # add deltaz column
-    df = filter_detections(df, config)
+    # Remove detections outside of the selected columns' ranges
+    if config['select_cols'] != '' and config['select_ranges'] != '':
+        df = filter_detections(df, config)
     logging.info(f"Filtered to {df.shape[0]} rows")
 
     # Combine x,y,x into a single array with shape (n,3)
@@ -129,19 +133,19 @@ def main(yaml_config_file: str) -> int:
     # Find wobbliness, detections per fiducial, correlation between x, y and z for each fiducial
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     outpath = os.path.join(config['fiducial_dir'], "fiducials_unfiltered.tsv")
-    df_fiducials.to_csv(outpath, sep='\t', index=False)
+    df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     # Remove problematic and outlier fiducials
     df_filtered_fiducial_detections, df_fiducials = filter_fiducials(df_fiducials, df, config)
     outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
-    df_fiducials.to_csv(outpath, sep='\t', index=False)
+    df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
     outpath = os.path.join(config['fiducial_dir'], "fiducials_detections_filtered.tsv")
-    df_filtered_fiducial_detections.to_csv(outpath, sep = '\t', index=False)
+    df_filtered_fiducial_detections.to_csv(outpath, sep = '\t', index=False, float_format=config['float_format'])
 
     if config['make_quality_metrics']:
         df_metrics = make_quality_metrics(df, df_fiducials, config)
         outpath = os.path.join(config['output_dir'], "quality_metrics_before_correction.tsv")
-        df_metrics.to_csv(outpath, sep='\t', index=False)
+        df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
         # Only plot before correction
         plot_fiducial_quality_metrics(df_fiducials, config)
 
@@ -164,7 +168,7 @@ def main(yaml_config_file: str) -> int:
         df_fiducials, df = zstep_correct_fiducials(df_fiducials, df, config)
 
     # Correct detections using (possibly corrected) fiducials
-    # df_fiducials gets consensus and fitting error
+    # df_fiducials gains cols with consensus and fitting error
     if config['drift_correct_detections']:
         df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
@@ -174,16 +178,15 @@ def main(yaml_config_file: str) -> int:
     if config['make_quality_metrics']:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
         outpath = os.path.join(config['fiducial_dir'], "fiducials_corrected.tsv")
-        df_fiducials.to_csv(outpath, sep='\t', index=False)
+        df_fiducials.to_csv(outpath, sep='\t', index=False, float_format='%0.3f')
         df_metrics = make_quality_metrics(df, df_fiducials, config)
         outpath = os.path.join(config['output_dir'], "quality_metrics_corrected.tsv")
-        df_metrics.to_csv(outpath, sep='\t', index=False)
+        df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     # Write df and copy config file to output dir
     df = compute_deltaz(df, config) # update deltaz column
-    df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False)
+    df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False, float_format=config['float_format'])
     shutil.copy(yaml_config_file, os.path.join(config['output_dir'], 'config.yaml'))
-
     return 0
 
 def print_version() -> str:
