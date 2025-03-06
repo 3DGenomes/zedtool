@@ -5,6 +5,7 @@ import pandas as pd
 from typing import Tuple
 import logging
 import scipy
+import re
 
 def make_density_mask_2d(n_xy: np.ndarray, config: dict) -> np.ndarray:
     # Make a mask for the density of detections in the x-y plane
@@ -101,12 +102,12 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
     colnames = config['select_cols']
     ranges = config['select_ranges']
+
     if colnames == '' or ranges == '' or colnames is None or ranges is None:
         return df
     # Split colnames and ranges into lists
     columns = colnames.split(',')
     range_list = ranges.split(',')
-
     # Ensure columns and ranges have the same length
     if len(columns) != len(range_list):
         raise ValueError(f"The number of columns and ranges must match: {colnames} vs {ranges}")
@@ -119,7 +120,7 @@ def filter_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Apply filters for each column and range
     for col, r in zip(columns, range_list):
         # Parse the range (e.g., "1.0-3.2" -> 1.0, 3.2)
-        low, high = map(float, r.split('-'))
+        low, high = map(float, re.split(r'(?<!^)-', r.strip()))
         # Filter the DataFrame
         filtered_df = filtered_df[(filtered_df[col] >= low) & (filtered_df[col] <= high)]
         logging.info(f"Filtered {col} between {low} and {high}: {filtered_df.shape[0]} rows")

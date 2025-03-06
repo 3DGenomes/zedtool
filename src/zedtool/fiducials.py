@@ -15,10 +15,11 @@ import tifffile
 import os
 import platform
 import logging
+import multiprocessing
 from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections
 from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
 from zedtool.plots import construct_plot_path
-from zedtool.parallel import fit_fiducial_detections_parallel, plot_fitted_fiducials_parallel, minimize_fiducial_fit_variance_parallel, zstep_correct_fiducials_parallel
+from zedtool.parallel import minimize_fiducial_fit_variance_parallel
 
 def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[np.ndarray, np.ndarray]:
     logging.info('find_fiducials')
@@ -121,12 +122,13 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         if np.sum(np.sum(np.isnan(deltaz))) > 0:
             logging.error(f'Nans in x,y,z,deltaz for fiducial {fiducial_label}')
             continue
-        x_deltaz_cor = scipy.stats.pearsonr(x, deltaz)[0]
-        y_deltaz_cor = scipy.stats.pearsonr(y, deltaz)[0]
-        z_deltaz_cor = scipy.stats.pearsonr(z, deltaz)[0]
         x_z_step_cor = scipy.stats.pearsonr(x, z_step)[0]
         y_z_step_cor = scipy.stats.pearsonr(y, z_step)[0]
         z_z_step_cor = scipy.stats.pearsonr(z, z_step)[0]
+        # fit a linear model of z versus deltaz
+        x_deltaz_slope, intercept, x_deltaz_cor, p_value, std_err = scipy.stats.linregress(x, deltaz)
+        y_deltaz_slope, intercept, y_deltaz_cor, p_value, std_err = scipy.stats.linregress(y, deltaz)
+        z_deltaz_slope, intercept, z_deltaz_cor, p_value, std_err = scipy.stats.linregress(z, deltaz)
         x_sd = np.std(x)
         x_mean = np.mean(x)
         x_fwhm = fwhm_from_points(x)
@@ -172,6 +174,9 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         df_fiducials.at[j, 'x_z_step_cor'] = x_z_step_cor
         df_fiducials.at[j, 'y_z_step_cor'] = y_z_step_cor
         df_fiducials.at[j, 'z_z_step_cor'] = z_z_step_cor
+        df_fiducials.at[j, 'x_deltaz_slope'] = x_deltaz_slope
+        df_fiducials.at[j, 'y_deltaz_slope'] = y_deltaz_slope
+        df_fiducials.at[j, 'z_deltaz_slope'] = z_deltaz_slope
         df_fiducials.at[j, 'x_madr'] = x_madr
         df_fiducials.at[j, 'y_madr'] = y_madr
         df_fiducials.at[j, 'z_madr'] = z_madr
@@ -377,25 +382,37 @@ def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: d
     return df_metrics
 
 def zstep_correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    if config['multiprocessing']: # TODO: Restore this
-       return zstep_correct_fiducials_parallel(df_fiducials, df, config)
-    logging.info('zstep_correct_fiducials')
+    return zstep_correct_fiducials_parallel(df_fiducials, df, config)
+
+def zstep_correct_fiducials_parallel(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('zstep_correct_fiducials_parallel')
     # If x1,... are taken then move them to x2,... first.
     # Check if backup column x_0 exists, if not then quit
     if not 'x_0' in df.columns:
         logging.error('No backup columns found in df')
         return df_fiducials, df
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    ndims = len(xyz_colnames)
+    nfiducials = len(df_fiducials)
+    fiducial_names = df_fiducials['name']
+    fiducial_labels = df_fiducials['label']
 
-    for index, row in df_fiducials.iterrows():
-        zstep_correct_fiducial(row.to_dict(), df, config)
+    tasks = [(fiducial_labels[j], fiducial_names[j],
+              df[df['label']==fiducial_labels[j]],df['label']==fiducial_labels[j], config) for j in range(nfiducials)]
+
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(zstep_correct_fiducial, tasks)
+
+    for df_cor, idx_cor in results:
+        df.loc[idx_cor] = df_cor
 
     return df_fiducials, df
 
-def zstep_correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> int:
+
+def zstep_correct_fiducial(fiducial_label: int, fiducial_name: str, df: pd.DataFrame, idx_cor: np.ndarray, config: dict) -> Tuple [pd.DataFrame, np.ndarray]:
     # Correct for z-step dependence. Assumes that impact is the same for all cycles
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     correct_z_only = 0
-    fiducial_label = fiducial['label']
-    fiducial_name = fiducial['name']
     logging.info(f'correct_fiducial: {fiducial_name}')
     min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
     min_frame, max_frame = map(int, config['frame_range'].split('-'))
@@ -409,21 +426,22 @@ def zstep_correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> in
     frames_per_cycle = num_frames * num_z_steps
     dimnames = config['dimnames']
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    ndims = len(xyz_colnames)
     sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
     # Create array to hold x,y,z for each cycle
     x_ct = np.zeros((total_cycles, frames_per_cycle), dtype=float)
     sd_ct = np.zeros((total_cycles, frames_per_cycle), dtype=float)
     x_ct.fill(np.nan)
-    for k, colname in enumerate(xyz_colnames):
+    for k in range(ndims):
         # Skip x and y
         if correct_z_only and k<2:
-            continue
+            return df
+        colname = xyz_colnames[k]
         logging.info(f'Correcting #{fiducial_label} label:{fiducial_name}:{colname}')
         # Get x,y,z values for each cycle
         for j in range(num_time_points):
             for i in range(num_cycles):
                 idx = (
-                        (df['label'] == fiducial_label) &
                     (df[config['cycle_col']] == i + min_cycle) &
                     (df[config['time_point_col']] == j + min_time_point)
                 )
@@ -442,7 +460,6 @@ def zstep_correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> in
         for j in range(num_time_points):
             for i in range(num_cycles):
                 idx = (
-                        (df['label'] == fiducial_label) &
                         (df[config['cycle_col']] == i + min_cycle) &
                     (df[config['time_point_col']] == j + min_time_point)
                 )
@@ -452,21 +469,20 @@ def zstep_correct_fiducial(fiducial: dict, df: pd.DataFrame, config: dict) -> in
                 # Transfer corrected sd values back to df
                 # For those elements without sd value from correction, use the old value
                 # This can happen because there weren't enough detections to estimate the error
-                non_nan_mask = ~np.isnan(sd_t[frame_index])
+                non_nan_mask = ~np.isnan(sd_t[frame_index]) & (sd_t[frame_index] != 0)
                 df.loc[idx, sd_colnames[k]] = np.where(non_nan_mask, sd_t[frame_index], df.loc[idx, sd_colnames[k]])
 
         dim = dimnames[k]
         outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
         outpath = os.path.join(outdir, f"{fiducial_name}_cor_{dim}_vs_frame")
-        df_sel = df[df['label'] == fiducial_label]
-        plot_scatter(df_sel[config['image_id_col']], df_sel[colname], 'image-ID', f'{dim} (nm)', f"{dim} corrected for z-step vs frame",
+        plot_scatter(df[config['image_id_col']], df[colname], 'image-ID', f'{dim} (nm)', f"{dim} corrected for z-step vs frame",
                      outpath, config)
-        plotly_scatter(df_sel[config['image_id_col']], df_sel[colname], df_sel[sd_colnames[k]], 'image-ID', f'{dim} (nm)', f"{dim} corrected for z-step vs frame",
+        plotly_scatter(df[config['image_id_col']], df[colname], df[sd_colnames[k]], 'image-ID', f'{dim} (nm)', f"{dim} corrected for z-step vs frame",
                        outpath, config)
         # Plot fitted values on top of original values
         if config['plot_per_fiducial_fitting']:
-            plot_fiduciual_zstep_fit(fiducial_label,df_sel,dim, config)
-    return 0
+            plot_fiduciual_zstep_fit(fiducial_label,df,dim, config)
+    return df, idx_cor
 
 def plot_fiduciual_zstep_fit(fiducial_index: int, df: pd.DataFrame,dim: str, config: dict) -> int:
     logging.info('plot_fiduciual_zstep_fit')
@@ -661,21 +677,24 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     return df, df_fiducials
 
 def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, config: dict) -> int:
-    if config['multiprocessing']:
-        return plot_fitted_fiducials_parallel(df_fiducials, x_fit_ft, xsd_fit_ft, config)
-    logging.info('plot_fitted_fiducials')
+    return plot_fitted_fiducials_parallel(df_fiducials, x_fit_ft, xsd_fit_ft, config)
+
+def plot_fitted_fiducial(fiducial_name, j, k, x_fit_ft, xsd_fit_ft, config):
+    outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
+    os.makedirs(outdir, exist_ok=True)
+    outpath = os.path.join(outdir, f"{fiducial_name}_{config['dimnames'][k]}_fit_vs_frame")
+    plotly_scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k, j, :], None,
+                   'image-ID', f'{config["dimnames"][k]} (nm)', f'{config["dimnames"][k]} fit vs frame', outpath, config)
+
+def plot_fitted_fiducials_parallel(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, config: dict) -> int:
+    logging.info('plot_fitted_fiducials_parallel')
+
     ndims = x_fit_ft.shape[0]
     nfiducials = x_fit_ft.shape[1]
-    x_col = ['x', 'y', 'z']
-    for j in range(nfiducials):
-        fiducial_name = df_fiducials.name[j]
-        logging.info(f'Plotting fitted corrections for {fiducial_name}')
-        for k in range(ndims):
-            outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
-            os.makedirs(outdir, exist_ok=True)
-            outpath = os.path.join(outdir, f"{fiducial_name}_{x_col[k]}_fit_vs_frame")
-            plotly_scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], None,
-                           'image-ID', f'{x_col[k]} (nm)', f'{x_col[k]} fit vs frame', outpath, config)
+    tasks = [(df_fiducials.name[j], j, k, x_fit_ft, xsd_fit_ft, config) for j in range(nfiducials) for k in range(ndims)]
+
+    with multiprocessing.Pool() as pool:
+        pool.starmap(plot_fitted_fiducial, tasks)
 
     return 0
 
@@ -731,11 +750,11 @@ def make_drift_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd
 
 def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray,config: dict) -> Tuple[np.ndarray, np.ndarray]:
     # Minimise the variance of the fiducial fits at each time point
-
+    # One of the options for grouping together fiducial fits
     os_name = platform.system()
     # multiprocessing does not work with scipy.optimize.minimize() on Windows
     if os_name != "Windows" and config['multiprocessing']:
-        return minimize_fiducial_fit_variance_parallel(x_ft, xsd_ft,config)
+       return minimize_fiducial_fit_variance_parallel(x_ft, xsd_ft,config)
     logging.info('minimize_fiducial_fit_variance')
     # Finds the offsets that minimise the variance of the fiducial fits at each time point
     optimise_method = "L-BFGS-B" # L-BFGS-B, Powell, CG, BFGS, Nelder-Mead, TNC, COBYLA, SLSQP, Newton-CG, trust-ncg, trust-krylov, trust-exact, trust-constr
@@ -822,71 +841,41 @@ def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config
                 logging.info(f'pass: {k} fiducial: {i} dimension: {j}  offset: {offset}')
     return x_ret, xsd_ft
 
-def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    if config['multiprocessing']:
-       return fit_fiducial_detections_parallel(x_ft, xsd_ft, config)
 
-    logging.info('fit_fiducial_detections')
-    # Fit fiducials, interpolate across all time points and give uncertainties to interpolated areas
-    ndim = x_ft.shape[0]
-    nfiducials = x_ft.shape[1]
-    min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
-    min_frame, max_frame = map(int, config['frame_range'].split('-'))
-    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
-    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
-    num_time_points = max_time_point - min_time_point + 1
-    num_frames = max_frame - min_frame + 1
-    num_cycles = max_cycle - min_cycle + 1
-    num_z_steps = max_z_step - min_z_step + 1
-    total_cycles = num_cycles * num_time_points
-    frames_per_cycle = num_frames * num_z_steps
-    total_frames = total_cycles * frames_per_cycle
-    frames_per_time_point = num_cycles * frames_per_cycle
-    fitting_intervals = np.arange(0, total_frames + frames_per_time_point, frames_per_time_point)
+def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
+    # Assumes that x_ft and xsd_ft are 1D arrays with indexing by dim and fiducial already done
     x_fit_ft = np.zeros_like(x_ft)
     x_fit_ft.fill(np.nan)
     xsd_fit_ft = np.zeros_like(xsd_ft)
     xsd_fit_ft.fill(np.nan)
-    for i in range(nfiducials):
-        for k in range(ndim):
-            # loop over fitting intervals, fitting each interval separately
-            for j in range(len(fitting_intervals)-1):
-                idx = np.arange(fitting_intervals[j], fitting_intervals[j+1])
-                logging.info(f'fit_fiducial_step: fid_idx: {i} dim_idx: {k} seg_idx: {j} ')
-                x_fit_ft[k,i,idx], xsd_fit_ft[k,i,idx] = fit_fiducial_step(x_ft[k,i,idx], xsd_ft[k,i,idx], config)
-                y = x_ft[k,i,idx]
-                ysd = xsd_ft[k,i,idx]
-                y_fit = x_fit_ft[k,i,idx]
-                # If there are no non-nan values in the interval, skip plotting
-                if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
-                    logging.warning(f'No valid data for fitting in fit_fiducial_detections() for fiducial {i} dimension {k} interval {j}')
-                    # if no fitting possible then assign the last value of the previous fitting interval to this one
-                    if j > 0:
-                        x_fit_ft[k,i,idx] = x_fit_ft[k,i,fitting_intervals[j]-1]
-                        xsd_fit_ft[k,i,idx] = xsd_fit_ft[k,i,fitting_intervals[j]-1]
-                    else:
-                        # zeros
-                        x_fit_ft[k,i,idx] = 0
-                        xsd_fit_ft[k,i,idx] = 0
-                        continue
-                elif config['plot_per_fiducial_fitting']:
-                    plot_fiduciual_step_fit(i, j, k, x_ft[k,i,idx], xsd_ft[k,i,idx], x_fit_ft[k,i,idx], xsd_fit_ft[k,i,idx], config)
-            # TODO: Leave the zeros in the data for now...
-            # TODO: But revisit and interpolate between adjacent non-zero values from fitting intervals
-            # Prevent possibly divide by zero errors later by replacing zeros with the next non-zero value
-            # This will fix runs of zeros in the data that start from the beginning
-            # Count down with j to avoid overwriting the dummy values
-            for j in range(len(fitting_intervals)-1, 0, -1):
-                idx = np.arange(fitting_intervals[j-1], fitting_intervals[j])
-                if np.sum(xsd_fit_ft[k,i,idx] == 0) > 0:
-                    xsd_fit_ft[k, i, idx] = xsd_fit_ft[k,i,fitting_intervals[j]]
-                    x_fit_ft[k, i, idx] = x_fit_ft[k,i,fitting_intervals[j]]
-    # Check if there are any zeros left in xsd_fit_ft
-    if np.sum(xsd_fit_ft == 0) > 0:
-        logging.error('Zeros in xsd_fit_ft')
-    if np.sum(np.isnan(x_fit_ft)) > 0:
-        logging.error('NaN in x_fit_ft')
-    return x_fit_ft, xsd_fit_ft
+
+    for j in range(len(fitting_intervals) - 1):
+        idx = np.arange(fitting_intervals[j], fitting_intervals[j + 1])
+        logging.info(f'fit_fiducial_step: fid_idx: {i} dim_idx: {k} seg_idx: {j} ')
+        x_fit_ft[idx], xsd_fit_ft[idx] = fit_fiducial_step(x_ft[idx], xsd_ft[idx], config)
+        y = x_ft[idx]
+        ysd = xsd_ft[idx]
+        y_fit = x_fit_ft[idx]
+        if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
+            logging.warning(
+                f'No valid data for fitting in fit_fiducial_detections() for fiducial {i} dimension {k} interval {j}')
+            if j > 0:
+                x_fit_ft[idx] = x_fit_ft[fitting_intervals[j] - 1]
+                xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j] - 1]
+            else:
+                x_fit_ft[idx] = 0
+                xsd_fit_ft[idx] = 0
+                continue
+        elif config['plot_per_fiducial_fitting']:
+            plot_fiduciual_step_fit(i, j, k, x_ft[idx], xsd_ft[idx], x_fit_ft[idx],xsd_fit_ft[idx], config)
+
+    for j in range(len(fitting_intervals) - 1, 0, -1):
+        idx = np.arange(fitting_intervals[j - 1], fitting_intervals[j])
+        if np.sum(xsd_fit_ft[idx] == 0) > 0:
+            xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j]]
+            x_fit_ft[idx] = x_fit_ft[fitting_intervals[j]]
+
+    return i, k, x_fit_ft, xsd_fit_ft
 
 def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_index: int, y: np.ndarray, ysd: np.ndarray, y_fit: np.ndarray, ysd_fit: np.ndarray, config: dict) -> int:
     logging.info('plot_fiduciual_step_fit')
@@ -919,9 +908,11 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
     extrapolate_to_end = True
     median_filter_size = 100
     outlier_threshold = 3
-
-    non_nan_indices = ~np.isnan(xt) & ~np.isnan(xt_sd) & (xt_sd!=0)
+    w = np.full_like(xt_sd, np.nan)
+    non_nan_indices = ~np.isnan(xt) & (xt_sd != 0)
     nan_indices = ~non_nan_indices
+    w[non_nan_indices] = 1 / xt_sd[non_nan_indices] # avoid division by zero
+
     if np.sum(non_nan_indices) == 0:
         logging.warning('No valid data for fitting in fit_fiducial_step()')
         return np.full_like(xt, np.nan), np.full_like(xt, np.nan)
@@ -933,7 +924,6 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
 
     # Fit a polynomial using weights
     if use_weights_in_fit:
-        w = 1 / xt_sd
         coefficients = np.polyfit(x[non_nan_indices], y[non_nan_indices], polynomial_degree, w=w[non_nan_indices])
     else:
         coefficients = np.polyfit(x[non_nan_indices], y[non_nan_indices], polynomial_degree)
@@ -956,6 +946,47 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
             xsd_fit[last_non_nan:] = np.nanmean(xsd_fit[non_nan_indices]) * 3
 
     return x_fit, xsd_fit
+
+def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    return fit_fiducial_detections_parallel(x_ft, xsd_ft, config)
+
+def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+    logging.info('fit_fiducial_detections_parallel')
+    ndim = x_ft.shape[0]
+    nfiducials = x_ft.shape[1]
+    min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
+    min_frame, max_frame = map(int, config['frame_range'].split('-'))
+    min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    num_time_points = max_time_point - min_time_point + 1
+    num_frames = max_frame - min_frame + 1
+    num_cycles = max_cycle - min_cycle + 1
+    num_z_steps = max_z_step - min_z_step + 1
+    total_cycles = num_cycles * num_time_points
+    frames_per_cycle = num_frames * num_z_steps
+    total_frames = total_cycles * frames_per_cycle
+    frames_per_time_point = num_cycles * frames_per_cycle
+    fitting_intervals = np.arange(0, total_frames + frames_per_time_point, frames_per_time_point)
+
+    x_fit_ft = np.zeros_like(x_ft)
+    x_fit_ft.fill(np.nan)
+    xsd_fit_ft = np.zeros_like(xsd_ft)
+    xsd_fit_ft.fill(np.nan)
+
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(fit_fiducial_step_parallel,
+                               [(i, k, fitting_intervals, x_ft[k,i,:], xsd_ft[k,i,:], config) for i in range(nfiducials) for k in
+                                range(ndim)])
+
+    for i, k, x_fit, xsd_fit in results:
+        x_fit_ft[k, i, :] = x_fit
+        xsd_fit_ft[k, i, :] = xsd_fit
+
+    if np.sum(xsd_fit_ft == 0) > 0:
+        logging.error('Zeros in xsd_fit_ft')
+    if np.sum(np.isnan(x_fit_ft)) > 0:
+        logging.error('NaN in x_fit_ft')
+    return x_fit_ft, xsd_fit_ft
 
 
 def extract_fiducial_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:

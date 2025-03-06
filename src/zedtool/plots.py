@@ -350,7 +350,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
 def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict):
     dimnames =config['dimnames']
     ndim = len(dimnames)
-    quantities = ['deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
+    quantities = ['deltaz_slope','deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
     units = ['', 'nm', 'nm', '']
     for unit,fiducial_stat in zip (units, quantities):
         logging.info(f"Plotting fiducial stat {fiducial_stat}")

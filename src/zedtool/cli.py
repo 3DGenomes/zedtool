@@ -78,7 +78,7 @@ def main(yaml_config_file: str) -> int:
     # Apply a pre-computed drift correction read from a file
     if config['apply_drift_correction']:
         drift_correction_file = config['drift_correction_file']
-        logging.info("Applying drift correction from {drift_correction_file")
+        logging.info(f"Applying drift correction from {drift_correction_file}")
         # read corrections from tsv file
         df_corrections = pd.read_csv(drift_correction_file, sep='\t')
         x_t = np.zeros((3,df_corrections.shape[0]))
@@ -178,7 +178,7 @@ def main(yaml_config_file: str) -> int:
     if config['make_quality_metrics']:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
         outpath = os.path.join(config['fiducial_dir'], "fiducials_corrected.tsv")
-        df_fiducials.to_csv(outpath, sep='\t', index=False, float_format='%0.3f')
+        df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
         df_metrics = make_quality_metrics(df, df_fiducials, config)
         outpath = os.path.join(config['output_dir'], "quality_metrics_corrected.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
