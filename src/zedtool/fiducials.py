@@ -126,9 +126,9 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         y_z_step_cor = scipy.stats.pearsonr(y, z_step)[0]
         z_z_step_cor = scipy.stats.pearsonr(z, z_step)[0]
         # fit a linear model of z versus deltaz
-        x_deltaz_slope, intercept, x_deltaz_cor, p_value, std_err = scipy.stats.linregress(x, deltaz)
-        y_deltaz_slope, intercept, y_deltaz_cor, p_value, std_err = scipy.stats.linregress(y, deltaz)
-        z_deltaz_slope, intercept, z_deltaz_cor, p_value, std_err = scipy.stats.linregress(z, deltaz)
+        x_deltaz_slope, intercept, x_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, x)
+        y_deltaz_slope, intercept, y_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, y)
+        z_deltaz_slope, intercept, z_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, z)
         x_sd = np.std(x)
         x_mean = np.mean(x)
         x_fwhm = fwhm_from_points(x)
