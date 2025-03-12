@@ -4,6 +4,7 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 import os
+import scipy
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import tifffile
@@ -240,6 +241,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     # foreach roi, plot the dependence of z on config['image_id_col'], config['z_step_col'], config['cycle_col'],...
     # Also plot histogram of x,y,x
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    xyz_sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
     dimnames = config['dimnames']
     outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
     os.makedirs(outdir, exist_ok=True)
@@ -308,15 +310,21 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     fig, ax = plt.subplots(3, 1, figsize=(12, 9))
     outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
     figure_path = construct_plot_path(outpath, "png", config)
-    ax[0].scatter(deltaz, x, s=point_size, c='blue', alpha=0.25)
-    ax[0].set_xlabel('delta z (nm)')
-    ax[0].set_ylabel('x (nm)')
-    ax[1].scatter(deltaz, y, s=point_size, c='green', alpha=0.25)
-    ax[1].set_xlabel('delta z (nm)')
-    ax[1].set_ylabel('y (nm)')
-    ax[2].scatter(deltaz, z, s=point_size, c='red', alpha=0.25)
-    ax[2].set_xlabel('delta z (nm)')
-    ax[2].set_ylabel('z (nm)')
+    colours = ['blue', 'green', 'red']
+    for k in range(len(dimnames)):
+        col = xyz_colnames[k]
+        vals = df_detections_roi[col]
+        ax[k].scatter(deltaz, vals, s=point_size, c=colours[k], alpha=0.25)
+        # Find the regression line and plot that and the factor and points
+        slope, intercept, cor, p_value, std_err = scipy.stats.linregress(deltaz, vals)
+        x_fit = np.linspace(np.min(deltaz), np.max(deltaz), 100)
+        y_fit = slope * x_fit + intercept
+        ax[k].plot(x_fit, y_fit, linestyle=':', color='lightgray')
+        # write slope, cor on plot
+        ax[k].annotate(f"slope = {slope:.3f}\ncor = {cor:.3f}\n", xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                       bbox=dict(facecolor='white', alpha=0.25), ha='right', va='top')
+        ax[k].set_xlabel('delta z (nm)')
+        ax[k].set_ylabel(f'{col} (nm)')
     plt.savefig(figure_path, dpi=600)
     plt.close()
     # Plot detections colour coded by possible covariates
@@ -324,13 +332,14 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
                config['deltaz_col'], config['photons_col'] ]
     for col in columns:
         fig, ax = plt.subplots(2, 2, figsize=(12, 9))
-        sc = ax[0, 0].scatter(x, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        vals = df_detections_roi[col]
+        sc = ax[0, 0].scatter(x, z, s=point_size, c=vals, alpha=0.25)
         ax[0, 0].set_xlabel('x (nm)')
         ax[0, 0].set_ylabel('z (nm)')
-        ax[0, 1].scatter(y, z, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        ax[0, 1].scatter(y, z, s=point_size, c=vals, alpha=0.25)
         ax[0, 1].set_xlabel('y (nm)')
         ax[0, 1].set_ylabel('z (nm)')
-        ax[1, 0].scatter(x, y, s=point_size, c=df_detections_roi[col], alpha=0.25)
+        ax[1, 0].scatter(x, y, s=point_size, c=vals, alpha=0.25)
         ax[1, 0].set_xlabel('x (nm)')
         ax[1, 0].set_ylabel('y (nm)')
         # Use make_axes_locatable to create an inset axis for the colorbar
@@ -344,6 +353,32 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         figure_path = construct_plot_path(outpath, "png", config)
         plt.savefig(figure_path, dpi=600)
         plt.close()
+    # Plot x,y,z vs x_sd, y_sd, z_sd  to see if error estimate is realistic
+    fig, ax = plt.subplots(3, 1, figsize=(12, 9))
+    for k in range(len(dimnames)):
+        x_col_id = xyz_colnames[k]
+        x = df_detections_roi[x_col_id]
+        y_col_id = xyz_sd_colnames[k]
+        y = df_detections_roi[y_col_id]
+        ax[k].scatter(x, y, s=point_size, c=colours[k], alpha=0.25)
+        # Possibly interesting but not generally applicable, so commented out
+        do_fit=False
+        if do_fit:
+            # Find the regression line and plot that and the factor and points on the points
+            slope, intercept, cor, p_value, std_err = scipy.stats.linregress(x, y)
+            x_fit = np.linspace(np.min(x), np.max(x), 100)
+            y_fit = slope * x_fit + intercept
+            ax[k].plot(x_fit, y_fit, linestyle=':', color='lightgray')
+            # write slope, cor, std_err on plot
+            ax[k].annotate(f"slope = {slope:.3f}\ncor = {cor:.3f}\n", xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                                bbox=dict(facecolor='white', alpha=0.25), ha='right', va='top')
+        ax[k].set_xlabel(f'{x_col_id} (nm)')
+        ax[k].set_ylabel(f'{y_col_id} (nm)')
+    outpath = os.path.join(outdir, f"{fiducial_name}_sd")
+    figure_path = construct_plot_path(outpath, "png", config)
+    plt.savefig(figure_path, dpi=600)
+    plt.close()
+
     return 0
 
 

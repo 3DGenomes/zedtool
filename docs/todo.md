@@ -1,15 +1,14 @@
 
 ### TODO:
-* Plot precision XYZ versus actual distance to see how good an indication it is of actual precision
-* Does z-step-based fiducial fitting gives benefit to fitting either with or without filtering?
-* Plot fit on plots versus deltaz
-* Fit model for fiducials/all to deltaz average over fiducials. Try 1-2 steps of big exp
+* Write tutorial on github
+* Say what is being rejected and why. Should there be outlier rejection on each column or selection of columns?
+* For big experiment, can all detections or fiducials be corrected with deltaz?
+* Does z-step-based fiducial fitting give benefit to fitting either with or without filtering?
 * Look into papers on drift correction.
 * Cache binned detections
 * In order to check any spikes in drift, do a d[xyz]dt plot averaging over all fiducials
 * Allow n_min_cutoff and n_max_cutoff to be empty
 * Speed up optimise_dim() by using a better initial guess, putting in bounds and computing the Jacobian
-* Say what is being rejected and why. Should there be outlier rejection on each column or selection of columns?
 * Automatically filter based on quality of consensus fit
 * Check for fiducial areas overlapping and then move overlapping regions of interest
 * There sometimes can be Nans in corrected fiducials for large experiment with z-step correction. Find out why.
@@ -21,14 +20,18 @@
 * Parallelise: - plot_fiducial_correlations, make_fiducial_stats, plotting combined fitted corrections
 * Put deconvolution parameters into doco and config file
 * Put multiprocessing parameter into doco and config files
+* Put filter_fiducials_with_clustering into doco and config files
 * Add float_format, llr_col, probe_col, log_likelihood_col doco and config files
 * Optionally add faked error cols if they are not there
 * Optionally compute image-id and zstep if they are not there
 * Histogram binned detections gets a log scale on y
 * Transfer some code from fiducials to drift and to detections
-* Write tutorial on github
 
 ### DONE:
+* Fix sd and zstep plots. Remove cor. Add intercept. Make sd versus diff between co-ord and median.
+* Fit model for fiducials/all to deltaz average over fiducials. Try 1-2 steps of big exp
+* Plot precision XYZ versus actual distance to see how good an indication it is of actual precision
+* Plot fit on plots versus deltaz
 * Linear fit to deltaz dependence for fiducials - give it same treatment as correlation and plot it and use it to correct?
 * Does quality filtering improve drift correction?
 * Check image numbering scheme in the file against parameters

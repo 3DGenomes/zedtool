@@ -61,6 +61,7 @@ def config_default() -> dict:
         'use_weights_in_fit': 0,
         'only_fiducials': 0,
         'consensus_method': 'median',
+        'filter_fiducials_with_clustering': 1,
         # Deconvolution settings
         'decon_min_cluster_sd': 10,
         'decon_sd_shrink_ratio': 0.25,

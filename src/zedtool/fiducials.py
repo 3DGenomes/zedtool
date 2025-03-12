@@ -62,13 +62,17 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     df_fiducials.columns = ['label','min_y', 'min_x', 'max_y', 'max_x', 'centroid_y', 'centroid_x', 'area', 'mean_intensity']
     # Keep brightest regions as decided by the best separation into two groups based on log10(mean_intensity)+1
     df_fiducials['log_intensity'] = np.log10(df_fiducials['mean_intensity']+1)
-    kmeans = KMeans(n_clusters=2,  n_init='auto', random_state=0).fit(df_fiducials[['log_intensity']])
-    if np.mean(df_fiducials[kmeans.labels_==1]['log_intensity']) > np.mean(df_fiducials[kmeans.labels_==0]['log_intensity']):
-        is_high = (kmeans.labels_==1)
-    else:
-        is_high = (kmeans.labels_==0)
+    # Filter fiducials based on clustering on log_intensity - keep the brighter ones
+    # Possibly this is best done in filter_fiducials()
+    filter_by_clustering = config['filter_fiducials_with_clustering']
+    if filter_by_clustering:
+        kmeans = KMeans(n_clusters=2,  n_init='auto', random_state=0).fit(df_fiducials[['log_intensity']])
+        if np.mean(df_fiducials[kmeans.labels_==1]['log_intensity']) > np.mean(df_fiducials[kmeans.labels_==0]['log_intensity']):
+            is_high = (kmeans.labels_==1)
+        else:
+            is_high = (kmeans.labels_==0)
     # If only_fiducials is set to True, keep all fiducials
-    if config['only_fiducials']:
+    if config['only_fiducials'] or filter_by_clustering == False:
         is_high = np.ones(len(df_fiducials), dtype=bool)
     else:
         logging.info(f'Keeping {np.sum(is_high)} after clustering on log_intensity')
@@ -81,8 +85,8 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
     # Set excluded_labels from df_fiducials.labels to 0 in df
     excluded_labels = df_fiducials[is_high==False]['label']
-    # scatter plot of log_intensity vs area (TODO: make the two clusters colored differently)
-    plot_scatter(df_fiducials['log_intensity'], df_fiducials['area'], 'log10(mean_intensity+1)', 'area (bins)', 'Segmentation classification', 'segmentation_classification_plot', config)
+    # scatter plot of log_intensity vs area
+    # plot_scatter(df_fiducials['log_intensity'], df_fiducials['area'], 'log10(mean_intensity+1)', 'area (bins)', 'Segmentation classification', 'segmentation_classification_plot', config)
     df_fiducials = df_fiducials[is_high]
     df_fiducials = df_fiducials.reset_index(drop=True)
     logging.info(f'Found {len(df_fiducials)} segmented regions after filtering on clustering and excluded_fiducials')

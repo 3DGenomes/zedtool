@@ -175,7 +175,9 @@ def main(yaml_config_file: str) -> int:
     if config['deconvolve_z']:
         df = deconvolve_z(df, df_fiducials, n_xy, x_idx, y_idx, config)
 
-    if config['make_quality_metrics']:
+    have_corrected = config['zstep_correct_fiducials'] or config['drift_correct_detections']
+    # Re-make and write out quality metrics after correction
+    if config['make_quality_metrics'] and have_corrected:
         df_fiducials = make_fiducial_stats(df_fiducials, df, config)
         outpath = os.path.join(config['fiducial_dir'], "fiducials_corrected.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
@@ -183,9 +185,10 @@ def main(yaml_config_file: str) -> int:
         outpath = os.path.join(config['output_dir'], "quality_metrics_corrected.tsv")
         df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
-    # Write df and copy config file to output dir
-    df = compute_deltaz(df, config) # update deltaz column
-    df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False, float_format=config['float_format'])
+    # Write corrected df to output dir if it's been changed
+    if have_corrected:
+        df = compute_deltaz(df, config) # update deltaz column
+        df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False, float_format=config['float_format'])
     shutil.copy(yaml_config_file, os.path.join(config['output_dir'], 'config.yaml'))
     return 0
 
