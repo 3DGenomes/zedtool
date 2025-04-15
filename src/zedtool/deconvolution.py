@@ -30,6 +30,7 @@ def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray,
     bin_threshold = config['decon_bin_threshold']
     min_cluster_sd = config['decon_min_cluster_sd']
     sd_shrink_ratio = config['decon_sd_shrink_ratio']
+    debug = True
     logging.info(f"Squeezing {np.sum(n_xy > bin_threshold)} bins.")
     # Find all the bins in n_xy that have more than bin_threshold detections and loop over them with their x,y coords
     for x in range(n_xy.shape[0]):
@@ -51,6 +52,12 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
     min_cluster_sd = config['decon_min_cluster_sd']
     sd_shrink_ratio = config['decon_sd_shrink_ratio']
     nbins = np.sum(n_xy > config['decon_bin_threshold'])
+    debug = True
+    if debug:
+        decon_summary_stats = os.path.join(config['output_dir'], f'cluster_plots/summary.tsv')
+        with open(decon_summary_stats, 'w') as f:
+            f.write('npeaks\tsize\tmean\tsd\tmin\tmax\tmedian\n')
+
     # bin_x and bin_y are coordinates of bins with more than bin_threshold detections
     bin_x, bin_y = np.where(n_xy > config['decon_bin_threshold'])
 
@@ -62,13 +69,28 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
 
     for i,z_deconv in zip(np.arange(nbins),results):
         df.loc[(x_idx == bin_x[i]) & (y_idx == bin_y[i]), 'z'] = z_deconv
+
+    if debug:
+        # scatter plot of decon_summary_stats showing sd versus size, coloured by npeaks
+        df_summary = pd.read_csv(decon_summary_stats, sep='\t')
+        plt.figure()
+        plt.scatter(df_summary['size'], df_summary['sd'], c=df_summary['npeaks'], cmap='viridis')
+        plt.xlabel('Size')
+        plt.ylabel('Stddev')
+        plt.title('Stddev vs Size')
+        plt.colorbar(label='Number of Peaks')
+        outfile = os.path.join(config['output_dir'], 'cluster_plots', 'summary.png')
+        plt.savefig(outfile)
+        plt.close()
+
     return df
 
 def deconvolve_kmeans(z: np.ndarray, min_cluster_sd: float, sd_shrink_ratio: float, config: dict) -> np.ndarray:
     # logging.info("deconvolve_kmeans_sklearn")
-    # Squeezes the z distribution of the peaks in z by an amount sd_shrink_ratio to a minimum of min_cluster_sd
+    # Squeezes the z distribution of the peaks in z by an amount sd_shrink_ratio.
+    # Only shrink if the sd of the cluster is bigger than min_cluster_sd to begin with
     # Uses k-means to find the peaks in the z distribution
-    # Increase k until the peaks are too small or close together then squeeze if possible
+    # Increase k until the peaks are too small or close together. Then, if possible, squeeze
     max_k = config['decon_kmeans_max_k']
     proximity_threshold = config['decon_kmeans_proximity_threshold']
     min_cluster_detections = config['decon_kmeans_min_cluster_detections']
@@ -112,9 +134,9 @@ def deconvolve_kmeans(z: np.ndarray, min_cluster_sd: float, sd_shrink_ratio: flo
         labels_k = labels.copy()
         cluster_means_k = cluster_means.copy()
         cluster_sds_k = cluster_sds.copy()
-        sizes_string = ', '.join([str(int(cluster_n[j])) for j in range(k)])
+        sizes_string_k = '_'.join([str(int(cluster_n[j])) for j in range(k)])
 
-    logging.info(f"Deconvolve - Points: {len(z)} Clusters: {k} Cluster Sizes: {sizes_string}")
+    logging.info(f"Deconvolve - Points: {len(z)} Clusters: {k} Cluster Sizes: {sizes_string_k}")
 
     if k == 0:
         return z
@@ -128,15 +150,15 @@ def deconvolve_kmeans(z: np.ndarray, min_cluster_sd: float, sd_shrink_ratio: flo
 
     debug = True
     if debug:
-        filename = f"clusters_{k}_points_{len(z)}_{sizes_string}"
+        decon_summary_stats = os.path.join(config['output_dir'], f'cluster_plots/summary.tsv')
+        filename = f"clusters_{k}_points_{len(z)}_{sizes_string_k}"
         plot_deconvolution(z, z_deconv, filename, config)
         # print out the cluster stats for debugging into filename.tsv
-        with open(os.path.join(config['output_dir'], f'cluster_plots/{filename}.tsv'), 'w') as f:
-            f.write('mean\tsd\tsize\tmin\tmax\tmedian\n')
+        with open(decon_summary_stats, 'a') as f:
             for i in range(k):
                 cluster_data = z[labels_k == i]
                 f.write(
-                    f"{np.mean(cluster_data)}\t{np.std(cluster_data)}\t{np.sum(labels == i)}\t{np.min(cluster_data)}\t{np.max(cluster_data)}\t{np.median(cluster_data)}\n")
+                    f"{k}\t{np.sum(labels_k == i)}\t{np.mean(cluster_data)}\t{np.std(cluster_data)}\t{np.min(cluster_data)}\t{np.max(cluster_data)}\t{np.median(cluster_data)}\n")
     return z_deconv
 
 def deconvolve_mog(z: np.ndarray, sigma_fit: float, sigma_target: float, config: dict) -> np.ndarray:

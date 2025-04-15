@@ -423,6 +423,30 @@ def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict):
     plt.savefig(outpath, dpi=300)
     plt.close()
 
+def plot_drift_correction(df_drift: pd.DataFrame, config: dict):
+    x_col = ['x', 'y', 'z']
+    xsd_col = ['x_sd', 'y_sd', 'z_sd']
+    ndims = len(x_col)
+
+    # Plot the drift correction with error bars
+    for j in range(ndims):
+        # output_path = os.path.join(config['output_dir'], f"drift_correction_{x_col[j]}")
+        # plotly_scatter(df_drift['image-ID'], df_drift[x_col[j]], df_drift[xsd_col[j]], 'image-ID', f'{x_col[j]} correction (nm)', 'Drift correction', output_path, config)
+        outpath = os.path.join(config['output_dir'], f"cor_{x_col[j]}_vs_time")
+        plot_scatter(df_drift[config['image_id_col']], df_drift[x_col[j]], config['image_id_col'], f'{x_col[j]} correction (nm)',
+                     f'Correction {x_col[j]} vs image-ID', outpath, config)
+
+def plot_time_derivatives(df_drift: pd.DataFrame, config: dict):
+    x_col = ['x', 'y', 'z']
+    xsd_col = ['x_sd', 'y_sd', 'z_sd']
+    ndims = len(x_col)
+
+    # Plot the drift correction with error bars
+    for j in range(ndims):
+        outpath = os.path.join(config['output_dir'], f"d{x_col[j]}dt_vs_time")
+        plot_scatter(df_drift[config['image_id_col']], df_drift[f'd{x_col[j]}_dt'], config['image_id_col'], f'd{x_col[j]}_dt (nm/timepoint)',
+                     f'Correction {x_col[j]} vs image-ID', outpath, config)
+
 def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
     logging.info("save_to_tiff_3d")
     # Save a 3D array to a TIFF file

@@ -17,6 +17,9 @@ def config_default() -> dict:
         'make_caches': 0,
         'multiprocessing': 1,
         'float_format': '%.6g', #'%8g', # '%.2f',
+        # Concatenating experiments
+        'concatenate_detections_file': None,
+        'concatenate_offset_file': None,
         # Plot labels - globals, not from config file
         'dimnames': ['x','y','z'], # not from config file
         'timename': 't', # not from config file
@@ -50,6 +53,7 @@ def config_default() -> dict:
         'probe_col': 'vis',
         # fiducial settings
         'excluded_fiducials': None,
+        'included_fiducials': None,
         'median_filter_disc_radius': 1,
         'filling_disc_radius': 10,
         'dilation_disc_radius': 10,
@@ -71,15 +75,19 @@ def config_default() -> dict:
         'decon_kmeans_min_cluster_detections': 5,
         # steps
         'apply_drift_correction': 0,
+        'concatenate_detections': 0,
         'save_binned_detections': 0,
         'mask_on_density': 0,
         'make_quality_metrics': 0,
         'plot_per_fiducial_fitting': 0,
         'plot_fiducial_correlations': 0,
+        'plot_time_point_metrics': 0,
         'plot_summary_stats': 0,
         'plot_detections': 0,
         'plot_fiducials': 0,
+        'save_non_fiducial_detections': 0,
         'zstep_correct_fiducials': 0,
+        'deltaz_correct_detections': 0,
         'deconvolve_z': 0,
         'drift_correct_detections': 0
     }

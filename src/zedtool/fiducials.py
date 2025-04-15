@@ -16,9 +16,9 @@ import os
 import platform
 import logging
 import multiprocessing
-from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections
+from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections, compute_time_derivates
 from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
-from zedtool.plots import construct_plot_path
+from zedtool.plots import construct_plot_path, plot_drift_correction, plot_time_derivatives
 from zedtool.parallel import minimize_fiducial_fit_variance_parallel
 
 def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[np.ndarray, np.ndarray]:
@@ -76,13 +76,23 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         is_high = np.ones(len(df_fiducials), dtype=bool)
     else:
         logging.info(f'Keeping {np.sum(is_high)} after clustering on log_intensity')
+
     # Exclude fiducials in config['excluded_fiducials'] by setting is_high to False
     if config['excluded_fiducials'] != None:
         excluded_fiducials =  pd.Series([int(num) for num in str(config['excluded_fiducials']).split(",")])
         logging.info(f"Excluding fiducials: {config['excluded_fiducials']}")
     else:
         excluded_fiducials = pd.Series(dtype="int64")
+
+    if config['included_fiducials'] != None:
+        included_fiducials =  pd.Series([int(num) for num in str(config['included_fiducials']).split(",")])
+        logging.info(f"Including fiducials: {config['included_fiducials']}")
+    else:
+        included_fiducials = pd.Series(dtype="int64")
+    # Reject any fiducials that are in excluded_fiducials and include any that are in included_fiducials
     is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
+    is_high = is_high | df_fiducials['label'].isin(included_fiducials)
+
     # Set excluded_labels from df_fiducials.labels to 0 in df
     excluded_labels = df_fiducials[is_high==False]['label']
     # scatter plot of log_intensity vs area
@@ -102,7 +112,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     df['label'] = im_to_detection_entry(fiducial_labels, x_idx, y_idx)
     return df, df_fiducials
 
-def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> np.ndarray:
+def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Make stats for fiducials
     logging.info('make_fiducial_stats')
     n_fiducials = len(df_fiducials)
@@ -186,7 +196,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         df_fiducials.at[j, 'z_madr'] = z_madr
     return df_fiducials
 
-def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Filter fiducials based on stats
     # Plot histograms of stats from n_detections to photons_sd
     logging.info('filter_fiducials')
@@ -364,7 +374,7 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
         plt.close()
     return dz_mad, dzdt_mad
 
-def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> np.ndarray:
+def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) ->  pd.DataFrame:
     # write csv file with quality metrics for fiducials. One row with columns variance of columns in df_fiducials
     logging.info('make_quality_metrics')
     df_metrics = pd.DataFrame([[0, 0, 0, 0, 0, 0, 0, 0]],
@@ -385,10 +395,10 @@ def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: d
     df_metrics['z_non_fiducial_sd'] = df.loc[df['label']==0,config['z_col']].std()
     return df_metrics
 
-def zstep_correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+def zstep_correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return zstep_correct_fiducials_parallel(df_fiducials, df, config)
 
-def zstep_correct_fiducials_parallel(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
+def zstep_correct_fiducials_parallel(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info('zstep_correct_fiducials_parallel')
     # If x1,... are taken then move them to x2,... first.
     # Check if backup column x_0 exists, if not then quit
@@ -665,19 +675,19 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
 
     # Save and plot drift correction with error bars
     df_drift = pd.DataFrame({
-        'image-ID': np.arange(x_t.shape[1]),
+        config['image_id_col']: np.arange(x_t.shape[1]),
         'x': x_t[0,:], 'x_sd': x_err[0,:], 'y': x_t[1,:], 'y_sd': x_err[1,:], 'z': x_t[2,:], 'z_sd': x_err[2,:]
     })
-    output_path = os.path.join(config['output_dir'], "drift_correction.tsv")
-    df_drift.to_csv(output_path, sep='\t', index=False)
-    for j in range(ndims):
-        output_path = os.path.join(config['output_dir'], f"drift_correction_{x_col[j]}")
-        plotly_scatter(df_drift['image-ID'], df_drift[x_col[j]], df_drift[xsd_col[j]], 'image-ID', f'{x_col[j]} correction (nm)', 'Drift correction', output_path, config)
-        outpath = os.path.join(config['output_dir'], f"cor_{x_col[j]}_vs_time")
-        plot_scatter(np.arange(x_t.shape[1]), x_t[j, :], 'image-ID', f'{x_col[j]} correction (nm)',
-                     f'Correction {x_col[j]} vs image-ID', outpath, config)
+    # Plot the drift correction with error bars
+    plot_drift_correction(df_drift, config)
     # correct detections
     df = apply_corrections(df, x_t, config)
+    # Make derivatives for checking correction
+    # This doesn't really make sense unless you can do it on noise-filtered fiducials
+    # df_drift = compute_time_derivates(df, df_drift, config)
+    # plot_time_derivatives(df_drift, config)
+    output_path = os.path.join(config['output_dir'], "drift_correction.tsv")
+    df_drift.to_csv(output_path, sep='\t', index=False)
     return df, df_fiducials
 
 def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, config: dict) -> int:
