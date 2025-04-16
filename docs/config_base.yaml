@@ -1,31 +1,38 @@
 ---
 # Experiment-specific elements. Customise for each experiment by replacing variables with the appropriate values.
 detections_file: /home/jmarkham/work/zedtool/tests/input.csv # input file with detections
-output_dir: /home/jmarkham/work/zedtool/tests/xypatch # all output files will be saved under this directory
-drift_correction_file: /home/jmarkham/work/zedtool/tests/xypatch/drift_correction.tsv # used to supply drift correction if apply_drift_correction==1
-
-bin_resolution: 20 # bin size in nm for binned image
-z_step_step: -100 # step size in nm for one step in the z-direction (be careful you get the sign right!)
-
-#Debugging settings
-debug: 1 # Potentially controls verbosity and plot output.
-noclobber: 1 # If 1, will not overwrite cached intermediate results
-make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
-
-# Detection filtering - based on either desnsity in the binned image or columns in the detections file
-n_min_cutoff: 1 # remove detections based on their density in the binned x,y image
-n_max_cutoff: 10000000000
-select_cols: x,y # comma separated list of selection criteria for ranges
-select_ranges: 0-10000,20000-30000 # comma separated list of ranges
+output_dir: /home/jmarkham/work/zedtool/tests/output # all output files will be saved under this directory
 
 # Number of frames, z-steps, cycles, time-points to expect in the data
 frame_range: 0-199 # frames per z-step
 z_step_range: 0-60 # z-steps per cycle
 cycle_range: 0-4 # cycles per time-point
 time_point_range: 0-0 # time-points per experiment
+z_step_step: -100 # step size in nm for one step in the z-direction
+
+bin_resolution: 20 # bin size in nm for binned image
+debug: 0 # Potentially controls verbosity and plot output.
+noclobber: 1 # If 1, will not overwrite cached intermediate results
+make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
+multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
+float_format: "%.6g" # printf-style format for floating point numbers in outputs files
+
+# Detection filtering - based on either density in the binned image or columns in the detections file
+n_min_cutoff: 1 # remove detections based on their density in the binned x,y image
+n_max_cutoff: 10000000000
+select_cols: x,y,precisionz # comma separated list of selection criteria for ranges
+select_ranges: 30000-40000,30000-40000,0-100 # comma separated list of ranges
+
+# Deconvolution parameters
+decon_min_cluster_sd: 10 # Minimum standard deviation of clusters to be considered for deconvolution.
+decon_sd_shrink_ratio: 0.25 # Ratio of final/initial standard deviation of clusters following deconvolution.
+decon_bin_threshold: 50 # Minimum x-y bin threshold to be considered for deconvolution.
+decon_kmeans_max_k: 5 # Maximum number of clusters in z to be considered for deconvolution.
+decon_kmeans_proximity_threshold: 2 # Clusters closer than (SD1+SD2)*proximity_threshold are merged.
+decon_kmeans_min_cluster_detections: 5 # Minimum number of detections in a cluster to be considered for deconvolution.
 
 # Column names specific to the input file format
-# The ones below are for Bruker's SRX
+# The ones below are for Bruker's SRX software
 frame_col: frame # frame number within the cycle
 image_id_col: image-ID # frame number within the experiment
 z_step_col: z-step
@@ -38,11 +45,15 @@ x_sd_col: precisionx
 y_sd_col: precisiony
 z_sd_col: precisionz
 photons_col: photon-count
-chisq_col: chisq # chi-squared value of the fit - currently not used but could be in the future
-deltazname: deltaz # created if it does not exist
+chisq_col: chisq # chi-squared value of the fit - currently not used
+deltaz_col: deltaz # distance of detection z from focal plane
+log_likelihood_col: log-likelihood # log likelihood of the fit - currently not used but could be in the future:
+llr_col: llr # log likelihood ratio of the fit - currently not used
+probe_col: vis-probe # probe ID when more than one channel is present
 
 # Constants used for segmenting, filtering and fitting to fiducials
 excluded_fiducials: # comma separated list of fiducials to exclude
+included_fiducials: # comma separated list of fiducials to include (use ONLY these)
 median_filter_disc_radius: 1 # for filtering out speckles in the binned image
 filling_disc_radius: 10 # hole filling in thresholded binned image
 dilation_disc_radius: 10 # dilation of thresholded binned image to catch "wandering" fiducials
@@ -50,20 +61,24 @@ min_fiducial_size: 100 # min pixels in a fiducial
 min_fiducial_detections: 10 # minimum number of detections in a fiducial; if only_fiducials==1 then this is also the segmentation threshold
 max_detections_per_image: 1.1 # maximum number of detections per fiducial per image
 quantile_tail_cutoff: 0 # throws away tails of several distributions for fiducial qc metrics (typically = 0.01-0.05)
+filter_fiducials_with_clustering: 0 # if 1, then use pre-drift correction clustering to filter fiducials
 polynomial_degree: 2 # degree of polynomial to fit drift correction
 use_weights_in_fit: 0 # use the precision values in the fit
 only_fiducials: 0 # non-zero if ALL the "bright spots" in the binned image are taken to be fiducials. If 0, Otsu threshold image otherwise use min_fiducial_detections
 consensus_method: median # method to compute drift correction from fiducials - median or weighted_mean
 
-
-# Select what to compute and plot by setting the following to 0 or 1
+# Select what to save, compute and plot by setting the following to 0 or 1
 apply_drift_correction: 0 # apply pre-made drift correction to detections
 mask_on_density: 0 # remove detections based on density in the binned image.
-make_quality_metrics: 1 # compute quality metrics for fiducials - before and after z-step and drift correction
-plot_per_fiducial_fitting: 1 # make debugging images about extracting drift correction from fiducials
-plot_fiducial_correlations: 0 # plot correlations between fiducials - can be time consuming!
+save_non_fiducial_detections: 0 # save non-fiducial detections to a separate file
+make_quality_metrics: 0 # compute quality metrics for fiducials - before and after z-step and drift correction
+plot_per_fiducial_fitting: 0 # make debugging images about extracting drift correction from fiducials
+plot_fiducial_correlations: 0 # plot correlations between fiducials
 plot_summary_stats: 0 # plots summary statistics for all detections
 plot_detections: 0 # plot all detections as images - binned in x-y and projected in all three dimensions
-plot_fiducials: 1 # plot the fiducials prior to correction
-zstep_correct_fiducials: 1  # correct z co-ordinate of fiducial detections for z-step variation
-drift_correct_detections: 1 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
+plot_fiducials: 0 # plot the fiducials prior to correction
+zstep_correct_fiducials: 0  # correct z co-ordinate of fiducial detections for z-step variation
+deltaz_correct_detections: 0 # correct z co-ordinate of all detections for deltaz variation
+drift_correct_detections: 0 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
+deconvolve_z: 0 # deconvolve z from the detections
+plot_time_point_metrics: 0 # plot time-point metrics of drift correction for fiducials

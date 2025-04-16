@@ -16,7 +16,7 @@ def config_default() -> dict:
         'noclobber': 0,
         'make_caches': 0,
         'multiprocessing': 1,
-        'float_format': '%.6g', #'%8g', # '%.2f',
+        'float_format': '%.6g',
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,

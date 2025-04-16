@@ -1,6 +1,6 @@
-
 ### TODO:
 * Compute fwhm from histogram fit rather than histogram itself
+* Histogram binned detections gets a log scale on y
 * Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Contact SMLM authors asking for detection data
@@ -8,7 +8,7 @@
 * Say what fiducials are being rejected and why. Should there be outlier rejection on each column or selection of columns?
 * Cache binned detections
 * Speed up optimise_dim() by using a better initial guess, putting in bounds and computing the Jacobian
-* Automatically filter based on quality of consensus fit
+* Automatically filter based on quality of consensus fit and on time points drift metric
 * Check for fiducial areas overlapping and then move overlapping regions of interest
 * There sometimes can be Nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. 
@@ -16,17 +16,17 @@
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
 * Parallelise: - plot_fiducial_correlations, make_fiducial_stats, plotting combined fitted corrections
-* Put deconvolution parameters into doco and config file
-* Put multiprocessing parameter into doco and config files
-* Put included_fiducials, plot_time_point_metrics, save_non_fiducial_detections into doco and test
-* Put zstep_correct_detections into doco and config files
-* Put filter_fiducials_with_clustering into doco and config files
-* Add float_format, llr_col, probe_col, log_likelihood_col doco and config files
-* Optionally add faked error cols if they are not there
+* Optionally add faked error cols if they are not there?
 * Optionally compute image-id and zstep if they are not there?
-* Histogram binned detections gets a log scale on y
 
 ### DONE:
+* Add float_format, llr_col, probe_col, log_likelihood_col doco and config files
+* Put filter_fiducials_with_clustering into doco and config files
+* Put included_fiducials, plot_time_point_metrics, save_non_fiducial_detections into doco and test
+* Put zstep_correct_detections into doco and config files
+* Put deconvolution parameters into doco and config file
+* Run Guy's experiment with outlier removal pre-fitting
+* Run Guy's experiment with plotting fits of fiducials
 * Transfer some code from fiducials to drift and to detections
 * Rationalise when detections are written - need to be written after filtering for example.
 * Drift correct from a drift correction file with just one entry - to allow Peter's stuff to be done.
