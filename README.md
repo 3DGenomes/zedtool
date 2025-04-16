@@ -115,8 +115,6 @@ Options are read from a yaml configuration file supplied on the command line. He
 # Files and paths
 detections_file: /path/to/input.csv 
 output_dir: /path/to/output 
-binary_detections_file: /path/to/detections.npy 
-drift_correction_file: /path/to/drift_correction.tsv 
 
 # Experiment details
 frame_range: 0-199 

@@ -1,5 +1,4 @@
 ### TODO:
-* Compute fwhm from histogram fit rather than histogram itself
 * Histogram binned detections gets a log scale on y
 * Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
@@ -20,6 +19,7 @@
 * Optionally compute image-id and zstep if they are not there?
 
 ### DONE:
+* Compute fwhm from histogram fit rather than histogram itself
 * Add float_format, llr_col, probe_col, log_likelihood_col doco and config files
 * Put filter_fiducials_with_clustering into doco and config files
 * Put included_fiducials, plot_time_point_metrics, save_non_fiducial_detections into doco and test

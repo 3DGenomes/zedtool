@@ -229,12 +229,17 @@ def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -
     fiducial_names = df_fiducials['name']
     fiducial_labels = df_fiducials['label']
 
-    tasks = [(fiducial_labels[j], fiducial_names[j],
-              df[df['label']==fiducial_labels[j]], config) for j in range(nfiducials)]
-
-    with multiprocessing.Pool() as pool:
-        results = pool.starmap(plot_fiducial, tasks)
-
+    if config['multiprocessing']:
+        tasks = [(fiducial_labels[j], fiducial_names[j],
+                  df[df['label']==fiducial_labels[j]], config) for j in range(nfiducials)]
+        with multiprocessing.Pool() as pool:
+            results = pool.starmap(plot_fiducial, tasks)
+    else:
+        for j in range(nfiducials):
+            fiducial_label = fiducial_labels[j]
+            fiducial_name = fiducial_names[j]
+            df_detections_roi = df[df['label'] == fiducial_label]
+            plot_fiducial(fiducial_label, fiducial_name, df_detections_roi, config)
     return 0
 
 def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd.DataFrame, config: dict) -> int:

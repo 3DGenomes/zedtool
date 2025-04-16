@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from typing import Tuple
+from scipy.signal import find_peaks, peak_widths
 import logging
 import scipy
 import re
@@ -207,7 +208,67 @@ def fwhm_from_points(x):
 
     Parameters:
         x (array-like): Array of x-values (data points).
-        bins (int): Number of bins to use for the histogram.
+
+    Returns:
+        float: The FWHM value.
+    """
+    # Create histogram
+    if len(x) == 0 or np.all(np.isnan(x)):
+        return np.nan
+
+    x = x[~np.isnan(x)]
+    if len(x) <10000:
+        bins =100
+    else:
+        bins = 1000
+
+    counts, bin_edges = np.histogram(x, bins=bins)
+    # smooth counts
+    counts = scipy.ndimage.gaussian_filter1d(counts, 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # Find peaks in the histogram
+    peaks, _ = find_peaks(counts)
+
+    # Find width of the highest peak at half height
+    if len(peaks) > 0:
+        max_peak_index = peaks[np.argmax(counts[peaks])]
+        results_half = peak_widths(counts, [max_peak_index], rel_height=0.5)
+
+        # Width in bin units — convert to x-units using bin width
+        width_bins = results_half[0][0]
+        bin_width = bin_edges[1] - bin_edges[0]
+        width_x_units = width_bins * bin_width
+        # Positions of the half-height crossings
+        left_idx = int(results_half[2][0])
+        right_idx = int(results_half[3][0])
+        left_x = bin_centers[left_idx]
+        right_x = bin_centers[right_idx]
+        half_height = counts[max_peak_index] / 2
+    else:
+        return np.nan
+    debug = 0
+    if debug:
+        plt.plot(bin_centers, counts)
+        plt.title("Histogram with Peak")
+        plt.xlabel("x")
+        plt.ylabel("Counts")
+        plt.axvline(bin_centers[max_peak_index], color='r', linestyle='--', label='Peak')
+        plt.axhline(half_height, color='g', linestyle='--', label='Half Height')
+        plt.axvline(left_x, color='b', linestyle='--', label='Left Crossing')
+        plt.axvline(right_x, color='b', linestyle='--', label='Right Crossing')
+        plt.legend()
+        plt.show()
+        plt.close()
+    return width_x_units
+
+def fwhm_from_points2(x):
+    """
+    Computes the Full Width at Half Maximum (FWHM) of a distribution
+    represented by an array of x-values. Original jfm version.
+
+    Parameters:
+        x (array-like): Array of x-values (data points).
 
     Returns:
         float: The FWHM value.
@@ -237,10 +298,15 @@ def fwhm_from_points(x):
             # Linear interpolation for left crossing
             left_crossing = bin_edges[i] + (bin_edges[i + 1] - bin_edges[i]) * (
                         (half_max - counts[i]) / (counts[i + 1] - counts[i]))
+            break
+
+    # loop backwards over counts
+    for i in range(len(counts) - 1, 0, -1):
         if counts[i] >= half_max > counts[i + 1]:
             # Linear interpolation for right crossing
             right_crossing = bin_edges[i] + (bin_edges[i + 1] - bin_edges[i]) * (
                         (half_max - counts[i]) / (counts[i + 1] - counts[i]))
+            break
 
     # Ensure crossings were found
     if left_crossing is None and right_crossing is None:

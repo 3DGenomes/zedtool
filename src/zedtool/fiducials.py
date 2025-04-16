@@ -118,7 +118,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     n_fiducials = len(df_fiducials)
     for j in range(n_fiducials):
         fiducial_label = df_fiducials.at[j,'label']
-        logging.info(f'Processing fiducial {fiducial_label}')
+        logging.info(f'Making stats for fiducial {fiducial_label}')
         df_sel = df[df['label'] == fiducial_label]
         n_detections = len(df_sel)
         if n_detections == 0:
