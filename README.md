@@ -147,7 +147,7 @@ y_sd_col: precisiony
 z_sd_col: precisionz
 photons_col: photon-count
 chisq_col: chisq 
-deltazname: deltaz
+deltaz_col: deltaz
 
 # Constants used for segmenting, filtering and fitting
 excluded_fiducials: 
