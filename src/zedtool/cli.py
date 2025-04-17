@@ -117,7 +117,10 @@ def main(yaml_config_file: str) -> int:
 
     # Plot detections before masking
     if config['plot_detections']:
-        plot_detections(df,'detections_summary', config)
+        # plot_detections() takes a _long_ time to run, so it's relegated to debug mode
+        # binned_detections_summary.png will contain a lower resolution version of the same plot
+        if config['debug']:
+            plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
         save_to_tiff_3d(counts_xyz,"binned_detections", config)
 
@@ -129,10 +132,10 @@ def main(yaml_config_file: str) -> int:
         # Mask on density to remove bright/dim areas
         # Mostly unused but can speed up processing and remove background
         mask_xy = make_density_mask_2d(n_xy, config)
-        logging.info(f"Before masking: {np.sum(mask_xy)} detections")
+        logging.info(f"Before masking on density: {np.sum(mask_xy)} detections")
         # Select detections in mask_xy
         idx = mask_detections(mask_xy, x_idx, y_idx)
-        logging.info(f"After masking: {np.sum(idx)} detections")
+        logging.info(f"After masking on density: {np.sum(idx)} detections")
         # Apply masks
         det_xyz = det_xyz[idx, :]
         df = df[idx]

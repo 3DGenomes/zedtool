@@ -136,7 +136,7 @@ def cat_experiment(df: pd.DataFrame, df2: pd.DataFrame, df_offset: pd.DataFrame,
         raise ValueError("df_offset must contain exactly one row.")
     # Assumption is that cols in df, df2 and df_offset are the same.
     # df_offset contains one row with the offsets to add.
-    # Aside from image_id_col, time_point_col and x,y,z cols these should be zero.
+    # Aside from image_id_col, time_point_col and x_col,y_col,z_col cols these should be zero.
     # Add the single row of df_offset to all rows of df2
     df2 = df2 + df_offset.iloc[0]
     df = pd.concat([df, df2], ignore_index=True)

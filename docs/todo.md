@@ -1,14 +1,15 @@
 ### TODO:
+* make_time_point_metrics() - extract figure of merit per fiducial
 * Can a second pass with lower order help? Can multiple passes with different orders help? 
 * What plots can be removed to speed things up?
 * Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
 * Make a simpler example config file and a minimum a shorthand 2-pass processing step
 * Remove unnecessary plots and make an webpage with all relevant output
-* make_time_point_metrics() - extract figure of merit per fiducial
 * Histogram binned detections gets a log scale on y
 * Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Contact SMLM authors asking for detection data
+* Add defaults to config file/README.md
 * Write tutorial on github
 * Say what fiducials are being rejected and why. Should there be outlier rejection on each column or selection of columns?
 * Cache binned detections
