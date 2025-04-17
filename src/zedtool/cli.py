@@ -56,11 +56,17 @@ def main(yaml_config_file: str) -> int:
     # quieten matplotlib
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
     logging.getLogger('matplotlib').propagate = False
+
     # Check config (requires logging)
     if not config_validate(config):
         return 1
     if config['debug']:
         config_print(config)
+
+    # Parallel processing is incompatible with no_display = False
+    if config['multiprocessing'] and no_display==False:
+        logging.error("Parallel processing is not supported when not headless.")
+        return 1
 
     # read detections and cache if needed
     binary_detections_file = os.path.join(config['cache_dir'], 'detections.pkl')

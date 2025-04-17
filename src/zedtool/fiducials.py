@@ -638,8 +638,9 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     outpath_xsd = os.path.join(config['cache_dir'], "fiducial_detections_xsd.npy")
     if not os.path.exists(outpath_x) or not noclobber:
         x_ft, xsd_ft = extract_fiducial_detections(df, df_fiducials, config)
-        np.save(outpath_x, x_ft)
-        np.save(outpath_xsd, xsd_ft)
+        if config['make_caches']:
+            np.save(outpath_x, x_ft)
+            np.save(outpath_xsd, xsd_ft)
     else:
         x_ft = np.load(outpath_x)
         xsd_ft = np.load(outpath_xsd)
@@ -654,8 +655,9 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     outpath_xsd = os.path.join(config['cache_dir'], "fiducial_fits_xsd.npy")
     if not os.path.exists(outpath_x) or not noclobber:
         x_fit_ft, xsd_fit_ft = fit_fiducial_detections(x_ft, xsd_ft, config)
-        np.save(outpath_x, x_fit_ft)
-        np.save(outpath_xsd, xsd_fit_ft)
+        if config['make_caches']:
+            np.save(outpath_x, x_fit_ft)
+            np.save(outpath_xsd, xsd_fit_ft)
     else:
         x_fit_ft = np.load(outpath_x)
         xsd_fit_ft = np.load(outpath_xsd)
@@ -741,6 +743,7 @@ def make_drift_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd
     # Take all the fiducial fits and combine them into the drift estimate
     x_t, xsd_t, err_f = combine_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
     # Plot the combined fit with the individual fits
+    # TODO: parallelise this
     for k in range(ndims):
         logging.info(f'Plotting combined fitted corrections for {x_col[k]}')
         outdir = config['output_dir']
@@ -792,9 +795,9 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray,config: 
         # At each time point, calculate the variance of the fiducial fits across time points
         # Weight this by the uncertainties at each time point
         var_t = np.nanvar(x_shifted, axis=0)
-        weight_t = np.sum(w, axis=0)
-        ret = np.sum(var_t * weight_t)
-        # logging.info(f'Cost: {ret} offsets: {offsets}')
+        weight_t = np.sum(w, axis=0) # make weight sum to 1
+        ret = np.sum(var_t * weight_t) # make mean
+        logging.info(f'Cost: {ret} offsets: {offsets}')
         return ret
     for j in range(ndimensions):
         logging.info(f'Grouping fiducials fits to {dimensions[j]}')
@@ -858,6 +861,7 @@ def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config
 
 def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
     # Assumes that x_ft and xsd_ft are 1D arrays with indexing by dim and fiducial already done
+    logging.info(f"fit_fiducial_step_parallel: fid_idx: {i} dim_idx: {k}")
     x_fit_ft = np.zeros_like(x_ft)
     x_fit_ft.fill(np.nan)
     xsd_fit_ft = np.zeros_like(xsd_ft)

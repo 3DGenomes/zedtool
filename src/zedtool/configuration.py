@@ -50,7 +50,7 @@ def config_default() -> dict:
         'deltaz_col': 'deltaz',
         'log_likelihood_col': 'log-likelihood',
         'llr_col': 'llr',
-        'probe_col': 'vis',
+        'probe_col': 'vis-probe',
         # fiducial settings
         'excluded_fiducials': None,
         'included_fiducials': None,

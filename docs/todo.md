@@ -1,11 +1,10 @@
 ### TODO:
+* Histogram binned detections gets a log scale on y
 * make_time_point_metrics() - extract figure of merit per fiducial
 * Can a second pass with lower order help? Can multiple passes with different orders help? 
-* What plots can be removed to speed things up?
 * Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
-* Make a simpler example config file and a minimum a shorthand 2-pass processing step
+* Make a simpler example config file and a minimum a shorthand 3-pass processing step
 * Remove unnecessary plots and make an webpage with all relevant output
-* Histogram binned detections gets a log scale on y
 * Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Contact SMLM authors asking for detection data
@@ -21,11 +20,12 @@
 * Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
-* Parallelise: - plot_fiducial_correlations, make_fiducial_stats, plotting combined fitted corrections
+* Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Optionally add faked error cols if they are not there?
 * Optionally compute image-id and zstep if they are not there?
 
 ### DONE:
+* What plots can be removed to speed things up?
 * Compute fwhm from histogram fit rather than histogram itself
 * Add float_format, llr_col, probe_col, log_likelihood_col doco and config files
 * Put filter_fiducials_with_clustering into doco and config files
