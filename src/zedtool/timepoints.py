@@ -113,7 +113,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
                    framealpha=1, fontsize='small')
         plt.xlabel('time point difference')
         plt.ylabel(f"{y_col} (nm)")
-        plt.title(f'Average fiducial separation as a function of time point distance')
+        plt.title(f'Drift as a function of time-point separation')
         plt.tight_layout()
         plt.savefig(outpath)
         plt.close()
@@ -130,7 +130,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         plt.boxplot(np.transpose(metrics_ifdex[:, :, k]), positions=np.arange(metrics_ifdex.shape[0])+1, widths=0.5)
         plt.xlabel('time point difference')
         plt.ylabel(f"{y_col} (nm)")
-        plt.title(f'Average fiducial separation as a function of time point distance')
+        plt.title(f'Drift as a function of time-point separation')
         plt.savefig(outpath)
         plt.close()
 

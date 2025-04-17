@@ -1,4 +1,10 @@
 ### TODO:
+* Can a second pass with lower order help? Can multiple passes with different orders help? 
+* What plots can be removed to speed things up?
+* Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
+* Make a simpler example config file and a minimum a shorthand 2-pass processing step
+* Remove unnecessary plots and make an webpage with all relevant output
+* make_time_point_metrics() - extract figure of merit per fiducial
 * Histogram binned detections gets a log scale on y
 * Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
@@ -9,7 +15,7 @@
 * Speed up optimise_dim() by using a better initial guess, putting in bounds and computing the Jacobian
 * Automatically filter based on quality of consensus fit and on time points drift metric
 * Check for fiducial areas overlapping and then move overlapping regions of interest
-* There sometimes can be Nans in corrected fiducials for large experiment with z-step correction. Find out why.
+* There sometimes can be nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. 
 * Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
