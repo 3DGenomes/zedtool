@@ -1,30 +1,38 @@
 ### TODO:
+* test included_fiducials
+* test new code
+* test no cache
+* test cpu count
+* Reinstate max_detections_per_image
+* drift_correct_detections_multi_pass - config file and doco
+* sd_tail_cutoff, quantile_outlier_cutoff - config file and doco
+* Specify num_threads in config file, add to multiprocessing and doco
 * Histogram binned detections gets a log scale on y
 * make_time_point_metrics() - extract figure of merit per fiducial
-* Can a second pass with lower order help? Can multiple passes with different orders help? 
 * Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
-* Make a simpler example config file and a minimum a shorthand 3-pass processing step
-* Remove unnecessary plots and make an webpage with all relevant output
-* Similarity measure between fiducials - or an image summary statistic that can be used to cluster?
+* Make an webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Contact SMLM authors asking for detection data
 * Add defaults to config file/README.md
 * Write tutorial on github
 * Say what fiducials are being rejected and why. Should there be outlier rejection on each column or selection of columns?
-* Cache binned detections
-* Speed up optimise_dim() by using a better initial guess, putting in bounds and computing the Jacobian
 * Automatically filter based on quality of consensus fit and on time points drift metric
-* Check for fiducial areas overlapping and then move overlapping regions of interest
 * There sometimes can be nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. 
 * Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
+  - see if data type requiring less data can be specified.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Optionally add faked error cols if they are not there?
 * Optionally compute image-id and zstep if they are not there?
 
 ### DONE:
+* Make a simpler example config file and a minimum a shorthand 3-pass processing step
+* Can a second pass with lower order help? Can multiple passes with different orders help? 
+* Check for fiducial areas overlapping and then move overlapping regions of interest
+* Speed up optimise_dim() by using a better initial guess, putting in bounds and computing the Jacobian
+* Remove unnecessary plots 
 * What plots can be removed to speed things up?
 * Compute fwhm from histogram fit rather than histogram itself
 * Add float_format, llr_col, probe_col, log_likelihood_col doco and config files

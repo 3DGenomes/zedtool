@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -58,7 +57,7 @@ def bins3d_to_stats2d(counts_xyz: np.ndarray, z_bins: np.ndarray) -> Tuple[np.nd
     sd_xy = np.sqrt(var_xy)
     return n_xy, moment_1_xy, sd_xy
 
-def median_by_time(df_all: pd.DataFrame, config: dict) -> pd.DataFrame:
+def median_by_time(df_all: pd.DataFrame, config: dict) -> np.ndarray:
     df = df_all[[config['image_id_col'], config['x_col'], config['y_col'], config['z_col']]]
     # Group by time-point and calculate the median for x, y, and z
     grouped = df.groupby(config['image_id_col']).median()

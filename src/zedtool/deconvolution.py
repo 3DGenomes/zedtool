@@ -64,7 +64,7 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
     tasks = [(df.loc[(x_idx == bin_x[i]) & (y_idx == bin_y[i]), 'z'].to_numpy(),
               min_cluster_sd, sd_shrink_ratio, config) for i in range(nbins)]
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(int(config['num_threads'])) as pool:
         results = pool.starmap(deconvolve_kmeans, tasks)
 
     for i,z_deconv in zip(np.arange(nbins),results):

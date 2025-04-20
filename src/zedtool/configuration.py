@@ -16,6 +16,7 @@ def config_default() -> dict:
         'noclobber': 0,
         'make_caches': 0,
         'multiprocessing': 1,
+        'num_threads': None,
         'float_format': '%.6g',
         # Concatenating experiments
         'concatenate_detections_file': None,
@@ -60,7 +61,8 @@ def config_default() -> dict:
         'min_fiducial_size': 100,
         'min_fiducial_detections': 10,
         'max_detections_per_image': 1.1,
-        'quantile_tail_cutoff': 0,
+        'quantile_outlier_cutoff': 0,
+        'sd_outlier_cutoff': 0,
         'polynomial_degree': 2,
         'use_weights_in_fit': 0,
         'only_fiducials': 0,
@@ -89,6 +91,7 @@ def config_default() -> dict:
         'zstep_correct_fiducials': 0,
         'deltaz_correct_detections': 0,
         'deconvolve_z': 0,
+        'drift_correct_detections_multi_pass': 0,
         'drift_correct_detections': 0
     }
     return config

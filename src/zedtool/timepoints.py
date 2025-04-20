@@ -1,25 +1,11 @@
-#!/usr/bin/env python3
 import numpy as np
 from typing import Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
-import skimage
-import skimage.filters
-import skimage.morphology
-from scipy.cluster.hierarchy import weighted
-from skimage.morphology import binary_dilation, disk
 import scipy.ndimage
 import scipy.stats
-from sklearn.cluster import KMeans
-import tifffile
 import os
-import platform
 import logging
-import multiprocessing
-from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections, compute_time_derivates
-from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
-from zedtool.plots import construct_plot_path, plot_drift_correction, plot_time_derivatives
-from zedtool.parallel import minimize_fiducial_fit_variance_parallel
 
 def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # Make time point metrics for fiducials
@@ -72,6 +58,7 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     # Make Euclidean distance out of last index
     metrics_ijf = np.sqrt(np.sum(metrics_ijfd**2, axis=3))
     metrics_if = np.sqrt(np.sum(metrics_ifd**2, axis=2))
+    # i,j label time points, f label fiducials and d labels dimensions
     return metrics_ijf, metrics_ifd, metrics_if
 
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import numpy as np
 from typing import Tuple
 import pandas as pd
@@ -7,7 +6,7 @@ import skimage
 import skimage.filters
 import skimage.morphology
 from scipy.cluster.hierarchy import weighted
-from skimage.morphology import binary_dilation, disk
+from skimage.morphology import disk
 import scipy.ndimage
 import scipy.stats
 from sklearn.cluster import KMeans
@@ -16,12 +15,13 @@ import os
 import platform
 import logging
 import multiprocessing
-from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections, compute_time_derivates
+from zedtool.detections import im_to_detection_entry, fwhm_from_points, apply_corrections
 from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
-from zedtool.plots import construct_plot_path, plot_drift_correction, plot_time_derivatives
+from zedtool.plots import construct_plot_path, plot_drift_correction
 from zedtool.parallel import minimize_fiducial_fit_variance_parallel
+from zedtool.timepoints import make_time_point_metrics
 
-def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[np.ndarray, np.ndarray]:
+def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info('find_fiducials')
     # Find fiducials and label them in the detections array
 
@@ -35,7 +35,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     fiducial_mask_file = 'fiducial_mask.tif'
     plot_histogram(np.log10(img[img>0]), 'log10(bin)', 'Number of bins', 'Histogram of binned detections image', 'histogram_binned_detections', config)
     image_path = os.path.join(config['output_dir'], detections_img_file)
-    tifffile.imsave(image_path, img)
+    tifffile.imwrite(image_path, img)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_filter_disc_radius))
     # img_filt = skimage.filters.gaussian(img, sigma=gaussian_filter_disc_radius)
     if config['only_fiducials']:
@@ -54,7 +54,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         raise RuntimeError('No fiducials found.')
 
     image_path = os.path.join(config['output_dir'], segmentation_mask_file)
-    tifffile.imsave(image_path, img_label)
+    tifffile.imwrite(image_path, img_label)
 
     rois = skimage.measure.regionprops_table(img_label, img, properties=('label','bbox', 'centroid', 'area', 'intensity_mean'))
     df_fiducials = pd.DataFrame(rois)
@@ -106,7 +106,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         labels[labels==label] = 0
     fiducial_labels = labels.reshape(img_label.shape)
     image_path = os.path.join(config['output_dir'], fiducial_mask_file)
-    tifffile.imsave(image_path, fiducial_labels)
+    tifffile.imwrite(image_path, fiducial_labels)
 
     # Use the regions in img_label to label the detections in df
     df['label'] = im_to_detection_entry(fiducial_labels, x_idx, y_idx)
@@ -116,6 +116,11 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     # Make stats for fiducials
     logging.info('make_fiducial_stats')
     n_fiducials = len(df_fiducials)
+    min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+    num_time_points = max_time_point - min_time_point + 1
+    if num_time_points>1:
+        metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
+
     for j in range(n_fiducials):
         fiducial_label = df_fiducials.at[j,'label']
         logging.info(f'Making stats for fiducial {fiducial_label}')
@@ -194,19 +199,43 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         df_fiducials.at[j, 'x_madr'] = x_madr
         df_fiducials.at[j, 'y_madr'] = y_madr
         df_fiducials.at[j, 'z_madr'] = z_madr
+        if num_time_points > 1:
+            df_fiducials.at[j, 'time_point_separation'] = metrics_if[num_time_points-2, j] # largest time point separation
+
+    df_fiducials['r_madr'] = np.sqrt(df_fiducials['x_madr']**2 + df_fiducials['y_madr']**2)
+    df_fiducials['r_sd'] = np.sqrt(df_fiducials['x_sd']**2 + df_fiducials['y_sd']**2)
+
     return df_fiducials
 
 def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Filter fiducials based on stats
     # Plot histograms of stats from n_detections to photons_sd
     logging.info('filter_fiducials')
+    filter_cols = [
+        # "area",
+        "log_intensity",
+        "n_detections",
+        "x_sd",
+        "y_sd",
+        "z_sd",
+        "r_sd",
+        "photons_mean",
+        "x_madr",
+        "y_madr",
+        "z_madr",
+        "r_madr",
+        "consensus_error",
+        "fitting_error",
+        "time_point_separation"
+    ]
     # Small and sparse fiducials are likely noise
     detections_cutoff = config['min_fiducial_detections']
     area_cutoff = config['min_fiducial_size']
     doublet_cutoff = config['max_detections_per_image']
-    quantile_tail_cutoff = config['quantile_tail_cutoff']
-    quantile_max = 1 - quantile_tail_cutoff
-    quantile_min = quantile_tail_cutoff
+    quantile_outlier_cutoff = config['quantile_outlier_cutoff']
+    quantile_max = 1 - quantile_outlier_cutoff
+    quantile_min = quantile_outlier_cutoff
+    sd_outlier_cutoff = config['sd_outlier_cutoff']
 
     logging.info(f'Filtering fiducials with fewer than {detections_cutoff} detections or area less than {area_cutoff}')
     logging.info(f'n_fiducials before filtering: {len(df_fiducials)}')
@@ -222,35 +251,44 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
     logging.info(f'n_fiducials after filtering for detections and area: {len(df_fiducials)}')
-    # Get rid of those that move or wobble the most
-    df_fiducials['r_madr'] = np.sqrt(df_fiducials['x_madr']**2 + df_fiducials['y_madr']**2)
-    df_fiducials['r_sd'] = np.sqrt(df_fiducials['x_sd']**2 + df_fiducials['y_sd']**2)
-    r_madr_cutoff = np.quantile(df_fiducials['r_madr'], quantile_max)
-    r_sd_cutoff = np.quantile(df_fiducials['r_sd'], quantile_max)
-    photons_sd_cutoff = np.quantile(df_fiducials['photons_sd'], quantile_max)
-    photons_max_cutoff = np.quantile(df_fiducials['photons_mean'], quantile_max)
-    photons_min_cutoff = np.quantile(df_fiducials['photons_mean'], quantile_min)
-    n_detections_cutoff = np.quantile(df_fiducials['n_detections'], quantile_min)
-    idx = (
-        (df_fiducials['r_madr'] <= r_madr_cutoff) &
-        (df_fiducials['r_sd'] <= r_sd_cutoff) &
-        (df_fiducials['photons_sd'] <= photons_sd_cutoff) &
-        (df_fiducials['photons_mean'] <= photons_max_cutoff) &
-        (df_fiducials['photons_mean'] >= photons_min_cutoff) &
-        (df_fiducials['n_detections'] >= n_detections_cutoff) &
-        (df_fiducials['detections_per_image'] <= doublet_cutoff)
-    )
+
+    # Set idx to True for all fiducials
+    idx = np.ones(len(df_fiducials), dtype=bool)
+    if sd_outlier_cutoff>0 or quantile_outlier_cutoff>0:
+        # Get rid of those that are too far from the mean
+        for col in filter_cols:
+            if col in df_fiducials.columns:
+                x = df_fiducials[col]
+                if sd_outlier_cutoff > 0:
+                    x_median = np.median(x)
+                    x_sd = np.std(x)
+                    x_mad = scipy.stats.median_abs_deviation(x, scale='normal')
+                    # in the unlikely event that mad is fooled by a spike around the median, use sd
+                    if x_mad == 0:
+                        x_mad = x_sd
+                    x_min = x_median - sd_outlier_cutoff * x_mad
+                    x_max = x_median + sd_outlier_cutoff * x_mad
+                else:
+                    x_min = np.quantile(x,quantile_min)
+                    x_max = np.quantile(x,quantile_max)
+                idx_col = (x >= x_min) & (x <= x_max)
+                idx = idx & idx_col
+                logging.info(f"Filtering {col} with min {x_min} and max {x_max}: {np.sum(idx_col)} of {len(df_fiducials)}")
+            else:
+                logging.warning(f'Column {col} not found in df_fiducials')
+
     excluded_labels = pd.concat([excluded_labels, df_fiducials[idx == False]['label']])
     # Add to excluded labels the comma separated list in config['exclude_fiducials']
-    if 'exclude_fiducials' in config:
+    if config['excluded_fiducials'] != None:
         excluded_labels = pd.concat([excluded_labels, pd.Series(config['exclude_fiducials'].split(','))])
-        logging.info(f'Excluded labels: {excluded_labels}')
+    # logging.info(f'Excluded labels: {excluded_labels}')
 
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
-    logging.info(f'n_fiducials after filtering for stability and photons: {len(df_fiducials)}')
+    logging.info(f'n_fiducials after all filtering: {len(df_fiducials)}')
+
     if len(df_fiducials) == 0:
-        logging.error('No fiducials left after filtering for stability and photons etc. Is quantile_tail_cutoff too high?')
+        logging.error('No fiducials left after filtering for stability and photons etc. Is outlier_cutoff too stringent?')
         return None, None
     hists_path = os.path.join(config['fiducial_dir'], 'histograms')
     for col in ['n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr']:
@@ -269,8 +307,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
 
     # set excluded_labels from df.labels to 0 in df
     df['label'] = df['label'].replace(excluded_labels.tolist(), 0)
-    df_filtered = df[df['label'] != 0]
-    return  df_filtered, df_fiducials
+    return df, df_fiducials
 
 
 def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
@@ -414,7 +451,7 @@ def zstep_correct_fiducials_parallel(df_fiducials: pd.DataFrame, df: pd.DataFram
     tasks = [(fiducial_labels[j], fiducial_names[j],
               df[df['label']==fiducial_labels[j]],df['label']==fiducial_labels[j], config) for j in range(nfiducials)]
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(int(config['num_threads'])) as pool:
         results = pool.starmap(zstep_correct_fiducial, tasks)
 
     for df_cor, idx_cor in results:
@@ -449,7 +486,7 @@ def zstep_correct_fiducial(fiducial_label: int, fiducial_name: str, df: pd.DataF
     for k in range(ndims):
         # Skip x and y
         if correct_z_only and k<2:
-            return df
+            return df, idx_cor
         colname = xyz_colnames[k]
         logging.info(f'Correcting #{fiducial_label} label:{fiducial_name}:{colname}')
         # Get x,y,z values for each cycle
@@ -709,7 +746,7 @@ def plot_fitted_fiducials_parallel(df_fiducials: pd.DataFrame, x_fit_ft: np.ndar
     nfiducials = x_fit_ft.shape[1]
     tasks = [(df_fiducials.name[j], j, k, x_fit_ft, xsd_fit_ft, config) for j in range(nfiducials) for k in range(ndims)]
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(int(config['num_threads'])) as pool:
         pool.starmap(plot_fitted_fiducial, tasks)
 
     return 0
@@ -743,7 +780,7 @@ def make_drift_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd
     # Take all the fiducial fits and combine them into the drift estimate
     x_t, xsd_t, err_f = combine_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
     # Plot the combined fit with the individual fits
-    # TODO: parallelise this
+    # TODO: parallelise this plotting loop
     for k in range(ndims):
         logging.info(f'Plotting combined fitted corrections for {x_col[k]}')
         outdir = config['output_dir']
@@ -789,26 +826,47 @@ def minimize_fiducial_fit_variance(x_ft: np.ndarray, xsd_ft: np.ndarray,config: 
         if np.any(np.isnan(x_shifted)):
             logging.error('NaN in x_shifted')
         return x_shifted
-
-    def variance_cost(offsets, x, w):
+    def make_bounds(x):
+        # Make bounds for the offsets
+        # Bound is twice the distance from the first fiducial in either direction (overly conservative but better than nothing)
+        nfiducials = x.shape[0]
+        bounds = []
+        for i in range(nfiducials - 1):
+            d = np.abs(np.mean(x[i+1,:] - x[0,:]))
+            bounds.append((-2*d, 2*d))
+        return bounds
+    def variance_cost(offsets, x, weight_t):
         x_shifted = apply_offsets(offsets, x)
         # At each time point, calculate the variance of the fiducial fits across time points
         # Weight this by the uncertainties at each time point
         var_t = np.nanvar(x_shifted, axis=0)
-        weight_t = np.sum(w, axis=0) # make weight sum to 1
-        ret = np.sum(var_t * weight_t) # make mean
-        logging.info(f'Cost: {ret} offsets: {offsets}')
+        ret = np.sum(var_t * weight_t)
+        # Make Jacobian
+        nfiducials = x.shape[0]
+        x_shifted_mean_t = np.nanmean(x_shifted, axis=0)
+        jac = (2/nfiducials) * np.sum((x_shifted - x_shifted_mean_t) * weight_t, axis=1)
+        # Remove first element of jac, to match offsets
+        jac = jac[1:]
+        debug = False
+        if debug:
+            logging.info(f'Cost: {ret} offsets: {offsets} jac: {jac}')
+            logging.info(f'Jacobian: {jac}')
+        # combine the cost and jacobian into a tuple
+        ret = (ret, jac)
         return ret
+
     for j in range(ndimensions):
         logging.info(f'Grouping fiducials fits to {dimensions[j]}')
-        # TODO: Put in better initial guess, add bounds and Jacobian function
+        weight_t = np.sum(w[j,:,:], axis=0) / np.sum(w[j,:,:])  # make weight sum to 1 and f(t)
+
+        bounds = make_bounds(x_ret[j,:,:])
         initial_offsets = np.zeros(nfiducials - 1)
-        initial_cost = variance_cost(initial_offsets, x_ret[j,:,:], w[j,:,:])
-        result = scipy.optimize.minimize(variance_cost, initial_offsets, args=(x_ret[j,:,:], w[j,:,:]),
-                                        method=optimise_method,options = {'maxiter': 1e5, 'disp': True})
+        initial_cost = variance_cost(initial_offsets, x_ret[j,:,:], weight_t)
+        result = scipy.optimize.minimize(variance_cost, initial_offsets, args=(x_ret[j,:,:], weight_t),
+                                        method=optimise_method, jac=True, bounds=bounds, options = {'maxiter': 1e5, 'disp': True})
         optimal_offsets = result.x
         final_cost = result.fun
-        logging.info(f'Initial cost: {initial_cost} Final cost: {final_cost}')
+        logging.info(f'Initial cost: {initial_cost[0]} Final cost: {final_cost}')
         x_ret[j,:,:] = apply_offsets(optimal_offsets, x_ret[j,:,:])
     return x_ret, xsd_ft
 
@@ -991,7 +1049,7 @@ def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, confi
     xsd_fit_ft = np.zeros_like(xsd_ft)
     xsd_fit_ft.fill(np.nan)
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(int(config['num_threads'])) as pool:
         results = pool.starmap(fit_fiducial_step_parallel,
                                [(i, k, fitting_intervals, x_ft[k,i,:], xsd_ft[k,i,:], config) for i in range(nfiducials) for k in
                                 range(ndim)])

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import plotly.express as px
 import pandas as pd
@@ -232,7 +231,7 @@ def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -
     if config['multiprocessing']:
         tasks = [(fiducial_labels[j], fiducial_names[j],
                   df[df['label']==fiducial_labels[j]], config) for j in range(nfiducials)]
-        with multiprocessing.Pool() as pool:
+        with multiprocessing.Pool(int(config['num_threads'])) as pool:
             results = pool.starmap(plot_fiducial, tasks)
     else:
         for j in range(nfiducials):
@@ -387,11 +386,12 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     return 0
 
 
-def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict):
+def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     dimnames =config['dimnames']
     ndim = len(dimnames)
     quantities = ['deltaz_slope','deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
     units = ['', 'nm', 'nm', '']
+
     for unit,fiducial_stat in zip (units, quantities):
         logging.info(f"Plotting fiducial stat {fiducial_stat}")
         outdir = os.path.join(config['fiducial_dir'])
@@ -428,6 +428,24 @@ def plot_fiducial_quality_metrics(df_fiducials: np.ndarray, config: dict):
     plt.savefig(outpath, dpi=300)
     plt.close()
 
+    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
+    outpath = os.path.join(config['output_dir'], f"quality_metrics_summary.png")
+    plt.figure(figsize=(10, 6))
+    outdir = config['output_dir']
+    os.makedirs(outdir, exist_ok=True)
+    sd_metrics = np.column_stack((
+        df_fiducials['x_sd'].values,
+        df_fiducials['y_sd'].values,
+        df_fiducials['z_sd'].values
+    ))
+    # box plots of SD's for all fiducials
+    plt.boxplot(sd_metrics, labels=xyz_colnames)
+    plt.xlabel('quantity')
+    plt.ylabel(f"SD (nm)")
+    plt.title(f'SD of fiducials')
+    plt.savefig(outpath)
+    plt.close()
+
 def plot_drift_correction(df_drift: pd.DataFrame, config: dict):
     x_col = ['x', 'y', 'z']
     xsd_col = ['x_sd', 'y_sd', 'z_sd']
@@ -462,10 +480,10 @@ def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
     img =  np.transpose(counts_xyz, (2, 1, 0))
 
     if maxpixel < 256:
-        tifffile.imsave(imgfile, img.astype(np.uint8), imagej=True)
+        tifffile.imwrite(imgfile, img.astype(np.uint8), imagej=True)
     elif maxpixel < 16384:
-        tifffile.imsave(imgfile, img.astype(np.uint16), imagej=True)
+        tifffile.imwrite(imgfile, img.astype(np.uint16), imagej=True)
     else:
-        tifffile.imsave(imgfile, img.astype(np.float32), imagej=True)
+        tifffile.imwrite(imgfile, img.astype(np.float32), imagej=True)
 
 
