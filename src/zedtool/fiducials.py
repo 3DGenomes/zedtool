@@ -280,12 +280,12 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     excluded_labels = pd.concat([excluded_labels, df_fiducials[idx == False]['label']])
     # Add to excluded labels the comma separated list in config['exclude_fiducials']
     if config['excluded_fiducials'] != None:
-        excluded_labels = pd.concat([excluded_labels, pd.Series(config['exclude_fiducials'].split(','))])
+        excluded_labels = pd.concat([excluded_labels, pd.Series(config['excluded_fiducials'].split(','))])
     # logging.info(f'Excluded labels: {excluded_labels}')
+    logging.info(f'Filtering all: {np.sum(idx)} of {len(df_fiducials)}')
 
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
-    logging.info(f'n_fiducials after all filtering: {len(df_fiducials)}')
 
     if len(df_fiducials) == 0:
         logging.error('No fiducials left after filtering for stability and photons etc. Is outlier_cutoff too stringent?')
@@ -666,6 +666,14 @@ def zstep_correction_cost_function(c_z_step: np.ndarray, x_ct: np.ndarray, sd_ct
 
 def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info('drift_correct_detections')
+    # Need at least 2 fiducials to make a consensus fit
+    nfiducials = len(df_fiducials)
+    if nfiducials < 2:
+        logging.error('Not enough fiducials to make a consensus drift correction')
+        return None, None
+    if nfiducials < 6:
+        logging.warning('Only have {nfiducials} fiducials. Less than 6 or so may not make a very drift correction')
+
     noclobber = config['noclobber']
     x_col = ['x', 'y', 'z']
     xsd_col = ['x_sd', 'y_sd', 'z_sd']

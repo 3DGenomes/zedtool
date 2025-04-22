@@ -15,6 +15,7 @@ debug: 0 # Potentially controls verbosity and plot output.
 noclobber: 1 # If 1, will not overwrite cached intermediate results
 make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
 multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
+num_threads: # number of threads to use for multiprocessing; if empty, then use all available threads
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files
 
 # Detection filtering - based on either density in the binned image or columns in the detections file
@@ -60,7 +61,8 @@ dilation_disc_radius: 10 # dilation of thresholded binned image to catch "wander
 min_fiducial_size: 100 # min pixels in a fiducial
 min_fiducial_detections: 10 # minimum number of detections in a fiducial; if only_fiducials==1 then this is also the segmentation threshold
 max_detections_per_image: 1.1 # maximum number of detections per fiducial per image
-quantile_tail_cutoff: 0 # throws away tails of several distributions for fiducial qc metrics (typically = 0.01-0.05)
+quantile_outlier_cutoff: 0 # throws away tails of several distributions for fiducial qc metrics (typically = 0.01-0.05)
+sd_outlier_cutoff: 0 # standard deviation outlier cutoff for fiducial qc metrics; overrides quantile method. (typically = 2)
 filter_fiducials_with_clustering: 0 # if 1, then use pre-drift correction clustering to filter fiducials
 polynomial_degree: 2 # degree of polynomial to fit drift correction
 use_weights_in_fit: 0 # use the precision values in the fit
@@ -88,6 +90,7 @@ plot_time_point_metrics: 0 # plot time-point metrics of drift correction for fid
 plot_per_fiducial_fitting: 0 # make debugging images about extracting drift correction from fiducials
 zstep_correct_fiducials: 0  # correct z co-ordinate of fiducial detections for z-step variation
 drift_correct_detections: 0 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
+drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to correct the drift
 deltaz_correct_detections: 0 # correct z co-ordinate of all detections for deltaz variation
 deconvolve_z: 0 # deconvolve z from the detections
 save_non_fiducial_detections: 0 # save non-fiducial detections to a separate file

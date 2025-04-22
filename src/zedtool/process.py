@@ -306,6 +306,7 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
         logging.error('drift_correct_detections_multi_pass is not compatible with make_caches')
         return df, df_fiducials
 
+    df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config)
     outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_2.tsv")
     df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
@@ -314,6 +315,7 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     config2['polynomial_degree'] = 0
     df, df_fiducials = drift_correct_detections(df, df_fiducials, config2)
 
+    df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config2)
     outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_3.tsv")
     df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])

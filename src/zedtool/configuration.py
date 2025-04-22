@@ -15,7 +15,7 @@ def config_default() -> dict:
         'debug': 0,
         'noclobber': 0,
         'make_caches': 0,
-        'multiprocessing': 1,
+        'multiprocessing': 0,
         'num_threads': None,
         'float_format': '%.6g',
         # Concatenating experiments
@@ -67,7 +67,7 @@ def config_default() -> dict:
         'use_weights_in_fit': 0,
         'only_fiducials': 0,
         'consensus_method': 'median',
-        'filter_fiducials_with_clustering': 1,
+        'filter_fiducials_with_clustering': 0,
         # Deconvolution settings
         'decon_min_cluster_sd': 10,
         'decon_sd_shrink_ratio': 0.25,

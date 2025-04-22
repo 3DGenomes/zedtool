@@ -39,6 +39,7 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `noclobber`: If set to 1, prevents overwriting cached intermediate results. Safest to leave = 0.
 - `make_caches`: If set to 1, saves detections and corrections to binary files for faster subsequent loading.
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation
+- `num_threads`: Number of threads to use for multiprocessing. If empty, uses all available threads.
 - `float_format`: printf-style format for floating point numbers in outputs files (default %.6g)
 
 ### **Detection Filtering**
@@ -82,10 +83,12 @@ These specify how different columns in the detections file are named:
 - `min_fiducial_size`: Minimum size (in pixels) of fiducials.
 - `min_fiducial_detections`: Minimum number of detections required for a fiducial.
 - `max_detections_per_image`: Maximum number of detections allowed per fiducial per image.
-- `quantile_tail_cutoff`: Discarded fraction of extreme values for quality control (typically 0.01-0.05). If you have less than
+- `quantile_outlier_cutoff`: Discarded fraction of extreme values for quality control (typically 0.01-0.05). If you have less than
 20 fiducials then set this to 0.
+- `sd_outlier_cutoff`: Standard deviation cutoff for outlier detection (typically around 2). If you have less than 20 fiducials then set this to 0. 
+If non-zero then quantile_outlier_cutoff is ignored. 
 - `filter_fiducials_with_clustering`: If 1, then use pre-drift correction clustering to filter fiducials. If you have less than
-20 fiducials then set this to 0.
+100 fiducials then set this to 0.
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 2.
 - `use_weights_in_fit`: Whether to use precision values in the fit.
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. If you want to find the fiducials automatically then set this to 0.
@@ -119,7 +122,8 @@ You can disable/enable various processing steps and visualizations by setting th
 - `plot_time_point_metrics`: Plot time-point metrics of drift correction for fiducials.
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step
 - `zstep_correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. Experimental. 
-- `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above. 
+- `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.
+- `drift_correct_detections_multi_pass`: Do fiducial-based drift correction on all detections using multiple pass method.
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation
 - `deconvolve_z`: Reduce variation in z using a deconvolution-like approach. Experimental. 
 - `save_non_fiducial_detections` Save non-fiducial detections to a separate file, `non_fiducial_detections.tsv`
@@ -172,7 +176,6 @@ dilation_disc_radius: 10
 min_fiducial_size: 100 
 min_fiducial_detections: 10 
 max_detections_per_image: 1.1 
-quantile_tail_cutoff: 0.02 
 polynomial_degree: 2 
 only_fiducials: 0 
 
