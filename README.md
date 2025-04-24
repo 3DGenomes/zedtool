@@ -177,7 +177,8 @@ filling_disc_radius: 10
 dilation_disc_radius: 10 
 min_fiducial_size: 100 
 min_fiducial_detections: 10 
-max_detections_per_image: 1.1 
+max_detections_per_image: 1.1
+sd_outlier_cutoff: 2
 polynomial_degree: 2 
 only_fiducials: 0 
 
