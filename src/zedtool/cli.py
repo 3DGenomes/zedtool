@@ -2,6 +2,7 @@
 import sys
 import shutil
 import os
+import logging
 from zedtool.process import read_config, read_detections, process_detections, pre_process_detections, post_process_detections
 from zedtool import __version__
 # Makes QC plots and metrics for an SMLM dataset.
@@ -21,6 +22,17 @@ def main(yaml_config_file: str) -> int:
     if df is None:
         print(f"Failed to read detections file {config['detections_file']}")
         return 1
+
+    # get colnames for output file from input file of config
+    if config['output_column_names'] is None:
+        config['output_column_names'] = df.columns.tolist()
+    else:
+        config['output_column_names'] = config['output_column_names'].split(',')
+        # Check that the output column names are in the df
+        for col in config['output_column_names']:
+            if col not in df.columns:
+                logging.warning(f"Column {col} specified in output_column_names not found in detections file")
+
     df = pre_process_detections(df, config)
     df = process_detections(df, config)
     if df is None:

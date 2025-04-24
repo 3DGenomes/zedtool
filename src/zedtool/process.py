@@ -73,6 +73,9 @@ def read_config(yaml_config_file: str) -> dict:
     if config['num_threads'] is None:
         config['num_threads'] = os.cpu_count()
     if config['multiprocessing']:
+        if config['num_threads'] > os.cpu_count():
+            logging.warning(f"num_threads ({config['num_threads']}) is greater than available threads ({os.cpu_count()}). Using all available threads.")
+            config['num_threads'] = os.cpu_count()
         logging.info(f"Using {config['num_threads']} threads for processing")
     else:
         logging.info("multiprocessing is disabled")
@@ -99,7 +102,7 @@ def read_detections(config: dict) -> pd.DataFrame:
 
 def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # processes that are only done once in the pipeline
-
+    logging.info("pre_process_detections")
     # Optionally concatenate a second experiment - make sure this is the only action
     if config['concatenate_detections']:
         logging.info(f"Concatenating {config['concatenate_detections_file']}")
@@ -140,7 +143,7 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # processes that can be done multiple times in the pipeline
     # If this happens it will be with recursion - calling with modified config
     # and skipping the correction steps
-
+    logging.info("process_detections")
     # Bin the detections to allow them to be treated as an image
     # Combine x,y,x into a single array with shape (n,3)
     det_xyz = np.vstack((df[config['x_col']].values, df[config['y_col']].values, df[config['z_col']].values)).T
@@ -230,6 +233,9 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # df_fiducials gains cols with consensus and fitting error
     if config['drift_correct_detections']:
         df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
+        # df_fiducials gains cols with consensus and fitting error, dave this
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected.tsv")
+        df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     if config['drift_correct_detections_multi_pass']:
         df, df_fiducials = drift_correct_detections_multi_pass(df_fiducials, df, config)
@@ -242,16 +248,22 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
     # Write corrected df to output dir if it's been changed
     if making_corrrections:
-        df = compute_deltaz(df, config) # update deltaz column
-        df.to_csv(os.path.join(config['output_dir'], 'corrected_detections.csv'), index=False, float_format=config['float_format'])
-
-    # Save non-fiducials to csv
-    if config['save_non_fiducial_detections']:
-        df[df['label'] != 0].to_csv(os.path.join(config['output_dir'], "non_fiducial_detections.tsv"), sep = '\t', index=False, float_format=config['float_format'])
+        df = compute_deltaz(df, config) # update deltaz column in case you're saving it
+        fiducial_label = df_fiducials['label'].values  # label column may be removed, but we still need it
+        df = df[config['output_column_names']] # Select output_column_names from df
+        output_file = os.path.join(config['output_dir'], 'corrected_detections.csv')
+        logging.info(f"Writing corrected detections to {output_file}")
+        df.to_csv(output_file, index=False, float_format=config['float_format'])
+        # Save non-fiducials to csv
+        if config['save_non_fiducial_detections']:
+            output_file = os.path.join(config['output_dir'], 'non_fiducial_corrected_detections.csv')
+            df[fiducial_label != 0].to_csv(output_file, index=False, float_format=config['float_format'])
 
     return df
 
 def post_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info("post_process_detections")
+
     making_corrrections = (config['zstep_correct_fiducials'] or
                            config['drift_correct_detections'] or
                            config['drift_correct_detections_multi_pass'] or
@@ -278,9 +290,16 @@ def post_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     config_post['output_dir'] = f"{config_post['output_dir']}_corrected"
     config_post['fiducial_dir'] = os.path.join(config_post['output_dir'], 'fiducials')
 
+    # don't use included/excluded fiducials because the labelling will have changed
+    config_post['excluded_fiducials'] = None
+    config_post['included_fiducials'] = None
+
     # Make output directories for second pass
     os.makedirs(config_post['output_dir'], exist_ok=True)
     os.makedirs(config_post['fiducial_dir'], exist_ok=True)
+    # add deltaz column in case it was removed before saving corrected detections
+    df = compute_deltaz(df, config)
+    # recursively call process_detections with the new config just to do the post-correction plotting
     df = process_detections(df, config_post)
     return df
 
@@ -288,36 +307,33 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     # Corrects the drift of the detections using the fiducials
     # This is a multi-pass version of drift_correct_detections
     # It uses the fiducials to correct the detections and then uses the corrected detections to correct the fiducials
-    df_metrics = make_quality_metrics(df, df_fiducials, config)
-    outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_0.tsv")
-    df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
-
-
-    df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
-
-    df_metrics = make_quality_metrics(df, df_fiducials, config)
-    outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_1.tsv")
-    df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
-
-    df, df_fiducials = filter_fiducials(df_fiducials, df, config)
-    df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
+    logging.info("drift_correct_detections_multi_pass")
 
     if config['make_caches']:
         logging.error('drift_correct_detections_multi_pass is not compatible with make_caches')
         return df, df_fiducials
+    if config['excluded_fiducials'] is not None or config['included_fiducials'] is not None:
+        logging.error('drift_correct_detections_multi_pass is not compatible with excluded_fiducials or included_fiducials')
+        return df, df_fiducials
 
+    # initial drift correction
+    df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
+
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected_1.tsv")
+    df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
+    df_fiducials = make_fiducial_stats(df_fiducials, df, config)
+    df_metrics = make_quality_metrics(df, df_fiducials, config)
+    outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_1.tsv")
+    df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
+
+    # redo drift correction after filtering already-corrected fiducials.
+    df, df_fiducials = filter_fiducials(df_fiducials, df, config)
+    df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
+
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected_2.tsv")
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config)
     outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_2.tsv")
-    df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
-
-    config2 = config.copy()
-    config2['polynomial_degree'] = 0
-    df, df_fiducials = drift_correct_detections(df, df_fiducials, config2)
-
-    df_fiducials = make_fiducial_stats(df_fiducials, df, config)
-    df_metrics = make_quality_metrics(df, df_fiducials, config2)
-    outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_3.tsv")
     df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     return df, df_fiducials

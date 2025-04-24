@@ -8,7 +8,6 @@
 * Contact SMLM authors asking for detection data
 * Add defaults to config file/README.md
 * Write tutorial on github
-* There sometimes can be nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. 
 * Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
@@ -19,6 +18,7 @@
 * Optionally compute image-id and zstep if they are not there?
 
 ### DONE:
+* There sometimes can be nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Say what fiducials are being rejected and why. Should there be outlier rejection on each column or selection of columns?
 * Automatically filter based on quality of consensus fit and on time points drift metric
 * sd_tail_cutoff, quantile_outlier_cutoff - config file and doco

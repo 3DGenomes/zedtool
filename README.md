@@ -41,6 +41,8 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation
 - `num_threads`: Number of threads to use for multiprocessing. If empty, uses all available threads.
 - `float_format`: printf-style format for floating point numbers in outputs files (default %.6g)
+- `output_column_names`: Comma separated list of column names to be used in the output files. 
+If empty, uses the column names found in the input file.
 
 ### **Detection Filtering**
 - `n_min_cutoff`: Minimum detection density in the binned x,y image to retain detections.

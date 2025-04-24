@@ -17,6 +17,7 @@ make_caches: 1 # if 1 then save the detections to a binary file for faster subse
 multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
 num_threads: # number of threads to use for multiprocessing; if empty, then use all available threads
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files
+output_column_names: # Comma separated list of columns to output. If empty, uses the columns in the input file.
 
 # Detection filtering - based on either density in the binned image or columns in the detections file
 n_min_cutoff: 1 # remove detections based on their density in the binned x,y image

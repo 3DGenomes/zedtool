@@ -18,6 +18,7 @@ def config_default() -> dict:
         'multiprocessing': 0,
         'num_threads': None,
         'float_format': '%.6g',
+        'output_column_names': None,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,

@@ -212,22 +212,24 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     # Plot histograms of stats from n_detections to photons_sd
     logging.info('filter_fiducials')
     filter_cols = [
-        # "area",
         "log_intensity",
         "n_detections",
         "x_sd",
         "y_sd",
         "z_sd",
-        "r_sd",
         "photons_mean",
         "x_madr",
         "y_madr",
         "z_madr",
-        "r_madr",
         "consensus_error",
-        "fitting_error",
         "time_point_separation"
     ]
+    df_filt = pd.DataFrame({
+        "colname": filter_cols,
+        "lb": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "ub": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    })
+
     # Small and sparse fiducials are likely noise
     detections_cutoff = config['min_fiducial_detections']
     area_cutoff = config['min_fiducial_size']
@@ -256,7 +258,10 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     idx = np.ones(len(df_fiducials), dtype=bool)
     if sd_outlier_cutoff>0 or quantile_outlier_cutoff>0:
         # Get rid of those that are too far from the mean
-        for col in filter_cols:
+        for j in range(len(df_filt)):
+            col = df_filt.at[j, 'colname']
+            lb = df_filt.at[j, 'lb']
+            ub = df_filt.at[j, 'ub']
             if col in df_fiducials.columns:
                 x = df_fiducials[col]
                 if sd_outlier_cutoff > 0:
@@ -271,9 +276,12 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
                 else:
                     x_min = np.quantile(x,quantile_min)
                     x_max = np.quantile(x,quantile_max)
-                idx_col = (x >= x_min) & (x <= x_max)
-                idx = idx & idx_col
-                logging.info(f"Filtering {col} with min {x_min} and max {x_max}: {np.sum(idx_col)} of {len(df_fiducials)}")
+                if lb > 0:
+                    idx = idx & (x >= x_min)
+                    logging.info(f"Filtering {col}: {np.sum(x < x_min)} entries < {x_min:.2f} from total {len(df_fiducials)}")
+                if ub > 0:
+                    idx = idx & (x <= x_max)
+                    logging.info(f"Filtering {col}: {np.sum(x > x_max)} entries > {x_max:.2f} from total {len(df_fiducials)}")
             else:
                 logging.warning(f'Column {col} not found in df_fiducials')
 
@@ -282,7 +290,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     if config['excluded_fiducials'] != None:
         excluded_labels = pd.concat([excluded_labels, pd.Series(config['excluded_fiducials'].split(','))])
     # logging.info(f'Excluded labels: {excluded_labels}')
-    logging.info(f'Filtering all: {np.sum(idx)} of {len(df_fiducials)}')
+    logging.info(f'Filtering all: {np.sum(idx)} from total {len(df_fiducials)}')
 
     df_fiducials = df_fiducials[idx]
     df_fiducials = df_fiducials.reset_index(drop=True)
