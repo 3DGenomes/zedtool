@@ -128,7 +128,7 @@ You can disable/enable various processing steps and visualizations by setting th
 - `drift_correct_detections_multi_pass`: Do fiducial-based drift correction on all detections using multiple pass method.
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation
 - `deconvolve_z`: Reduce variation in z using a deconvolution-like approach. Experimental. 
-- `save_non_fiducial_detections` Save non-fiducial detections to a separate file, `non_fiducial_detections.tsv`
+- `save_non_fiducial_detections` Save non-fiducial detections to a separate file, `corrected_detections_no_fiducials.csv`
 ## Example Configuration File
 Options are read from a yaml configuration file supplied on the command line. Here is an example:
 
