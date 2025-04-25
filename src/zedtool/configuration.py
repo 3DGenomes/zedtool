@@ -6,9 +6,7 @@ def config_default() -> dict:
     config = {
         'detections_file': 'input.csv',
         'output_dir': 'output',
-        'binary_detections_file': 'detections.npy',
         'drift_correction_file': 'drift_correction.tsv',
-        'binned_detections_file': 'binned_detections.tif',
         'bin_resolution': 20,
         'z_step_step': -100,
         # Debugging and misc settings

@@ -187,7 +187,7 @@ def stats_text(x: np.ndarray,title: str) -> str:
 def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:
     # Plot the fiducials on the detections image so that they can be identified in the image
     logging.info("plot_fiducial_rois")
-    detections_img_file = 'detections_img.tif'
+    detections_img_file = 'binned_detections_2d.tif'
     fiducials_plot_file = 'fiducials_plot'
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
@@ -455,7 +455,7 @@ def plot_drift_correction(df_drift: pd.DataFrame, config: dict):
     for j in range(ndims):
         # output_path = os.path.join(config['output_dir'], f"drift_correction_{x_col[j]}")
         # plotly_scatter(df_drift['image-ID'], df_drift[x_col[j]], df_drift[xsd_col[j]], 'image-ID', f'{x_col[j]} correction (nm)', 'Drift correction', output_path, config)
-        outpath = os.path.join(config['output_dir'], f"cor_{x_col[j]}_vs_time")
+        outpath = os.path.join(config['output_dir'], f"corrections_{x_col[j]}_vs_time")
         plot_scatter(df_drift[config['image_id_col']], df_drift[x_col[j]], config['image_id_col'], f'{x_col[j]} correction (nm)',
                      f'Correction {x_col[j]} vs image-ID', outpath, config)
 

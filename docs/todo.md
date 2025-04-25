@@ -3,21 +3,23 @@
 * Reinstate max_detections_per_image
 * Histogram binned detections gets a log scale on y
 * Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
-* Make an webpage with all relevant output
+* Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Contact SMLM authors asking for detection data
 * Add defaults to config file/README.md
 * Write tutorial on github
-* Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. 
 * Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Optionally add faked error cols if they are not there?
-* Optionally compute image-id and zstep if they are not there?
+* Optionally add image-id and zstep if they are not there?
 
 ### DONE:
+* binned_detections, detections_image get more sensible names (eg binned_detections_2d and binned_detections_3d)
+* Should fiducial_mask and segmentation_mask be png? 
+* Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. Not worth it. 
 * There sometimes can be nans in corrected fiducials for large experiment with z-step correction. Find out why.
 * Say what fiducials are being rejected and why. Should there be outlier rejection on each column or selection of columns?
 * Automatically filter based on quality of consensus fit and on time points drift metric

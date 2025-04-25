@@ -160,7 +160,7 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         if config['debug']:
             plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
-        save_to_tiff_3d(counts_xyz,"binned_detections", config)
+        save_to_tiff_3d(counts_xyz,"binned_detections_3d", config)
 
     # Make index into the binned xyz image from the detections
     # x_idx gives the bin x-index for each detection, similarly for y and z
@@ -233,7 +233,7 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # df_fiducials gains cols with consensus and fitting error
     if config['drift_correct_detections']:
         df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
-        # df_fiducials gains cols with consensus and fitting error, dave this
+        # df_fiducials gains cols with consensus and fitting error, save this
         outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
@@ -241,6 +241,9 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         df, df_fiducials = drift_correct_detections_multi_pass(df_fiducials, df, config)
 
     if config['deltaz_correct_detections']:
+        # redo fiducial to update regression against deltaz
+        if config['drift_correct_detections']:
+            df_fiducials = make_fiducial_stats(df_fiducials, df, config)
         df = deltaz_correct_detections(df, df_fiducials, config)
 
     if config['deconvolve_z']:
@@ -249,14 +252,15 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Write corrected df to output dir if it's been changed
     if making_corrrections:
         df = compute_deltaz(df, config) # update deltaz column in case you're saving it
-        fiducial_label = df_fiducials['label'].values  # label column may be removed, but we still need it
+        fiducial_label = df['label'].values  # label column may be removed, but we still need it
         df = df[config['output_column_names']] # Select output_column_names from df
         output_file = os.path.join(config['output_dir'], 'corrected_detections.csv')
         logging.info(f"Writing corrected detections to {output_file}")
         df.to_csv(output_file, index=False, float_format=config['float_format'])
         # Save non-fiducials to csv
         if config['save_non_fiducial_detections']:
-            output_file = os.path.join(config['output_dir'], 'non_fiducial_corrected_detections.csv')
+            output_file = os.path.join(config['output_dir'], 'corrected_detections_no_fiducials.csv')
+            logging.info(f"Writing non-fiducial corrected detections to {output_file}")
             df[fiducial_label != 0].to_csv(output_file, index=False, float_format=config['float_format'])
 
     return df

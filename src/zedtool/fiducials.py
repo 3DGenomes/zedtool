@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple
+from PIL import Image, ImageDraw, ImageFont
 import pandas as pd
 import matplotlib.pyplot as plt
 import skimage
@@ -24,15 +25,12 @@ from zedtool.timepoints import make_time_point_metrics
 def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info('find_fiducials')
     # Find fiducials and label them in the detections array
-
     filling_disc_radius = config['filling_disc_radius']
     median_filter_disc_radius = config['median_filter_disc_radius']
     dilation_disc_radius = config['dilation_disc_radius']
     # gaussian_filter_disc_radius = 1
-    # segmentation_classification_plot_file = 'segmentation_classification_plot.png'
-    segmentation_mask_file = 'segmentation_mask.tif'
-    detections_img_file = 'detections_img.tif'
-    fiducial_mask_file = 'fiducial_mask.tif'
+    detections_img_file = 'binned_detections_2d.tif'
+    fiducial_label_file = 'fiducials_labels.png'
     plot_histogram(np.log10(img[img>0]), 'log10(bin)', 'Number of bins', 'Histogram of binned detections image', 'histogram_binned_detections', config)
     image_path = os.path.join(config['output_dir'], detections_img_file)
     tifffile.imwrite(image_path, img)
@@ -52,9 +50,6 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         if config['only_fiducials']:
             logging.error(f'Try lowering min_fiducial_detections to less than {np.max(img_filt)}.')
         raise RuntimeError('No fiducials found.')
-
-    image_path = os.path.join(config['output_dir'], segmentation_mask_file)
-    tifffile.imwrite(image_path, img_label)
 
     rois = skimage.measure.regionprops_table(img_label, img, properties=('label','bbox', 'centroid', 'area', 'intensity_mean'))
     df_fiducials = pd.DataFrame(rois)
@@ -105,8 +100,12 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     for label in excluded_labels:
         labels[labels==label] = 0
     fiducial_labels = labels.reshape(img_label.shape)
-    image_path = os.path.join(config['output_dir'], fiducial_mask_file)
-    tifffile.imwrite(image_path, fiducial_labels)
+    # Make png version of filtered fiducial labels
+    image_path = os.path.join(config['output_dir'], fiducial_label_file)
+    img_label_filtered = 255 * (np.log10(fiducial_labels + 1) / np.log10(np.max(fiducial_labels) + 1))
+    img_label_filtered = img_label_filtered.astype(np.uint8)
+    imp = Image.fromarray(img_label_filtered)
+    imp.save(image_path, quality=95)
 
     # Use the regions in img_label to label the detections in df
     df['label'] = im_to_detection_entry(fiducial_labels, x_idx, y_idx)
