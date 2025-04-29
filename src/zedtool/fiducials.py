@@ -73,17 +73,9 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
         logging.info(f'Keeping {np.sum(is_high)} after clustering on log_intensity')
 
     # Exclude fiducials in config['excluded_fiducials'] by setting is_high to False
-    if config['excluded_fiducials'] != None:
-        excluded_fiducials =  pd.Series([int(num) for num in str(config['excluded_fiducials']).split(",")])
-        logging.info(f"Excluding fiducials: {config['excluded_fiducials']}")
-    else:
-        excluded_fiducials = pd.Series(dtype="int64")
+    excluded_fiducials =  config['excluded_fiducials']
+    included_fiducials =  config['included_fiducials']
 
-    if config['included_fiducials'] != None:
-        included_fiducials =  pd.Series([int(num) for num in str(config['included_fiducials']).split(",")])
-        logging.info(f"Including fiducials: {config['included_fiducials']}")
-    else:
-        included_fiducials = pd.Series(dtype="int64")
     # Reject any fiducials that are in excluded_fiducials and include any that are in included_fiducials
     is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
     is_high = is_high | df_fiducials['label'].isin(included_fiducials)
@@ -285,9 +277,8 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
                 logging.warning(f'Column {col} not found in df_fiducials')
 
     excluded_labels = pd.concat([excluded_labels, df_fiducials[idx == False]['label']])
-    # Add to excluded labels the comma separated list in config['exclude_fiducials']
-    if config['excluded_fiducials'] != None:
-        excluded_labels = pd.concat([excluded_labels, pd.Series(config['excluded_fiducials'].split(','))])
+    # Add to excluded labels the list in config['exclude_fiducials']
+    excluded_labels = pd.concat([excluded_labels, config['excluded_fiducials']])
     # logging.info(f'Excluded labels: {excluded_labels}')
     logging.info(f'Filtering all: {np.sum(idx)} from total {len(df_fiducials)}')
 

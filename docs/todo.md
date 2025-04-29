@@ -1,5 +1,6 @@
 ### TODO:
-* test included_fiducials
+* Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
+* Test included_fiducials
 * Reinstate max_detections_per_image
 * Histogram binned detections gets a log scale on y
 * Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
@@ -12,7 +13,6 @@
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
-* Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Optionally add faked error cols if they are not there?
 * Optionally add image-id and zstep if they are not there?
 

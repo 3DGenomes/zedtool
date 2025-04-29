@@ -64,6 +64,19 @@ def read_config(yaml_config_file: str) -> dict:
     if config['debug']:
         config_print(config)
 
+    # If fiducials are included/excluded, convert the strings to lists
+    if config['excluded_fiducials'] != None and isinstance(config['excluded_fiducials'], str) :
+        config['excluded_fiducials'] = pd.Series(config['excluded_fiducials'].split(','))
+        logging.info(f"Excluded fiducials: {config['excluded_fiducials']}")
+    else:
+        config['excluded_fiducials'] = pd.Series(dtype="int64")
+
+    if config['included_fiducials'] != None and isinstance(config['included_fiducials'], str) :
+        config['included_fiducials'] = pd.Series(config['included_fiducials'].split(','))
+        logging.info(f"Included fiducials: {config['included_fiducials']}")
+    else:
+        config['included_fiducials'] = pd.Series(dtype="int64")
+
     # Parallel processing is incompatible with no_display = False
     if config['multiprocessing'] and no_display==False:
         logging.error("Parallel processing is not supported when not headless.")
@@ -295,8 +308,8 @@ def post_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     config_post['fiducial_dir'] = os.path.join(config_post['output_dir'], 'fiducials')
 
     # don't use included/excluded fiducials because the labelling will have changed
-    config_post['excluded_fiducials'] = None
-    config_post['included_fiducials'] = None
+    config_post['excluded_fiducials'] =  pd.Series(dtype="int64")
+    config_post['included_fiducials'] =  pd.Series(dtype="int64")
 
     # Make output directories for second pass
     os.makedirs(config_post['output_dir'], exist_ok=True)
