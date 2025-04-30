@@ -1,4 +1,5 @@
 ### TODO:
+* Check how well dual pass works.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Test included_fiducials
 * Reinstate max_detections_per_image
@@ -9,7 +10,6 @@
 * Contact SMLM authors asking for detection data
 * Add defaults to config file/README.md
 * Write tutorial on github
-* Correct fiducial for z_step per time_step instead of averaging over all time steps
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
@@ -17,6 +17,7 @@
 * Optionally add image-id and zstep if they are not there?
 
 ### DONE:
+* Correct fiducial for z_step per time_step instead of averaging over all time steps. (Not worth it.)
 * binned_detections, detections_image get more sensible names (eg binned_detections_2d and binned_detections_3d)
 * Should fiducial_mask and segmentation_mask be png? 
 * Save corrected detections in pickle or hd5 as well and allow detections to be read from anything. Not worth it. 

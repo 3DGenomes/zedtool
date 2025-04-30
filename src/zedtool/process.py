@@ -64,6 +64,8 @@ def read_config(yaml_config_file: str) -> dict:
     if config['debug']:
         config_print(config)
 
+    # Print version
+    logging.info(f"zedtool version: {__version__}")
     # If fiducials are included/excluded, convert the strings to lists
     if config['excluded_fiducials'] != None and isinstance(config['excluded_fiducials'], str) :
         config['excluded_fiducials'] = pd.Series(config['excluded_fiducials'].split(','))
