@@ -29,7 +29,7 @@ where `config.yaml` is a YAML configuration file containing experiment-specific 
 ZEDTool relies on a YAML file for specifying various options. Below is a detailed explanation of the parameters used in the configuration file:
 
 ### **Input and Output**
-- `detections_file`: Path to the input file containing detections.
+- `detections_file`: Path to the input file containing detections. This can be a local file or a URL.
 - `output_dir`: Directory where all output files will be stored.
 
 ### **Binning and Debugging Options**

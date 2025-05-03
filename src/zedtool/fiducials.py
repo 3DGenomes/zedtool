@@ -89,6 +89,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     logging.info(f'Found {len(df_fiducials)} segmented regions after filtering on clustering and excluded_fiducials')
     # Set pixels in img_label to zero for excluded labels
     labels = img_label.flatten()
+    img_is_fiducial = (img_label != 0)
     for label in excluded_labels:
         labels[labels==label] = 0
     fiducial_labels = labels.reshape(img_label.shape)
@@ -101,6 +102,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
 
     # Use the regions in img_label to label the detections in df
     df['label'] = im_to_detection_entry(fiducial_labels, x_idx, y_idx)
+    df['is_fiducial'] = im_to_detection_entry(img_is_fiducial, x_idx, y_idx)
     return df, df_fiducials
 
 def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> pd.DataFrame:

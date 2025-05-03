@@ -1,5 +1,4 @@
 ### TODO:
-* Check how well dual pass works.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Test included_fiducials
 * Reinstate max_detections_per_image
@@ -17,6 +16,10 @@
 * Optionally add image-id and zstep if they are not there?
 
 ### DONE:
+* Remove strips without fiducial from non-fiducial image to create a fiducial-only image
+* Add (and then remove) is_fiducial column to enable removal of fiducial detections for those that are not good fiducialss
+* Read config file from dropbox or other storage
+* Check how well dual pass works.
 * Correct fiducial for z_step per time_step instead of averaging over all time steps. (Not worth it.)
 * binned_detections, detections_image get more sensible names (eg binned_detections_2d and binned_detections_3d)
 * Should fiducial_mask and segmentation_mask be png? 

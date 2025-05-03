@@ -189,6 +189,7 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     logging.info("plot_fiducial_rois")
     detections_img_file = 'binned_detections_2d.tif'
     fiducials_plot_file = 'fiducials_plot'
+    line_intensity = 228
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
     # scale the image to 0-255
@@ -196,10 +197,10 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     im = im.astype(np.uint8)
     # loop over rows of df
     for j in range(len(df_fiducials)):
-        im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j])] = 228
-        im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.max_x[j]-1)] = 228
-        im[int(df_fiducials.min_y[j]), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = 228
-        im[int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = 228
+        im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j])] = line_intensity
+        im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.max_x[j]-1)] = line_intensity
+        im[int(df_fiducials.min_y[j]), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = line_intensity
+        im[int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = line_intensity
     imp = Image.fromarray(im)
     draw = ImageDraw.Draw(imp)
     for fontname in ["DejaVuSansMono", "couri", "Courier New", "arial", "LiberationSans-Regular"]:
@@ -216,6 +217,17 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     imfile = os.path.join(config['output_dir'], fiducials_plot_file)
     figure_path = construct_plot_path(imfile, "png", config)
     imp.save(figure_path, quality=95)
+    # Extract array with pixels from imp
+    im_crop = np.array(imp)
+    # remove rows and columns that do not contain text or line segments drawn above
+    idx_row = np.sum(im_crop>=line_intensity,axis=1)>0
+    idx_col = np.sum(im_crop>=line_intensity,axis=0)>0
+    im_crop = im_crop[idx_row][:,idx_col]
+    # Write to png
+    imfile = os.path.join(config['output_dir'], 'fiducials_plot_cropped')
+    figure_path = construct_plot_path(imfile, "png", config)
+    imp_crop = Image.fromarray(im_crop)
+    imp_crop.save(figure_path, quality=95)
     return 0
 
 def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:

@@ -6,6 +6,7 @@ import yaml
 import sys
 import logging
 import pandas as pd
+import fsspec
 from typing import Tuple
 from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns, compute_deltaz, apply_corrections, deltaz_correct_detections, cat_experiment
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
@@ -104,7 +105,8 @@ def read_detections(config: dict) -> pd.DataFrame:
         df = pd.read_pickle(binary_detections_file)
     else:
         logging.info(f"Reading detections from {config['detections_file']}")
-        df = pd.read_csv(config['detections_file'])
+        with fsspec.open(config['detections_file']) as f:
+            df = pd.read_csv(f)
         if config['make_caches']:
             df.to_pickle(binary_detections_file)
 
@@ -267,7 +269,7 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Write corrected df to output dir if it's been changed
     if making_corrrections:
         df = compute_deltaz(df, config) # update deltaz column in case you're saving it
-        fiducial_label = df['label'].values  # label column may be removed, but we still need it
+        is_fiducial = df['is_fiducial'].values  #  column may be removed, but we still need it
         df = df[config['output_column_names']] # Select output_column_names from df
         output_file = os.path.join(config['output_dir'], 'corrected_detections.csv')
         logging.info(f"Writing corrected detections to {output_file}")
@@ -276,7 +278,7 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         if config['save_non_fiducial_detections']:
             output_file = os.path.join(config['output_dir'], 'corrected_detections_no_fiducials.csv')
             logging.info(f"Writing non-fiducial corrected detections to {output_file}")
-            df[fiducial_label != 0].to_csv(output_file, index=False, float_format=config['float_format'])
+            df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config['float_format'])
 
     return df
 

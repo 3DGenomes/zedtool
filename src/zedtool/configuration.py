@@ -106,8 +106,10 @@ def config_update(config: dict, new_config: dict) -> dict:
 def config_validate(config: dict) -> int:
     ret = 1
     # Check existence of detections file
-    if not os.path.exists(config['detections_file']):
-        logging.error(f"Detections file {config[config['detections_file']]} not found")
+    # if filename doesn't contain the text ://
+    # then it is a local file
+    if '://' not in config['detections_file'] and not os.path.exists(config['detections_file']):
+        logging.error(f"Local detections file {config[config['detections_file']]} not found")
         ret = 0
     # Check that output directory exists
     if not os.path.exists(config['output_dir']):
