@@ -201,6 +201,9 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
         im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.max_x[j]-1)] = line_intensity
         im[int(df_fiducials.min_y[j]), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = line_intensity
         im[int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j]):int(df_fiducials.max_x[j]-1)] = line_intensity
+        # This line provides a shield from cropping of columns of pixels between characters in the label
+        if int(df_fiducials.max_x[j] + 40) < im.shape[1]:
+            im[int(df_fiducials.max_y[j]-1), int(df_fiducials.max_x[j]-1):int(df_fiducials.max_x[j] + 40)] = line_intensity
     imp = Image.fromarray(im)
     draw = ImageDraw.Draw(imp)
     for fontname in ["DejaVuSansMono", "couri", "Courier New", "arial", "LiberationSans-Regular"]:
@@ -209,10 +212,12 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
             break
         except OSError:
             pass
-    # Add text
+    # Add text, The underscores are to protect the text from being cut up by the row/col removal below
     for j in range(len(df_fiducials)):
-        label = df_fiducials.label[j]
-        draw.text((df_fiducials.max_x[j], df_fiducials.centroid_y[j]), f"f_{label:04d}", 255,font)
+        # underline_str = "_" * 6
+        # label = f"{underline_str}\nf_{df_fiducials.label[j]:04d}"
+        label = f"f_{df_fiducials.label[j]:04d}"
+        draw.multiline_text((df_fiducials.max_x[j], df_fiducials.centroid_y[j]), label, 255,font)
     # imp.show()
     imfile = os.path.join(config['output_dir'], fiducials_plot_file)
     figure_path = construct_plot_path(imfile, "png", config)

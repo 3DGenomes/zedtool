@@ -135,9 +135,14 @@ def cat_experiment(df: pd.DataFrame, df2: pd.DataFrame, df_offset: pd.DataFrame,
         raise ValueError("df_offset must contain exactly one row.")
     # Assumption is that cols in df, df2 and df_offset are the same.
     # df_offset contains one row with the offsets to add.
-    # Aside from image_id_col, time_point_col and x_col,y_col,z_col cols these should be zero.
-    # Add the single row of df_offset to all rows of df2
-    df2 = df2 + df_offset.iloc[0]
+    # This should contain the following: image_id_col, time_point_col and x_col,y_col,z_col
+    logging.info(f"Offsets for adding frames: image_id_col={df_offset[config['image_id_col']].values[0]}, time_point_col={df_offset[config['time_point_col']].values[0]}")
+    logging.info(f"Offsets for adding frames: x_col={df_offset[config['x_col']].values[0]}, y_col={df_offset[config['y_col']].values[0]}, z_col={df_offset[config['z_col']].values[0]}")
+    cols = [config['image_id_col'], config['time_point_col'], config['x_col'], config['y_col'], config['z_col']]
+    for col in cols:
+        if col not in df.columns:
+            logging.error(f"Column {col} not found in df")
+        df2[col] = df2[col] + df_offset[col].values[0]
     df = pd.concat([df, df2], ignore_index=True)
     return df
 
@@ -172,10 +177,30 @@ def compute_deltaz(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # TODO: What if z_step_col does not exist but deltaz_col does?
     # Add a column to the dataframe that is the relative z position
     if not config['deltaz_col'] in df.columns:
-        df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+        logging.warning('Column deltaz does not exist, creating')
     else:
         logging.warning('Column deltaz already exists in df, overwriting')
-        df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+    df[config['deltaz_col']] = df[config['z_col']] - df[config['z_step_col']] * config['z_step_step']
+    return df
+
+def compute_image_id(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info('compute_image_id')
+    if not config['image_id_col'] in df.columns:
+        # Check max for image-ID
+        min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
+        min_frame, max_frame = map(int, config['frame_range'].split('-'))
+        min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
+        min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
+        num_frames = max_frame - min_frame + 1
+        num_cycles = max_cycle - min_cycle + 1
+        num_z_steps = max_z_step - min_z_step + 1
+        frames_per_cycle = num_frames * num_z_steps
+        # Compute the image ID from the frame number and time point
+        if config['image_id_col'] not in df.columns:
+            df[config['image_id_col']] = (df[config['frame_col']] +
+                                          (df[config['z_step_col']] - min_z_step) * num_frames +
+                                          (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
+                                          (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
     return df
 
 def compute_time_derivates(df: pd.DataFrame, df_drift: pd.DataFrame, config: dict) -> pd.DataFrame:

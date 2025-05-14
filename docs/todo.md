@@ -1,21 +1,26 @@
 ### TODO:
+* In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
+* Check that precision is being preserved (or replaced with something usable - maybe plot old and new)
+* corrected_detections.csv should go into the <output_dir>_corrected directory. Be sure that is made in advance.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
-* Test included_fiducials
+* Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
 * Reinstate max_detections_per_image
 * Histogram binned detections gets a log scale on y
-* Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
 * Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
-* Contact SMLM authors asking for detection data
+* Contact SMLM authors asking for detection data with fiducials? Or download without from fightclub?
 * Add defaults to config file/README.md
 * Write tutorial on github
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
-* Optionally add faked error cols if they are not there?
-* Optionally add image-id and zstep if they are not there?
+* Optionally add faked image-id, zstep, error cols if they are not there. Or do without somehow.
+
 
 ### DONE:
+* Test included_fiducials
+* Put aside some deltaz results, find that good experiment of guy's
+* Look at journals for writeup - what other tools for labelling have been written up (Bintu, SMLM, etc)
 * Remove strips without fiducial from non-fiducial image to create a fiducial-only image
 * Add (and then remove) is_fiducial column to enable removal of fiducial detections for those that are not good fiducialss
 * Read config file from dropbox or other storage

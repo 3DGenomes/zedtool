@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 import fsspec
 from typing import Tuple
-from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns, compute_deltaz, apply_corrections, deltaz_correct_detections, cat_experiment
+from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns, compute_deltaz, compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
@@ -69,13 +69,13 @@ def read_config(yaml_config_file: str) -> dict:
     logging.info(f"zedtool version: {__version__}")
     # If fiducials are included/excluded, convert the strings to lists
     if config['excluded_fiducials'] != None and isinstance(config['excluded_fiducials'], str) :
-        config['excluded_fiducials'] = pd.Series(config['excluded_fiducials'].split(','))
+        config['excluded_fiducials'] = pd.Series(map(int, config['excluded_fiducials'].split(',')), dtype="int64")
         logging.info(f"Excluded fiducials: {config['excluded_fiducials']}")
     else:
         config['excluded_fiducials'] = pd.Series(dtype="int64")
 
     if config['included_fiducials'] != None and isinstance(config['included_fiducials'], str) :
-        config['included_fiducials'] = pd.Series(config['included_fiducials'].split(','))
+        config['included_fiducials'] = pd.Series(map(int, config['included_fiducials'].split(',')), dtype="int64")
         logging.info(f"Included fiducials: {config['included_fiducials']}")
     else:
         config['included_fiducials'] = pd.Series(dtype="int64")
@@ -149,7 +149,8 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
     # Add any missing columnns
     df = compute_deltaz(df, config) # add deltaz column
-
+    # Add image_id column if missing
+    compute_image_id(df, config)
     # Remove detections outside of the selected columns' ranges
     if config['select_cols'] != '' and config['select_ranges'] != '':
         df = filter_detections(df, config)
@@ -320,6 +321,8 @@ def post_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     os.makedirs(config_post['fiducial_dir'], exist_ok=True)
     # add deltaz column in case it was removed before saving corrected detections
     df = compute_deltaz(df, config)
+    # add image_id column in case it was removed before saving corrected detections
+    compute_image_id(df, config)
     # recursively call process_detections with the new config just to do the post-correction plotting
     df = process_detections(df, config_post)
     return df

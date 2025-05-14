@@ -121,7 +121,7 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
     ret = 1
     # Check existence of columns
     required_cols = [config['frame_col'],
-                     config['image_id_col'],
+                     # config['image_id_col'],
                      config['z_step_col'],
                      config['cycle_col'],
                      config['time_point_col'],
@@ -131,8 +131,7 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
                      config['x_sd_col'],
                      config['y_sd_col'],
                      config['z_sd_col'],
-                     config['photons_col'],
-                     config['chisq_col']]
+                     config['photons_col']]
     for col in required_cols:
         if col not in df.columns:
             logging.error(f"Column {col} not found in detections file")
@@ -145,15 +144,16 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
                   'time_point']:
         range_key = f"{quantity}_range"
         quantity_col = f"{quantity}_col"
-        min_range = int(config[range_key].split('-')[0])
-        max_range = int(config[range_key].split('-')[1])
-        min_quantity = df[config[quantity_col]].min()
-        max_quantity = df[config[quantity_col]].max()
-        if min_quantity < min_range or max_quantity > max_range:
-            logging.error(f"Range for {quantity} out of bounds: Either min({quantity})={min_quantity} < {min_range} or max({quantity})={max_quantity} > {max_range}")
-            ret = 0
-        if min_quantity != min_range or max_quantity != max_range:
-            logging.warning(f"Range for {quantity} not filled: Either min({quantity})={min_quantity} != {min_range} or max({quantity})={max_quantity} != {max_range}")
+        if quantity_col in config and config[quantity_col] in df.columns:
+            min_range = int(config[range_key].split('-')[0])
+            max_range = int(config[range_key].split('-')[1])
+            min_quantity = df[config[quantity_col]].min()
+            max_quantity = df[config[quantity_col]].max()
+            if min_quantity < min_range or max_quantity > max_range:
+                logging.error(f"Range for {quantity} out of bounds: Either min({quantity})={min_quantity} < {min_range} or max({quantity})={max_quantity} > {max_range}")
+                ret = 0
+            if min_quantity != min_range or max_quantity != max_range:
+                logging.warning(f"Range for {quantity} not filled: Either min({quantity})={min_quantity} != {min_range} or max({quantity})={max_quantity} != {max_range}")
     # Check max for image-ID
     min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
     min_frame, max_frame = map(int, config['frame_range'].split('-'))
@@ -166,21 +166,22 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
     total_cycles = num_cycles * num_time_points
     frames_per_cycle = num_frames * num_z_steps
     total_frames = total_cycles * frames_per_cycle
-    max_image_id = df[config['image_id_col']].max()
-    if max_image_id > total_frames:
-        logging.error(f"Max {config['image_id_col']} = {max_image_id} exceeds total possible frames {total_frames}")
-        ret = 0
-    # Check that image_id_col is correct with respect to frame, z_step, cycle, time_point
-    expected_image_id = (df[config['frame_col']] +
-                        (df[config['z_step_col']] - min_z_step) * num_frames +
-                        (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
-                        (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
-    if not expected_image_id.equals(df[config['image_id_col']]):
-        logging.error(f"Image-ID column does not match frame, z-step, cycle, time-point columns")
-        idx = expected_image_id != df[config['image_id_col']]
-        logging.error(f"Expected: {expected_image_id[idx].to_numpy()}")
-        logging.error(f"Actual: {df[config['image_id_col']][idx].to_numpy()}")
-        ret = 0
+    if config['image_id_col'] in df.columns:
+        max_image_id = df[config['image_id_col']].max()
+        if max_image_id > total_frames:
+            logging.error(f"Max {config['image_id_col']} = {max_image_id} exceeds total possible frames {total_frames}")
+            ret = 0
+        # Check that image_id_col is correct with respect to frame, z_step, cycle, time_point
+        expected_image_id = (df[config['frame_col']] +
+                            (df[config['z_step_col']] - min_z_step) * num_frames +
+                            (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
+                            (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
+        if not expected_image_id.equals(df[config['image_id_col']]):
+            logging.error(f"Image-ID column does not match frame, z-step, cycle, time-point columns")
+            idx = expected_image_id != df[config['image_id_col']]
+            logging.error(f"Expected: {expected_image_id[idx].to_numpy()}")
+            logging.error(f"Actual: {df[config['image_id_col']][idx].to_numpy()}")
+            ret = 0
     return ret
 
 def config_print(config: dict) -> None:

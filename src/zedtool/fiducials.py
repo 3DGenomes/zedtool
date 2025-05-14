@@ -77,8 +77,10 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     included_fiducials =  config['included_fiducials']
 
     # Reject any fiducials that are in excluded_fiducials and include any that are in included_fiducials
-    is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
-    is_high = is_high | df_fiducials['label'].isin(included_fiducials)
+    if len(excluded_fiducials) > 0:
+        is_high = is_high & ~df_fiducials['label'].isin(excluded_fiducials)
+    if len(included_fiducials) > 0:
+        is_high = is_high & df_fiducials['label'].isin(included_fiducials)
 
     # Set excluded_labels from df_fiducials.labels to 0 in df
     excluded_labels = df_fiducials[is_high==False]['label']
@@ -132,7 +134,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
             logging.error(f'Nans in x,y,z for fiducial {fiducial_label}')
             continue
         if np.sum(np.sum(np.isnan(deltaz))) > 0:
-            logging.error(f'Nans in x,y,z,deltaz for fiducial {fiducial_label}')
+            logging.warning(f'All Nans in deltaz for fiducial {fiducial_label} in make_fiducial_stats()')
             continue
         x_z_step_cor = scipy.stats.pearsonr(x, z_step)[0]
         y_z_step_cor = scipy.stats.pearsonr(y, z_step)[0]
@@ -366,7 +368,22 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
             if np.sum(idx) > 0:
                 plot_scatter(quantity[idx], dist[idx], xlabel, ylabel,
                              f'{quantity_name} vs distance', outpath, config)
-    # clutering of fiducials is of limited interest. Possibly this could be removed.
+    if config['debug']:
+        # scatter plots of z for all pairs of fiducials
+        for i in range(n_fiducials):
+            for j in range(i+1, n_fiducials):
+                xlabel = colnames[i]
+                ylabel = colnames[j]
+                idx = (z[:,i] != 0) & (z[:,j] != 0) & (~np.isnan(z[:,i])) & (~np.isnan(z[:,j]))
+                if np.sum(idx) > 100:
+                    z_diff = np.mean(z[idx,i] - z[idx,j])
+                    z_diff_text = f'{int(z_diff):05d}'.replace('-', 'm')
+                    filename = f"zdiff_{z_diff_text}_{ylabel}_vs_{xlabel}"
+                    outpath = os.path.join(config['fiducial_dir'], "zscatter", filename)
+                    logging.info(f'Plotting {outpath} with {np.sum(idx)} points')
+                    plot_scatter(z[idx,i], z[idx,j], xlabel, ylabel,filename, outpath, config)
+
+    # clustering of fiducials is of limited interest. Possibly this could be removed.
     if config['debug']:
         # Fill in the distance gaps with the mean for the row and column (or near enough)
         for i in range(n_fiducials):
@@ -942,7 +959,7 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
         y_fit = x_fit_ft[idx]
         if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
             logging.warning(
-                f'No valid data for fitting in fit_fiducial_detections() for fiducial {i} dimension {k} interval {j}')
+                f'No valid data for fitting in fit_fiducial_detections() for fiducial id {i+1} dimension {k} interval {j}')
             if j > 0:
                 x_fit_ft[idx] = x_fit_ft[fitting_intervals[j] - 1]
                 xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j] - 1]
@@ -953,9 +970,11 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
         elif config['plot_per_fiducial_fitting']:
             plot_fiduciual_step_fit(i, j, k, x_ft[idx], xsd_ft[idx], x_fit_ft[idx],xsd_fit_ft[idx], config)
 
-    for j in range(len(fitting_intervals) - 1, 0, -1):
+    for j in range(len(fitting_intervals) - 2, 0, -1):
         idx = np.arange(fitting_intervals[j - 1], fitting_intervals[j])
         if np.sum(xsd_fit_ft[idx] == 0) > 0:
+            # If there are no valid data points in the interval, use the previous interval
+            logging.info(f"No valid data in fit_fiducial_detections() for fiducial id {i+1}")
             xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j]]
             x_fit_ft[idx] = x_fit_ft[fitting_intervals[j]]
 
