@@ -1069,7 +1069,16 @@ def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, confi
     frames_per_cycle = num_frames * num_z_steps
     total_frames = total_cycles * frames_per_cycle
     frames_per_time_point = num_cycles * frames_per_cycle
-    fitting_intervals = np.arange(0, total_frames + frames_per_time_point, frames_per_time_point)
+    frames_per_z_step = num_frames
+
+    if config['fitting_interval'] == 'time_point':
+        fitting_intervals = np.arange(0, total_frames + frames_per_time_point, frames_per_time_point)
+    elif config['fitting_interval'] == 'cycle':
+        fitting_intervals = np.arange(0, total_frames + frames_per_cycle, frames_per_cycle)
+    elif config['fitting_interval'] == 'z_step':
+        fitting_intervals = np.arange(0, total_frames + frames_per_z_step, frames_per_z_step)
+    else:
+        logging.error(f"Unknown fitting interval: {config['fitting_interval']}")
 
     x_fit_ft = np.zeros_like(x_ft)
     x_fit_ft.fill(np.nan)

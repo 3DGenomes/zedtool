@@ -136,7 +136,6 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
 def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
     # Plot detections and other quantities
 
-    # plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", df['z-step'].max()-df['z-step'].min()+1, config)
 
     plot_histogram(df[config['x_sd_col']], f"{config['x_sd_col']} (nm)", 'Detections',
                    f"Detections {config['x_sd_col']}", 'x_sd_histogram', config)

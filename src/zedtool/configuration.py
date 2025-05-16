@@ -67,6 +67,7 @@ def config_default() -> dict:
         'only_fiducials': 0,
         'consensus_method': 'median',
         'filter_fiducials_with_clustering': 0,
+        'fitting_interval': 'time_point',
         # Deconvolution settings
         'decon_min_cluster_sd': 10,
         'decon_sd_shrink_ratio': 0.25,
@@ -115,6 +116,15 @@ def config_validate(config: dict) -> int:
     if not os.path.exists(config['output_dir']):
         logging.error(f"Output directory {config['output_dir']} not found")
         ret = 0
+    # Check early on whether the requested parameters settings are valid
+    if config['drift_correct_detections_multi_pass']:
+        if config['make_caches']:
+            logging.error('drift_correct_detections_multi_pass is not compatible with make_caches')
+            return 0
+        if config['excluded_fiducials'] is not None or config['included_fiducials'] is not None:
+            logging.error('drift_correct_detections_multi_pass is not compatible with excluded_fiducials or included_fiducials')
+            return 0
+
     return ret
 
 def config_validate_detections(df: pd.DataFrame, config: dict) -> int:

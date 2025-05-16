@@ -92,6 +92,8 @@ If non-zero then quantile_outlier_cutoff is ignored.
 - `filter_fiducials_with_clustering`: If 1, then use pre-drift correction clustering to filter fiducials. If you have less than
 100 fiducials then set this to 0.
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 2.
+- `fitting_interval`:  Continuous interval across which drift correction is fitted. 
+Options are [time_point|cycle|z_step].
 - `use_weights_in_fit`: Whether to use precision values in the fit.
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. If you want to find the fiducials automatically then set this to 0.
 - `consensus_method`: Method for determining the consensus z value for a fiducial. Options are 'weighted_mean' and 'median' (default).

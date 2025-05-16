@@ -333,13 +333,6 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     # It uses the fiducials to correct the detections and then uses the corrected detections to correct the fiducials
     logging.info("drift_correct_detections_multi_pass")
 
-    if config['make_caches']:
-        logging.error('drift_correct_detections_multi_pass is not compatible with make_caches')
-        return df, df_fiducials
-    if config['excluded_fiducials'] is not None or config['included_fiducials'] is not None:
-        logging.error('drift_correct_detections_multi_pass is not compatible with excluded_fiducials or included_fiducials')
-        return df, df_fiducials
-
     # initial drift correction
     df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
