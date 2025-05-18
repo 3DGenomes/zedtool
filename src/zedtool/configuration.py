@@ -28,6 +28,7 @@ def config_default() -> dict:
         'n_max_cutoff': 10000000000,
         'select_cols': '',
         'select_ranges': '0-0',
+        'mask_dimensions': 2,
         # experiment settings
         'frame_range': '0-0',
         'z_step_range': '0-0',

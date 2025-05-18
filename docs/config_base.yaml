@@ -22,6 +22,7 @@ output_column_names: # Comma separated list of columns to output. If empty, uses
 # Detection filtering - based on either density in the binned image or columns in the detections file
 n_min_cutoff: 1 # remove detections based on their density in the binned x,y image
 n_max_cutoff: 10000000000
+mask_dimensions: 2 # dimensions used for masking detections in binned image (2 or 3)
 select_cols: x,y,precisionz # comma separated list of selection criteria for ranges
 select_ranges: 30000-40000,30000-40000,0-100 # comma separated list of ranges
 

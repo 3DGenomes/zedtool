@@ -308,7 +308,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
         plot_scatter(df_fiducials['x_madr'], df_fiducials['y_madr'], 'x_madr (nm)', 'y_madr (nm)', 'x_madr vs y_madr', outpath, config)
 
     # set excluded_labels from df.labels to 0 in df
-    df['label'] = df['label'].replace(excluded_labels.tolist(), 0)
+    df.loc[df['label'].isin(excluded_labels.tolist()), 'label'] = 0
     return df, df_fiducials
 
 
@@ -685,11 +685,8 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     logging.info('drift_correct_detections')
     # Need at least 2 fiducials to make a consensus fit
     nfiducials = len(df_fiducials)
-    if nfiducials < 2:
-        logging.error('Not enough fiducials to make a consensus drift correction')
-        return None, None
     if nfiducials < 6:
-        logging.warning('Only have {nfiducials} fiducials. Less than 6 or so may not make a very drift correction')
+        logging.warning('Only have {nfiducials} fiducials. Less than 6 or so may not make a very good drift correction')
 
     noclobber = config['noclobber']
     x_col = ['x', 'y', 'z']
@@ -716,7 +713,7 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     outpath_x = os.path.join(config['cache_dir'], "fiducial_fits_x.npy")
     outpath_xsd = os.path.join(config['cache_dir'], "fiducial_fits_xsd.npy")
     if not os.path.exists(outpath_x) or not noclobber:
-        x_fit_ft, xsd_fit_ft = fit_fiducial_detections(x_ft, xsd_ft, config)
+        x_fit_ft, xsd_fit_ft = fit_fiducial_detections( x_ft, xsd_ft, config)
         if config['make_caches']:
             np.save(outpath_x, x_fit_ft)
             np.save(outpath_xsd, xsd_fit_ft)
@@ -728,7 +725,11 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
             logging.error(f'Number of fiducials in df_fiducials ({len(df_fiducials)}) does not match the number of fiducials in x_fit_ft ({x_fit_ft.shape[1]})')
             raise RuntimeError('Mismatch with cached fiducials. Delete cache or set noclobber=0.')
     # group fiducials to be zero centred
-    x_fit_ft, xsd_fit_ft = group_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
+    if nfiducials >= 2:
+        x_fit_ft, xsd_fit_ft = group_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
+    else:
+        logging.warning('Not enough fiducials to make a consensus drift correction. Just using the one.')
+
     # Fit drift correction to zero-centred fiducials - including across time-point boundaries
     x_t, x_err, err_f = make_drift_corrections(df_fiducials, x_fit_ft, xsd_fit_ft, config)
     # add err_f and fitting error to df_fiducials to enable examination of the error in the consensus later

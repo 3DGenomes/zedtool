@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 import fsspec
 from typing import Tuple
-from zedtool.detections import filter_detections, mask_detections, bin_detections, bins3d_to_stats2d, make_density_mask_2d, make_image_index, create_backup_columns, compute_deltaz, compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment
+from zedtool.detections import filter_detections, mask_detections_2d, mask_detections_3d, bin_detections, bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz, compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
@@ -68,17 +68,26 @@ def read_config(yaml_config_file: str) -> dict:
     # Print version
     logging.info(f"zedtool version: {__version__}")
     # If fiducials are included/excluded, convert the strings to lists
-    if config['excluded_fiducials'] != None and isinstance(config['excluded_fiducials'], str) :
-        config['excluded_fiducials'] = pd.Series(map(int, config['excluded_fiducials'].split(',')), dtype="int64")
-        logging.info(f"Excluded fiducials: {config['excluded_fiducials']}")
-    else:
+    if config['excluded_fiducials'] is None:
         config['excluded_fiducials'] = pd.Series(dtype="int64")
-
-    if config['included_fiducials'] != None and isinstance(config['included_fiducials'], str) :
-        config['included_fiducials'] = pd.Series(map(int, config['included_fiducials'].split(',')), dtype="int64")
-        logging.info(f"Included fiducials: {config['included_fiducials']}")
+    elif isinstance(config['excluded_fiducials'], str):
+        config['excluded_fiducials'] = pd.Series(map(int, config['excluded_fiducials'].split(',')), dtype="int64")
+    elif isinstance(config['excluded_fiducials'], int):
+        config['excluded_fiducials'] = pd.Series([config['excluded_fiducials']], dtype="int64")
     else:
+        config['excluded_fiducials'] = pd.Series(config['excluded_fiducials'], dtype="int64")
+
+    if config['included_fiducials'] is None:
         config['included_fiducials'] = pd.Series(dtype="int64")
+    elif isinstance(config['included_fiducials'], str):
+        config['included_fiducials'] = pd.Series(map(int, config['included_fiducials'].split(',')), dtype="int64")
+    elif isinstance(config['excluded_fiducials'], int):
+        config['included_fiducials'] = pd.Series([config['included_fiducials']], dtype="int64")
+    else:
+        config['included_fiducials'] = pd.Series(config['included_fiducials'], dtype="int64")
+
+    logging.info(f"Excluded fiducials: {config['excluded_fiducials'].to_list()}")
+    logging.info(f"Included fiducials: {config['included_fiducials'].to_list()}")
 
     # Parallel processing is incompatible with no_display = False
     if config['multiprocessing'] and no_display==False:
@@ -171,6 +180,34 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Calculate moments and variance
     n_xy, mean_xy, sd_xy = bins3d_to_stats2d(counts_xyz, z_bins)
 
+    # Make index into the binned xyz image from the detections
+    # x_idx gives the bin x-index for each detection, similarly for y and z
+    x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
+
+    if config['mask_on_density']:
+        # Mask on density to remove bright/dim areas
+        # Mostly unused but can speed up processing and remove background
+        if config['mask_dimensions']==2:
+            mask = make_density_mask(n_xy, config)
+        elif config['mask_dimensions']==3:
+            mask = make_density_mask(counts_xyz, config)
+        else:
+            logging.error("mask_dimensions must be 2 or 3")
+        logging.info(f"Before masking on density: {len(df)} detections")
+        # Select detections in mask
+        if config['mask_dimensions']==2:
+            idx = mask_detections_2d(mask, x_idx, y_idx)
+        elif config['mask_dimensions']==3:
+            idx = mask_detections_3d(mask, x_idx, y_idx, z_idx)
+        logging.info(f"After masking on density: {np.sum(idx)} detections")
+        # Apply masks
+        df = df[idx].copy()
+        # Re-compute the binned image
+        det_xyz = np.vstack((df[config['x_col']].values, df[config['y_col']].values, df[config['z_col']].values)).T
+        counts_xyz, x_bins, y_bins, z_bins = bin_detections(det_xyz,bin_resolution)
+        n_xy, mean_xy, sd_xy = bins3d_to_stats2d(counts_xyz, z_bins)
+        x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
+
     # Plot detections before masking
     if config['plot_detections']:
         # plot_detections() takes a _long_ time to run, so it's relegated to debug mode
@@ -179,25 +216,6 @@ def process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
             plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
         save_to_tiff_3d(counts_xyz,"binned_detections_3d", config)
-
-    # Make index into the binned xyz image from the detections
-    # x_idx gives the bin x-index for each detection, similarly for y and z
-    x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
-
-    if config['mask_on_density']:
-        # Mask on density to remove bright/dim areas
-        # Mostly unused but can speed up processing and remove background
-        mask_xy = make_density_mask_2d(n_xy, config)
-        logging.info(f"Before masking on density: {np.sum(mask_xy)} detections")
-        # Select detections in mask_xy
-        idx = mask_detections(mask_xy, x_idx, y_idx)
-        logging.info(f"After masking on density: {np.sum(idx)} detections")
-        # Apply masks
-        det_xyz = det_xyz[idx, :]
-        df = df[idx]
-        x_idx = x_idx[idx]
-        y_idx = y_idx[idx]
-        z_idx = z_idx[idx]
 
     # Find fiducials in the binned image
     # Treat n_xy as an image and segment, expand segmented areas, make labels and attached to df. Save centroids and labels
@@ -305,6 +323,8 @@ def post_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     config_post['zstep_correct_fiducials'] = 0
     config_post['deltaz_correct_detections'] = 0
     config_post['deconvolve_z'] = 0
+    # no density masking - already done
+    config_post['mask_on_density'] = 0
 
     # don't make caches if we're just plotting the first pass
     config_post['make_caches'] = 0
