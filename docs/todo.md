@@ -1,4 +1,5 @@
 ### TODO:
+* When there are no fiducials, the program should exit with an error
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * Automatically check deltaz_step_step
@@ -6,9 +7,9 @@
 * Add option to export only fiducials or good fiducials plus detections 
 * Option to exclude fiducials that are missing detections in some time intervals
 * In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
-* Check that precision is being preserved (or replaced with something usable - maybe plot old and new)
+* Check that precision is being preserved in corrected_detections,csv (or replaced with something usable - maybe plot old and new)
 * corrected_detections.csv should go into the <output_dir>_corrected directory. Be sure that is made in advance.
-* For drift_correct_detections_multi_pass, change config['output_dir']
+* For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
 * Reinstate max_detections_per_image

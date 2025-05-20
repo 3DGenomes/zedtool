@@ -15,7 +15,7 @@ debug: 0 # Potentially controls verbosity and plot output.
 noclobber: 1 # If 1, will not overwrite cached intermediate results
 make_caches: 1 # if 1 then save the detections to a binary file for faster subsequent loading
 multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
-num_threads: # number of threads to use for multiprocessing; if empty, then use all available threads
+num_threads: 3 # number of threads to use for multiprocessing; if empty, then use all available threads
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files
 output_column_names: # Comma separated list of columns to output. If empty, uses the columns in the input file.
 

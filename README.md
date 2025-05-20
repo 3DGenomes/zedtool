@@ -39,6 +39,7 @@ ZEDTool relies on a YAML file for specifying various options. Below is a detaile
 - `noclobber`: If set to 1, prevents overwriting cached intermediate results. Safest to leave = 0.
 - `make_caches`: If set to 1, saves detections and corrections to binary files for faster subsequent loading.
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation
+- `num_threads`: Number of threads to use for multiprocessing. Default is all available.
 - `float_format`: printf-style format for floating point numbers in outputs files (default %.6g)
 
 ### **Detection Filtering**
