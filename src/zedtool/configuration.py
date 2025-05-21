@@ -55,6 +55,7 @@ def config_default() -> dict:
         # fiducial settings
         'excluded_fiducials': None,
         'included_fiducials': None,
+        'resegment_after_correction': 0,
         'median_filter_disc_radius': 1,
         'filling_disc_radius': 10,
         'dilation_disc_radius': 10,

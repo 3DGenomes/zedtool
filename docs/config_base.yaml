@@ -57,6 +57,7 @@ probe_col: vis-probe # probe ID when more than one channel is present
 # Constants used for segmenting, filtering and fitting to fiducials
 excluded_fiducials: # comma separated list of fiducials to exclude
 included_fiducials: # comma separated list of fiducials to include (use ONLY these)
+resegment_after_correction: 0 # if 1, then re-segment the detections after drift correction
 median_filter_disc_radius: 1 # for filtering out speckles in the binned image
 filling_disc_radius: 10 # hole filling in thresholded binned image
 dilation_disc_radius: 10 # dilation of thresholded binned image to catch "wandering" fiducials

@@ -502,4 +502,17 @@ def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
     else:
         tifffile.imwrite(imgfile, img.astype(np.float32), imagej=True)
 
+def save_to_tiff_2d(img: np.ndarray, filename: str, config: dict):
+    logging.info("save_to_tiff_2d")
+    # Save a 3D array to a TIFF file
+    maxpixel = np.max(img)
+    imgfile = construct_plot_path(filename, "tif", config)
+    logging.info(f"Saving as binned image to {imgfile}. Max pixel value: {maxpixel}.")
+    if maxpixel < 256:
+        tifffile.imwrite(imgfile, img.astype(np.uint8), imagej=True)
+    elif maxpixel < 16384:
+        tifffile.imwrite(imgfile, img.astype(np.uint16), imagej=True)
+    else:
+        tifffile.imwrite(imgfile, img.astype(np.float32), imagej=True)
+
 

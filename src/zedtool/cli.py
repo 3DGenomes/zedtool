@@ -34,11 +34,12 @@ def main(yaml_config_file: str) -> int:
                 logging.warning(f"Column {col} specified in output_column_names not found in detections file")
 
     df = pre_process_detections(df, config)
-    df = process_detections(df, config)
+    df, df_fiducials = process_detections(df, None, config)
     if df is None:
         print(f"Failed to process detections file {config['detections_file']}")
         return 1
-    df = post_process_detections(df, config)
+    if config['making_corrrections']:
+        df = post_process_detections(df, df_fiducials, config)
     if df is None:
         print(f"Failed to post process detections file {config['detections_file']}")
         return 1

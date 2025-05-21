@@ -78,6 +78,8 @@ These specify how different columns in the detections file are named:
 ### **Fiducial Segmentation and Filtering**
 - `excluded_fiducials`: Comma-separated list of fiducials to exclude from drift correction.
 - `inluded_fiducials`: Comma-separated list of fiducials to use for drift correction (use _only_ these).
+- `resegment_after_correction:` If set to 1, re-segment the fiducials after drift correction. 
+This improves the accuracy of the fiducial measurements but potentially changes their labels.
 - `median_filter_disc_radius`: Disc radius for filtering out speckles in the binned image.
 - `filling_disc_radius`: Radius for filling holes in thresholded images.
 - `dilation_disc_radius`: Dilation radius for catching "wandering" fiducials.

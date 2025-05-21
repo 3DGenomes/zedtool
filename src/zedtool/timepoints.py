@@ -2,6 +2,7 @@ import numpy as np
 from typing import Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import scipy.ndimage
 import scipy.stats
 import os
@@ -73,6 +74,8 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     if num_time_points<=1:
         logging.info('Not enough time points to plot')
         return
+    # colours for fiducial plots
+    colors = cm.get_cmap('tab20', nfiducials)
     # i,j label time points, f label fiducials and d labels dimensions
     metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
     metrics_id_median = np.median(metrics_ifd, axis=1)
@@ -94,7 +97,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         plt.figure(figsize=(10, 6))
         for j in range(nfiducials):
             label = df_fiducials.label[j]
-            plt.scatter(np.arange(metrics_ifdex.shape[0])+1, metrics_ifdex[:,j,k], label=f'{label}')
+            plt.scatter(np.arange(metrics_ifdex.shape[0])+1, metrics_ifdex[:,j,k], label=f'{label}', color=colors(j))
         plt.scatter(np.arange(metrics_idex_median.shape[0])+1, metrics_idex_median[:,k], c='black', label='median')
         plt.legend(markerscale=0.5, handletextpad=0.1, loc='upper left', bbox_to_anchor=(1.05, 1), fancybox=True,
                    framealpha=1, fontsize='small')
