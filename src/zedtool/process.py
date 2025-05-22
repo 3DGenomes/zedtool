@@ -150,7 +150,6 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         logging.info(f"Loaded {df.shape[0]} rows after concatenation")
         # Write out the concatenated file and return
         df.to_csv(os.path.join(config['output_dir'], 'concatenated_detections.csv'), index=False, float_format=config['float_format'])
-        return df
 
     # Apply a pre-computed drift correction read from a file
     if config['apply_drift_correction']:
