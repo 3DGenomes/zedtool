@@ -128,7 +128,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         outdir = config['output_dir']
         os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
+        outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
         row_indices = np.arange(1, metrics_ifdex.shape[0] + 1).reshape(-1, 1)
         data_to_save = np.hstack((row_indices, metrics_ifdex[:, :, k]))
         np.savetxt(outpath, data_to_save, delimiter='\t',
