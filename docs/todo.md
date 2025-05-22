@@ -1,4 +1,5 @@
 ### TODO:
+* Export time point metrics
 * Sometimes fiducials_plot_cropped seems cropped on one side
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff

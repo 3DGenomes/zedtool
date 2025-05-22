@@ -753,7 +753,17 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     return df, df_fiducials
 
 def plot_fitted_fiducials(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd_fit_ft: np.ndarray, config: dict) -> int:
-    return plot_fitted_fiducials_parallel(df_fiducials, x_fit_ft, xsd_fit_ft, config)
+    if config['multiprocessing']:
+        return plot_fitted_fiducials_parallel(df_fiducials, x_fit_ft, xsd_fit_ft, config)
+    else:
+        logging.info('plot_fitted_fiducials')
+        ndims = x_fit_ft.shape[0]
+        nfiducials = x_fit_ft.shape[1]
+        for j in range(nfiducials):
+            for k in range(ndims):
+                fiducial_name = df_fiducials.name[j]
+                plot_fitted_fiducial(fiducial_name, j, k, x_fit_ft, xsd_fit_ft, config)
+    return 0
 
 def plot_fitted_fiducial(fiducial_name, j, k, x_fit_ft, xsd_fit_ft, config):
     outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")

@@ -123,7 +123,16 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         plt.title(f'Drift as a function of time-point separation')
         plt.savefig(outpath)
         plt.close()
-
+    # Save metrics_ifdex() to tsv files - one for each entry in xyz_colnames
+    for k in range(ndims_ex):
+        outdir = config['output_dir']
+        os.makedirs(outdir, exist_ok=True)
+        y_col = xyz_colnames[k]
+        outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
+        row_indices = np.arange(1, metrics_ifdex.shape[0] + 1).reshape(-1, 1)
+        data_to_save = np.hstack((row_indices, metrics_ifdex[:, :, k]))
+        np.savetxt(outpath, data_to_save, delimiter='\t',
+                   header='time_point_difference\t' + '\t'.join(df_fiducials.name), comments='')
 
 
 
