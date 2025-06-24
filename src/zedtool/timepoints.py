@@ -76,7 +76,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         return
     # colours for fiducial plots
     colors = cm.get_cmap('tab20', nfiducials)
-    # i,j label time points, f label fiducials and d labels dimensions
+    # i,j label time points, f label fiducials and d labels dimensions, dex is extended to include r ie x, y, z, r
     metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
     metrics_id_median = np.median(metrics_ifd, axis=1)
     metrics_id_mad = scipy.stats.median_abs_deviation(metrics_ifd, axis=1)
@@ -128,11 +128,9 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         outdir = config['output_dir']
         os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
-        row_indices = np.arange(1, metrics_ifdex.shape[0] + 1).reshape(-1, 1)
-        data_to_save = np.hstack((row_indices, metrics_ifdex[:, :, k]))
-        np.savetxt(outpath, data_to_save, delimiter='\t',
-                   header='time_point_difference\t' + '\t'.join(df_fiducials.name), comments='')
+        outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
+        header = 'time_point_difference\t' + '\t'.join(df_fiducials.label.astype(str))
+        np.savetxt(outpath, metrics_ifdex[:, :, k], delimiter='\t', header=header, comments='')
 
 
 

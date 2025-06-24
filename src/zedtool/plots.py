@@ -194,6 +194,16 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     # scale the image to 0-255
     im = 255 * (np.log10(img_filt+1)/np.log10(np.max(img_filt)+1))
     im = im.astype(np.uint8)
+    max_x = np.max(df_fiducials['max_x'])
+    max_y = np.max(df_fiducials['max_y'])
+    # If the image is smaller than the fiducials, pad it. This can happen if, after correction,
+    # the fiducials get smaller and the image is cropped to the fiducials.
+    if max_x > im.shape[1] or max_y > im.shape[0]:
+        logging.warning(f"Image size {im.shape} is smaller than fiducials (max_y,max_x) = ({max_y},{max_x}). Padding image.")
+        # Pad the image with zeros
+        pad_x = max(0, max_x - im.shape[1])
+        pad_y = max(0, max_y - im.shape[0])
+        im = np.pad(im, ((0, pad_y), (0, pad_x)), mode='constant', constant_values=0)
     # loop over rows of df
     for j in range(len(df_fiducials)):
         im[int(df_fiducials.min_y[j]):int(df_fiducials.max_y[j]-1), int(df_fiducials.min_x[j])] = line_intensity
