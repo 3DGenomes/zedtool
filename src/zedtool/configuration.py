@@ -89,6 +89,7 @@ def config_default() -> dict:
         'plot_summary_stats': 0,
         'plot_detections': 0,
         'plot_fiducials': 0,
+        'plot_fourier_correlation': 0,
         'save_non_fiducial_detections': 0,
         'zstep_correct_fiducials': 0,
         'deltaz_correct_detections': 0,

@@ -14,6 +14,7 @@ from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiduci
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool.deconvolution import deconvolve_z
 from zedtool.timepoints import plot_time_point_metrics
+from zedtool.fsc import plot_fourier_correlation
 from zedtool import __version__
 
 def read_config(yaml_config_file: str) -> dict:
@@ -261,6 +262,9 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
 
     if config['plot_time_point_metrics']:
         plot_time_point_metrics(df_fiducials, df, config)
+
+    if config['plot_fourier_correlation']:
+        plot_fourier_correlation(counts_xyz, n_xy, config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
     if config['making_corrrections']:

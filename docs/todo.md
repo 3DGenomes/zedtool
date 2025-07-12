@@ -29,6 +29,7 @@
 * Count detections per fitting range
 
 ### DONE:
+* Fourier ring quality metric config['plot_fourier_correlation']
 * Export time point metrics
 * corrected_detections.csv should go into the <output_dir>_corrected directory. Be sure that is made in advance.
 * Option to fit with a constant, per sweep

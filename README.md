@@ -122,6 +122,7 @@ You can disable/enable various processing steps and visualizations by setting th
 - `plot_summary_stats`: Generate summary statistics plots for detections.
 - `plot_time_point_metrics`: Plot time-point metrics of drift correction for fiducials.
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step
+- `plot_fourier_correlation`: Plot Fourier Ring/Shell Correlation for the 2D/3D binned image.
 - `zstep_correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. Experimental. 
 - `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition, it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above. 
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation
