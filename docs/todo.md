@@ -1,8 +1,6 @@
 ### TODO:
 * Fail if there are no good fiducials and report why there might be a problem (filtering turned on while using included_fiducial)
 * Diagram of workflow
-* config_base.yaml gets rest of options
-* Sometimes fiducials_plot_cropped seems cropped on one side
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * Automatically check deltaz_step_step
@@ -25,10 +23,12 @@
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
 * Optionally add faked error cols if they are not there. Or do without somehow.
-* Expand the fiducial image boundary to make space for the label - or whatever's being cut off
 * Count detections per fitting range
 
 ### DONE:
+* Expand the fiducial image boundary to make space for the label - or whatever's being cut off
+* config_base.yaml gets rest of options
+* Sometimes fiducials_plot_cropped seems cropped on one side
 * Fourier ring quality metric config['plot_fourier_correlation']
 * Export time point metrics
 * corrected_detections.csv should go into the <output_dir>_corrected directory. Be sure that is made in advance.
