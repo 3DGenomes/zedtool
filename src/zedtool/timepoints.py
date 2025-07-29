@@ -100,13 +100,16 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
             plt.scatter(np.arange(metrics_ifdex.shape[0])+1, metrics_ifdex[:,j,k], label=f'{label}', color=colors(j))
         plt.scatter(np.arange(metrics_idex_median.shape[0])+1, metrics_idex_median[:,k], c='black', label='median')
         plt.legend(markerscale=0.5, handletextpad=0.1, loc='upper left', bbox_to_anchor=(1.05, 1), fancybox=True,
-                   framealpha=1, fontsize='small')
+                   framealpha=1, fontsize='x-small')
         plt.xlabel('time point difference')
         plt.ylabel(f"{y_col} (nm)")
         plt.title(f'Drift as a function of time-point separation')
-        plt.tight_layout()
         plt.savefig(outpath)
         plt.close()
+        outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
+        header = 'time_point_difference\t' + '\t'.join(df_fiducials.name.astype(str))
+        table_data = np.concatenate((np.arange(metrics_ifdex.shape[0]).reshape(-1, 1) + 1, metrics_ifdex[:, :, k]), axis=1)
+        np.savetxt(outpath, table_data, delimiter='\t', header=header, comments='')
 
     for k in range(ndims_ex):
         outdir = config['output_dir']

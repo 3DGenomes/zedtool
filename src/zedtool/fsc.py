@@ -52,17 +52,18 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
     - radii: A numpy array containing the radii corresponding to the FSC values.
     """
     logging.info(f'Plotting Fourier correlation quality metric: {ndim}d')
+    ring_shell = 'Ring' if ndim == 2 else 'Shell'
     plt.figure(figsize=(10, 6))
     plt.plot(spatial_freqs, frc_vals, marker='o', linestyle='-', color='b')
     plt.xlabel('Spatial Frequency (1/nm)')
-    plt.ylabel('Fourier Ring Correlation (FRC)')
-    plt.title('Fourier Shell Correlation (FSC)')
+    plt.ylabel('Correlation')
+    plt.title(f"{ndim}D Fourier {ring_shell} Correlation")
     plt.grid()
     outpath = os.path.join(config['output_dir'], f"fourier_cor_vs_f_{ndim}d.png")
     plt.savefig(outpath)
 
     plt.figure(figsize=(6, 4))
-    plt.plot(1 / spatial_freqs, frc_vals, label="FRC")
+    plt.plot(1 / spatial_freqs, frc_vals, label="Correlation")
     plt.axhline(1 / 7, color='r', linestyle='--', label="1/7 threshold")
     # Determine resolution cutoff
     crossings = np.where(frc_vals < 1 / 7)[0]
@@ -72,9 +73,9 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
         # Write on plot
         plt.text(0.1, 0.3, f"Estimated resolution: {cutoff_resolution_nm:.1f} nm", transform=plt.gca().transAxes,
                     fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
-    plt.xlabel("Resolution (nm)")
-    plt.ylabel("FRC")
-    plt.title(f"{ndim}D Fourier Shell Correlation")
+    plt.xlabel("Distance (nm)")
+    plt.ylabel("Correlation")
+    plt.title(f"{ndim}D Fourier {ring_shell} Correlation")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
