@@ -66,6 +66,9 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
 def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> None:
     # Plot fiducials positions and stats relating to their stability over time
     logging.info('plot_time_point_metrics')
+    outdir = config['output_dir']
+    os.makedirs(outdir, exist_ok=True)
+
     nfiducials = len(df_fiducials)
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col'], 'r']
     ndims_ex = len(xyz_colnames)
@@ -90,8 +93,6 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
 
     # Plot the fiducials movement over time
     for k in range(ndims_ex):
-        outdir = config['output_dir']
-        os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
         outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.png")
         plt.figure(figsize=(10, 6))
@@ -110,10 +111,20 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         table_data = np.concatenate((np.arange(metrics_ifdex.shape[0]).reshape(-1, 1) + 1, metrics_ifdex[:, :, k]), axis=1)
         np.savetxt(outpath, table_data, delimiter='\t', header=header, comments='')
 
+    for k in range(ndims_ex):
+        y_col = xyz_colnames[k]
+        outpath = os.path.join(outdir, f"summary_fiducial_cumulative_{y_col}_vs_timepoint_dist.png")
+        plt.figure(figsize=(10, 6))
+        # Do a box and whisker plot using metrics_ifdex
+        plt.boxplot(np.transpose(metrics_ijfdex[1:, 0, :, k]), positions=np.arange(1, metrics_ijfdex.shape[0]), widths=0.5)
+        plt.xlabel('time point')
+        plt.ylabel(f"{y_col} (nm)")
+        plt.title(f'Distance from initial time-point')
+        plt.savefig(outpath)
+        plt.close()
+
     # Plot the time point metrics. metrics_if and metrics_ifd - per fiducial and summary
     for k in range(ndims_ex):
-        outdir = config['output_dir']
-        os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
         outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.png")
         plt.figure(figsize=(10, 6))
@@ -134,8 +145,6 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         np.savetxt(outpath, table_data, delimiter='\t', header=header, comments='')
 
     for k in range(ndims_ex):
-        outdir = config['output_dir']
-        os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
         outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.png")
         plt.figure(figsize=(10, 6))
@@ -148,8 +157,6 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         plt.close()
     # Save metrics_ifdex() to tsv files - one for each entry in xyz_colnames
     for k in range(ndims_ex):
-        outdir = config['output_dir']
-        os.makedirs(outdir, exist_ok=True)
         y_col = xyz_colnames[k]
         outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.tsv")
         header = 'time_point_difference\t' + '\t'.join(df_fiducials.label.astype(str))
