@@ -60,7 +60,7 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     metrics_ijf = np.sqrt(np.sum(metrics_ijfd**2, axis=3))
     metrics_if = np.sqrt(np.sum(metrics_ifd**2, axis=2))
     # i,j label time points, f label fiducials and d labels dimensions
-    return metrics_ijf, metrics_ifd, metrics_if
+    return metrics_ijfd, metrics_ijf, metrics_ifd, metrics_if
 
 
 def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> None:
@@ -77,7 +77,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     # colours for fiducial plots
     colors = cm.get_cmap('tab20', nfiducials)
     # i,j label time points, f label fiducials and d labels dimensions, dex is extended to include r ie x, y, z, r
-    metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
+    metrics_ijfd, metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
     metrics_id_median = np.median(metrics_ifd, axis=1)
     metrics_id_mad = scipy.stats.median_abs_deviation(metrics_ifd, axis=1)
     metrics_i_median = np.median(metrics_if, axis=1)
@@ -86,9 +86,31 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     metrics_idex_median = np.concatenate((metrics_id_median, metrics_i_median[:, np.newaxis]), axis=1)
     metrics_idex_mad = np.concatenate((metrics_id_mad, metrics_i_mad[:, np.newaxis]), axis=1)
     metrics_ifdex = np.concatenate((metrics_ifd, metrics_if[:, :, np.newaxis]), axis=2)
+    metrics_ijfdex = np.concatenate((metrics_ijfd, metrics_ijf[:, :, :, np.newaxis]), axis=3)
+
+    # Plot the fiducials movement over time
+    for k in range(ndims_ex):
+        outdir = config['output_dir']
+        os.makedirs(outdir, exist_ok=True)
+        y_col = xyz_colnames[k]
+        outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.png")
+        plt.figure(figsize=(10, 6))
+        for j in range(nfiducials):
+            label = df_fiducials.label[j]
+            plt.scatter(np.arange(1, metrics_ijfdex.shape[0]), metrics_ijfdex[1:, 0, j, k], label=f'{label}', color=colors(j))
+        plt.legend(markerscale=0.5, handletextpad=0.1, loc='upper left', bbox_to_anchor=(1.05, 1), fancybox=True,
+                   framealpha=1, fontsize='x-small')
+        plt.xlabel('time point')
+        plt.ylabel(f"{y_col} (nm)")
+        plt.title(f'Distance from initial time-point')
+        plt.savefig(outpath)
+        plt.close()
+        outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.tsv")
+        header = 'time_point\t' + '\t'.join(df_fiducials.name.astype(str))
+        table_data = np.concatenate((np.arange(metrics_ifdex.shape[0]).reshape(-1, 1) + 1, metrics_ifdex[:, :, k]), axis=1)
+        np.savetxt(outpath, table_data, delimiter='\t', header=header, comments='')
 
     # Plot the time point metrics. metrics_if and metrics_ifd - per fiducial and summary
-    # output_file = os.path.join(config['output_dir'], 'time_point_metrics.png')
     for k in range(ndims_ex):
         outdir = config['output_dir']
         os.makedirs(outdir, exist_ok=True)
@@ -117,8 +139,6 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         y_col = xyz_colnames[k]
         outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.png")
         plt.figure(figsize=(10, 6))
-        # plt.errorbar(np.arange(metrics_idex_median.shape[0])+1, metrics_idex_median[:,k],  metrics_idex_mad[:,k], linestyle='none', fmt='o', capsize=5)
-
         # Do a box and whisker plot using metrics_ifdex
         plt.boxplot(np.transpose(metrics_ifdex[:, :, k]), positions=np.arange(metrics_ifdex.shape[0])+1, widths=0.5)
         plt.xlabel('time point difference')

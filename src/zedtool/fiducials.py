@@ -111,7 +111,7 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
     min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
     num_time_points = max_time_point - min_time_point + 1
     if num_time_points>1:
-        metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
+        metrics_ijfd, metrics_ijf, metrics_ifd, metrics_if = make_time_point_metrics(df_fiducials, df, config)
 
     for j in range(n_fiducials):
         fiducial_label = df_fiducials.at[j,'label']
