@@ -97,8 +97,8 @@ def read_config(yaml_config_file: str) -> dict:
 
     # Are we doing corrections - in which case a second pass is needed
     config['making_corrrections'] = (config['zstep_correct_fiducials'] or
-                           config['drift_correct_detections'] or
-                           config['drift_correct_detections_multi_pass'] or
+                            config['drift_correct_detections'] or
+                            config['drift_correct_detections_multi_pass'] or
                             config['deltaz_correct_detections'] or
                             config['deconvolve_z']
                            )
@@ -137,6 +137,8 @@ def read_detections(config: dict) -> pd.DataFrame:
 
 def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # processes that are only done once in the pipeline
+    # These are the operations that do not need to bin the detections. They can just be done
+    # per-detection without knowledge of the binned image. They are done prior to plotting.
     logging.info("pre_process_detections")
     # Optionally concatenate a second experiment - make sure this is the only action
     if config['concatenate_detections']:
@@ -163,15 +165,23 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         x_t[1] = df_corrections['y'].values
         x_t[2] = df_corrections['z'].values
         df = apply_corrections(df, x_t, config)
-
+        # Write out the drift corrected file
+        output_file = os.path.join(config['output_dir'], 'drift_corrected_detections.csv')
+        logging.info(f"Writing detections drift corrected with {drift_correction_file} to {output_file}")
+        df.to_csv(output_file, index=False, float_format=config['float_format'])
     # Add any missing columnns
     df = compute_deltaz(df, config) # add deltaz column
     # Add image_id column if missing
     compute_image_id(df, config)
+    # image_id and deltaz are added before filtering, so that they are available for filtering
     # Remove detections outside of the selected columns' ranges
     if config['select_cols'] != '' and config['select_ranges'] != '':
         df = filter_detections(df, config)
-    logging.info(f"Filtered to {df.shape[0]} rows")
+        logging.info(f"Filtered to {df.shape[0]} rows")
+        # Write filtered detections to output directory
+        output_file = os.path.join(config['output_dir'], 'filtered_detections.csv')
+        logging.info(f"Writing filtered detections to {output_file}")
+        df.to_csv(output_file, index=False, float_format=config['float_format'])
     return df
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:

@@ -19,8 +19,8 @@ def main(yaml_config_file: str) -> int:
         return 1
 
     df = read_detections(config)
-    if df is None:
-        print(f"Failed to read detections file {config['detections_file']}")
+    if df is None or len(df) == 0:
+        print(f"Failed to read and validate detections file {config['detections_file']}")
         return 1
 
     # get colnames for output file from input file of config

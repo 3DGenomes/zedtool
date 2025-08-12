@@ -11,6 +11,7 @@ import multiprocessing
 from PIL import Image, ImageDraw, ImageFont
 from zedtool.srxstats import z_means_by_marker, z_max_by_marker
 from zedtool.detections import fwhm_from_points
+from zedtool.image import add_axes_and_scale_bar
 
 # Prints some debugging plots for an SRX dataset.
 # Takes a corrected and an uncorrected table of detections, registers the rows and finds the corrections.
@@ -227,6 +228,7 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
         # label = f"{underline_str}\nf_{df_fiducials.label[j]:04d}"
         label = f"f_{df_fiducials.label[j]:04d}"
         draw.multiline_text((df_fiducials.max_x[j], df_fiducials.centroid_y[j]), label, 255,font)
+    imp = add_axes_and_scale_bar(imp, scale_bar_length=50, bin_resolution=config['bin_resolution'])
     # imp.show()
     imfile = os.path.join(config['output_dir'], fiducials_plot_file)
     figure_path = construct_plot_path(imfile, "png", config)

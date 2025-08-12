@@ -21,6 +21,7 @@ from zedtool.plots import plot_histogram, plot_scatter, plotly_scatter
 from zedtool.plots import construct_plot_path, plot_drift_correction
 from zedtool.parallel import minimize_fiducial_fit_variance_parallel
 from zedtool.timepoints import make_time_point_metrics
+from zedtool.image import add_axes_and_scale_bar
 
 def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: np.ndarray, config: dict)  -> Tuple[pd.DataFrame, pd.DataFrame]:
     logging.info('find_fiducials')
@@ -97,6 +98,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     img_label_filtered = 255 * (np.log10(fiducial_labels + 1) / np.log10(np.max(fiducial_labels) + 1))
     img_label_filtered = img_label_filtered.astype(np.uint8)
     imp = Image.fromarray(img_label_filtered)
+    imp = add_axes_and_scale_bar(imp, scale_bar_length=50, bin_resolution=config['bin_resolution'])
     imp.save(image_path, quality=95)
 
     # Use the regions in img_label to label the detections in df

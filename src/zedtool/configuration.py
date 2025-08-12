@@ -145,6 +145,10 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
                      config['y_sd_col'],
                      config['z_sd_col'],
                      config['photons_col']]
+    # if require_cols contains "zeros" then add a column called "zeros" with all values set to 0
+    if 'zeros' in required_cols:
+        df['zeros'] = 0
+
     for col in required_cols:
         if col not in df.columns:
             logging.error(f"Column {col} not found in detections file")
