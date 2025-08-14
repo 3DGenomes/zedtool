@@ -143,8 +143,9 @@ def cat_experiment(df: pd.DataFrame, df2: pd.DataFrame, df_offset: pd.DataFrame,
     cols = [config['image_id_col'], config['time_point_col'], config['x_col'], config['y_col'], config['z_col']]
     for col in cols:
         if col not in df.columns:
-            logging.error(f"Column {col} not found in df")
-        df2[col] = df2[col] + df_offset[col].values[0]
+            logging.warning(f"Column {col} not found in df. Ignoring offset for this column.")
+        else:
+            df2[col] = df2[col] + df_offset[col].values[0]
     df = pd.concat([df, df2], ignore_index=True)
     return df
 
