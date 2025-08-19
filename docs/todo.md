@@ -1,6 +1,4 @@
 ### TODO:
-* Talk to Guy and loc1 and loc5
-* Talk to Antonios about his data
 * Handle files with missing first col in header like this:
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
@@ -36,6 +34,10 @@
 * Count detections per fitting range
 
 ### DONE:
+* df.to_csv () can be slow; use some other alternative?
+  - df.to_csv("output.csv", index=False, engine="pyarrow") (require package pyarrow)
+  - import polars as pl; pl.from_pandas(df).write_csv("output.csv")
+  - df.to_csv("output.csv", index=False, quoting=csv.QUOTE_NONE, chunksize=1000000)
 * Try out picasso or other drift correction methods.
 * Correlation plots for antonios's bead experiments and find "outliers" beads
 * Benchmark an experiment with fiducials at different z's where systematic error in z can fool correction.

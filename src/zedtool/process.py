@@ -6,6 +6,8 @@ import yaml
 import sys
 import logging
 import pandas as pd
+import pyarrow as pa
+import pyarrow.csv
 import fsspec
 from typing import Tuple
 from zedtool.detections import filter_detections, mask_detections_2d, mask_detections_3d, bin_detections, bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz, compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment
@@ -124,7 +126,8 @@ def read_detections(config: dict) -> pd.DataFrame:
     else:
         logging.info(f"Reading detections from {config['detections_file']}")
         with fsspec.open(config['detections_file']) as f:
-            df = pd.read_csv(f)
+            pa_table = pa.csv.read_csv(f)
+            df = pa_table.to_pandas()
         if config['make_caches']:
             df.to_pickle(binary_detections_file)
 
@@ -142,17 +145,23 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     logging.info("pre_process_detections")
     # Optionally concatenate a second experiment - make sure this is the only action
     if config['concatenate_detections']:
-        logging.info(f"Concatenating {config['concatenate_detections_file']}")
-        df2 = pd.read_csv(config['concatenate_detections_file'])
+        infile = config['concatenate_detections_file']
+        logging.info(f"Concatenating {infile}")
+        pa_table = pa.csv.read_csv(infile)
+        df2 = pa_table.to_pandas()
         logging.info(f"Loaded {df2.shape[0]} rows to concatenate")
         if not config_validate_detections(df2, config):
             logging.error("Concatenated detections do not match config")
             return df
         df_offset = pd.read_csv(config['concatenate_offset_file'])
         df = cat_experiment(df, df2, df_offset, config)
+        df = compute_image_id(df, config)  # in case the image_id column is absent
         logging.info(f"Loaded {df.shape[0]} rows after concatenation")
         # Write out the concatenated file and return
-        df.to_csv(os.path.join(config['output_dir'], 'concatenated_detections.csv'), index=False, float_format=config['float_format'])
+        outfile = os.path.join(config['output_dir'], 'concatenated_detections.csv')
+        logging.info(f"Writing concatenated detections to {outfile}")
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        pyarrow.csv.write_csv(table, outfile)
 
     # Apply a pre-computed drift correction read from a file
     if config['apply_drift_correction']:
@@ -165,14 +174,17 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         x_t[1] = df_corrections['y'].values
         x_t[2] = df_corrections['z'].values
         df = apply_corrections(df, x_t, config)
+        df = compute_image_id(df, config) # in case the image_id column is absent
         # Write out the drift corrected file
         output_file = os.path.join(config['output_dir'], 'drift_corrected_detections.csv')
         logging.info(f"Writing detections drift corrected with {drift_correction_file} to {output_file}")
-        df.to_csv(output_file, index=False, float_format=config['float_format'])
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        pyarrow.csv.write_csv(table, output_file)
+
     # Add any missing columnns
     df = compute_deltaz(df, config) # add deltaz column
     # Add image_id column if missing
-    compute_image_id(df, config)
+    df = compute_image_id(df, config)
     # image_id and deltaz are added before filtering, so that they are available for filtering
     # Remove detections outside of the selected columns' ranges
     if config['select_cols'] != '' and config['select_ranges'] != '':
@@ -181,7 +193,8 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         # Write filtered detections to output directory
         output_file = os.path.join(config['output_dir'], 'filtered_detections.csv')
         logging.info(f"Writing filtered detections to {output_file}")
-        df.to_csv(output_file, index=False, float_format=config['float_format'])
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        pyarrow.csv.write_csv(table, output_file)
     return df
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -349,12 +362,16 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     df = df[config['output_column_names']] # Select output_column_names from df
     output_file = os.path.join(config_post['output_dir'], 'corrected_detections.csv')
     logging.info(f"Writing corrected detections to {output_file}")
-    df.to_csv(output_file, index=False, float_format=config['float_format'])
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    pyarrow.csv.write_csv(table, output_file)
+
     # Save non-fiducials to csv
     if config_post['save_non_fiducial_detections']:
         output_file = os.path.join(config_post['output_dir'], 'corrected_detections_no_fiducials.csv')
         logging.info(f"Writing non-fiducial corrected detections to {output_file}")
-        df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config['float_format'])
+        table = pa.Table.from_pandas(df[is_fiducial == 0], preserve_index=False)
+        pyarrow.csv.write_csv(table, output_file)
+
     return df
 
 def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:

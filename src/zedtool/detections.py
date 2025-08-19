@@ -199,11 +199,10 @@ def compute_image_id(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         num_z_steps = max_z_step - min_z_step + 1
         frames_per_cycle = num_frames * num_z_steps
         # Compute the image ID from the frame number and time point
-        if config['image_id_col'] not in df.columns:
-            df[config['image_id_col']] = (df[config['frame_col']] +
-                                          (df[config['z_step_col']] - min_z_step) * num_frames +
-                                          (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
-                                          (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
+        df[config['image_id_col']] = (df[config['frame_col']] +
+                                      (df[config['z_step_col']] - min_z_step) * num_frames +
+                                      (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
+                                      (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
     return df
 
 def compute_time_derivates(df: pd.DataFrame, df_drift: pd.DataFrame, config: dict) -> pd.DataFrame:
