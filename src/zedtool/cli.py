@@ -26,6 +26,10 @@ def main(yaml_config_file: str) -> int:
     # get colnames for output file from input file of config
     if config['output_column_names'] is None:
         config['output_column_names'] = df.columns.tolist()
+        # add image_ID to output column names to the front of the list if it is not already there
+        # it gets created in pre_process_detections even if it is not in the input file
+        if config['image_id_col'] is not None and config['image_id_col'] not in config['output_column_names']:
+            config['output_column_names'].insert(0, config['image_id_col'])
     else:
         config['output_column_names'] = config['output_column_names'].split(',')
         # Check that the output column names are in the df

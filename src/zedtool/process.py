@@ -349,7 +349,7 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     # add deltaz column in case it was removed before saving corrected detections
     df = compute_deltaz(df, config)
     # add image_id column in case it was removed before saving corrected detections
-    compute_image_id(df, config)
+    df = compute_image_id(df, config)
     # recursively call process_detections with the new config just to do the post-correction plotting/saving
     # Potentially re-segment the fiducials, depending on the config
     if config['resegment_after_correction']:

@@ -3,8 +3,7 @@
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
   0,0,170.53981,269.0068,0.5935291,4966.0,0.039154563,0.039881457,21.0,0.15018058,0.15018058
-  1,0,177.25436,256.61942,0.699501,7871.0,0.032050293,0.03257835,25.0,0.14770485,0.14770485
-  2,0,180.7767,321.80972,0.34599125,5464.0,0.03864466,0.039418157,23.0,0.46158835,0.46158835
+  ...
   ```
 * Find public data on microscope zenobo/ 
 * Fail if there are no good fiducials and report why there might be a problem (filtering turned on while using included_fiducial)
