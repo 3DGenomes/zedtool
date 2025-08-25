@@ -1,4 +1,6 @@
 ### TODO:
+* distance correlation (dCor) algorithm and permutation test for fiducial summary plots
+* use_pyarrow
 * Handle files with missing first col in header like this:
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy

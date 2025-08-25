@@ -126,8 +126,11 @@ def read_detections(config: dict) -> pd.DataFrame:
     else:
         logging.info(f"Reading detections from {config['detections_file']}")
         with fsspec.open(config['detections_file']) as f:
-            pa_table = pa.csv.read_csv(f)
-            df = pa_table.to_pandas()
+            if config['use_pyarrow']:
+                pa_table = pa.csv.read_csv(f)
+                df = pa_table.to_pandas()
+            else:
+                df = pd.read_csv(f)
         if config['make_caches']:
             df.to_pickle(binary_detections_file)
 
@@ -147,8 +150,11 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     if config['concatenate_detections']:
         infile = config['concatenate_detections_file']
         logging.info(f"Concatenating {infile}")
-        pa_table = pa.csv.read_csv(infile)
-        df2 = pa_table.to_pandas()
+        if config['use_pyarrow']:
+            pa_table = pa.csv.read_csv(infile)
+            df2 = pa_table.to_pandas()
+        else:
+            df2 = pd.read_csv(infile)
         logging.info(f"Loaded {df2.shape[0]} rows to concatenate")
         if not config_validate_detections(df2, config):
             logging.error("Concatenated detections do not match config")
@@ -160,8 +166,11 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         # Write out the concatenated file and return
         outfile = os.path.join(config['output_dir'], 'concatenated_detections.csv')
         logging.info(f"Writing concatenated detections to {outfile}")
-        table = pa.Table.from_pandas(df, preserve_index=False)
-        pyarrow.csv.write_csv(table, outfile)
+        if config['use_pyarrow']:
+            table = pa.Table.from_pandas(df, preserve_index=False)
+            pyarrow.csv.write_csv(table, outfile)
+        else:
+            df.to_csv(outfile, index=False, float_format=config['float_format'])
 
     # Apply a pre-computed drift correction read from a file
     if config['apply_drift_correction']:
@@ -178,8 +187,11 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         # Write out the drift corrected file
         output_file = os.path.join(config['output_dir'], 'drift_corrected_detections.csv')
         logging.info(f"Writing detections drift corrected with {drift_correction_file} to {output_file}")
-        table = pa.Table.from_pandas(df, preserve_index=False)
-        pyarrow.csv.write_csv(table, output_file)
+        if config['use_pyarrow']:
+            table = pa.Table.from_pandas(df, preserve_index=False)
+            pyarrow.csv.write_csv(table, output_file)
+        else:
+            df.to_csv(output_file, index=False, float_format=config['float_format'])
 
     # Add any missing columnns
     df = compute_deltaz(df, config) # add deltaz column
@@ -193,8 +205,11 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         # Write filtered detections to output directory
         output_file = os.path.join(config['output_dir'], 'filtered_detections.csv')
         logging.info(f"Writing filtered detections to {output_file}")
-        table = pa.Table.from_pandas(df, preserve_index=False)
-        pyarrow.csv.write_csv(table, output_file)
+        if config['use_pyarrow']:
+            table = pa.Table.from_pandas(df, preserve_index=False)
+            pyarrow.csv.write_csv(table, output_file)
+        else:
+            df.to_csv(output_file, index=False, float_format=config['float_format'])
     return df
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -362,16 +377,21 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     df = df[config['output_column_names']] # Select output_column_names from df
     output_file = os.path.join(config_post['output_dir'], 'corrected_detections.csv')
     logging.info(f"Writing corrected detections to {output_file}")
-    table = pa.Table.from_pandas(df, preserve_index=False)
-    pyarrow.csv.write_csv(table, output_file)
+    if config['use_pyarrow']:
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        pyarrow.csv.write_csv(table, output_file)
+    else:
+        df.to_csv(output_file, index=False, float_format=config['float_format'])
 
     # Save non-fiducials to csv
     if config_post['save_non_fiducial_detections']:
         output_file = os.path.join(config_post['output_dir'], 'corrected_detections_no_fiducials.csv')
         logging.info(f"Writing non-fiducial corrected detections to {output_file}")
-        table = pa.Table.from_pandas(df[is_fiducial == 0], preserve_index=False)
-        pyarrow.csv.write_csv(table, output_file)
-
+        if config['use_pyarrow']:
+            table = pa.Table.from_pandas(df[is_fiducial == 0], preserve_index=False)
+            pyarrow.csv.write_csv(table, output_file)
+        else:
+            df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config['float_format'])
     return df
 
 def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:

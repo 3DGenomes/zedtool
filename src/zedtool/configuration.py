@@ -14,6 +14,7 @@ def config_default() -> dict:
         'noclobber': 0,
         'make_caches': 0,
         'multiprocessing': 0,
+        'use_pyarrow': 0,
         'num_threads': None,
         'float_format': '%.6g',
         'output_column_names': None,
