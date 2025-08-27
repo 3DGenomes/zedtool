@@ -42,9 +42,9 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
                 xy_1[j,1] = np.nanmean(df.loc[idx_1j, config['y_col']])
                 xy_2[j,0] = np.nanmean(df.loc[idx_2j, config['x_col']])
                 xy_2[j,1] = np.nanmean(df.loc[idx_2j, config['y_col']])
-        xy_1 = xy_1[is_valid_fiducial,:]
-        xy_2 = xy_2[is_valid_fiducial,:]
-        R, t, X_aligned, rmse = euclidean_rigid_alignment(xy_2, xy_1)
+        xy_1_valid = xy_1[is_valid_fiducial,:]
+        xy_2_valid = xy_2[is_valid_fiducial,:]
+        R, t, X_aligned, rmse = euclidean_rigid_alignment(xy_2_valid, xy_1_valid)
         # Apply the rotation and translation to all points in df at timepoint
         idx = df[config['time_point_col']] == timepoint
         xy = df.loc[idx, [config['x_col'], config['y_col']]].values
