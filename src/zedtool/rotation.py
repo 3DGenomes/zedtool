@@ -19,13 +19,15 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
     timepoints = df[config['time_point_col']].values
     fiducial_label = df['label'].values
     is_fiducial = df['is_fiducial'].values
+    x = df[config['x_col']].values
+    y = df[config['y_col']].values
     xy_1 = np.zeros((n_fiducials, 2))
     xy_2 = np.zeros((n_fiducials, 2))
     # Loop over all steps and find and apply translation and rotation correction at each step boundary
     for timepoint in range(min_time_point+1, max_time_point+1):
         logging.info(f'Correcting rotation at time point {timepoint}')
         idx_1 = (timepoints < timepoint) & (is_fiducial)
-        idx_2 = timepoints == timepoint & (is_fiducial)
+        idx_2 = (timepoints == timepoint) & (is_fiducial)
         if np.sum(idx_1) < MIN_FIDUCIAL_DETECTIONS or np.sum(idx_2) < MIN_FIDUCIAL_DETECTIONS:
             logging.warning(f'insufficient detections on one side of time point: {timepoint}')
             logging.warning(f'{np.sum(idx_1)} detections before, {np.sum(idx_2)} detections at time point')
@@ -36,18 +38,18 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
             idx_1j = idx_1 & fiducial_idx
             idx_2j = idx_2 & fiducial_idx
             if np.sum(idx_1j) >= MIN_FIDUCIAL_DETECTIONS and np.sum(idx_2j) >= MIN_FIDUCIAL_DETECTIONS:
-                logging.info(f'Using fiducial {j+1} for rotation correction at time point {timepoint}. ndetections before: {np.sum(idx_1j)}, at time point: {np.sum(idx_2j)}')
+                # logging.info(f'Using fiducial {j+1} for rotation correction at time point {timepoint}. ndetections before: {np.sum(idx_1j)}, at time point: {np.sum(idx_2j)}')
                 is_valid_fiducial[j] = True
-                xy_1[j,0] = np.nanmean(df.loc[idx_1j, config['x_col']])
-                xy_1[j,1] = np.nanmean(df.loc[idx_1j, config['y_col']])
-                xy_2[j,0] = np.nanmean(df.loc[idx_2j, config['x_col']])
-                xy_2[j,1] = np.nanmean(df.loc[idx_2j, config['y_col']])
+                xy_1[j,0] = np.nanmean(x[idx_1j])
+                xy_1[j,1] = np.nanmean(y[idx_1j])
+                xy_2[j,0] = np.nanmean(x[idx_2j])
+                xy_2[j,1] = np.nanmean(y[idx_2j])
         xy_1_valid = xy_1[is_valid_fiducial,:]
         xy_2_valid = xy_2[is_valid_fiducial,:]
         R, t, X_aligned, rmse = euclidean_rigid_alignment(xy_2_valid, xy_1_valid)
         # Apply the rotation and translation to all points in df at timepoint
         idx = df[config['time_point_col']] == timepoint
-        xy = df.loc[idx, [config['x_col'], config['y_col']]].values
+        xy = np.column_stack((x[idx], y[idx]))
         xy_rotated = (R @ xy.T).T + t
         df.loc[idx, config['x_col']] = xy_rotated[:,0]
         df.loc[idx, config['y_col']] = xy_rotated[:,1]
