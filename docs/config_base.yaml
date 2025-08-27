@@ -70,6 +70,7 @@ quantile_outlier_cutoff: 0 # throws away tails of several distributions for fidu
 sd_outlier_cutoff: 0 # standard deviation outlier cutoff for fiducial qc metrics; overrides quantile method. (typically = 2)
 filter_fiducials_with_clustering: 0 # if 1, then use pre-drift correction clustering to filter fiducials
 polynomial_degree: 2 # degree of polynomial to fit drift correction
+fitting_interval: time_point # interval over which to fit the polynomial - [frame|z_step|cycle|time_point]
 use_weights_in_fit: 0 # use the precision values in the fit
 only_fiducials: 0 # non-zero if ALL the "bright spots" in the binned image are taken to be fiducials. If 0, Otsu threshold image otherwise use min_fiducial_detections
 consensus_method: median # method to compute drift correction from fiducials - median or weighted_mean

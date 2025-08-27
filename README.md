@@ -94,6 +94,7 @@ This improves the accuracy of the fiducial measurements but potentially changes 
 - `filter_fiducials_with_clustering`: If 1, then use pre-drift correction clustering to filter fiducials. If you have less than
 20 fiducials then set this to 0.
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 2.
+- `fitting_interval`: Interval over which to fit the polynomial - [frame|z_step|cycle|time_point]. Default is time_point.
 - `use_weights_in_fit`: Whether to use precision values in the fit.
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. If you want to find the fiducials automatically then set this to 0.
 - `consensus_method`: Method for determining the consensus z value for a fiducial. Options are 'weighted_mean' and 'median' (default).
