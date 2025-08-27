@@ -66,12 +66,10 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
 def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> None:
     # Plot fiducials positions and stats relating to their stability over time
     logging.info('plot_time_point_metrics')
-    outdir = config['output_dir']
-    os.makedirs(outdir, exist_ok=True)
-
     nfiducials = len(df_fiducials)
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col'], 'r']
     ndims_ex = len(xyz_colnames)
+    outdir = config['time_point_metrics_dir']
     min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
     num_time_points = max_time_point - min_time_point + 1
     if num_time_points<=1:

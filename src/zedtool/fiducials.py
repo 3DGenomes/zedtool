@@ -492,7 +492,6 @@ def zstep_correct_fiducial(fiducial_label: int, fiducial_name: str, df: pd.DataF
     total_cycles = num_cycles * num_time_points
     frames_per_cycle = num_frames * num_z_steps
     dimnames = config['dimnames']
-    xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     ndims = len(xyz_colnames)
     sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
     # Create array to hold x,y,z for each cycle

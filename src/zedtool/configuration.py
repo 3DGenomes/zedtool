@@ -18,6 +18,7 @@ def config_default() -> dict:
         'num_threads': None,
         'float_format': '%.6g',
         'output_column_names': None,
+        'ignore_image_id_col': 0,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,
@@ -96,7 +97,8 @@ def config_default() -> dict:
         'deltaz_correct_detections': 0,
         'deconvolve_z': 0,
         'drift_correct_detections_multi_pass': 0,
-        'drift_correct_detections': 0
+        'drift_correct_detections': 0,
+        'rotation_correct_detections': 0
     }
     return config
 
@@ -135,7 +137,6 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
     ret = 1
     # Check existence of columns
     required_cols = [config['frame_col'],
-                     # config['image_id_col'],
                      config['z_step_col'],
                      config['cycle_col'],
                      config['time_point_col'],
@@ -154,6 +155,13 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
         if col not in df.columns:
             logging.error(f"Column {col} not found in detections file")
             ret = 0
+
+    # Optionally remove image_id column - useful if the image_id col clashes with other columns due to concatenation
+    # or other changes that mess with time-point/cycle/frame/z-step.
+    # It will be regenerated later to match cycle/frame/z-step/time-point
+    if config['ignore_image_id_col']:
+        if config['image_id_col'] in df.columns:
+            df.drop(columns=[config['image_id_col']], inplace=True)
 
     # Check that ranges are adhered to
     for quantity in ['frame',

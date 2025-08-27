@@ -18,6 +18,7 @@ multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
 num_threads: 3 # number of threads to use for multiprocessing; if empty, then use all available threads
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files
 output_column_names: # Comma separated list of columns to output. If empty, uses the columns in the input file.
+ignore_image_id_col: 0 # if 1 then ignore image-ID column and regenerate it from frame,z-step,cycle,time-point
 use_pyarrow: 0 # if 1 then use pyarrow engine to read and write csv files (faster but requires more memory)
 
 # Detection filtering - based on either density in the binned image or columns in the detections file
@@ -95,6 +96,7 @@ plot_per_fiducial_fitting: 0 # make debugging images about extracting drift corr
 plot_fourier_correlation: 0 # plot Fourier Ring/Shell Correlation for the 2D/3D binned image.
 zstep_correct_fiducials: 0  # correct z co-ordinate of fiducial detections for z-step variation
 drift_correct_detections: 0 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
+rotation_correct_detections: 0 # if 1, then correct for rotation/translation of the sample at time point boundaries
 drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to correct the drift
 deltaz_correct_detections: 0 # correct z co-ordinate of all detections for deltaz variation
 deconvolve_z: 0 # deconvolve z from the detections

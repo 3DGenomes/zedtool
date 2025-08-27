@@ -1,6 +1,6 @@
 ### TODO:
+* Use ignore_image_id_col to determine output cols?
 * distance correlation (dCor) algorithm and permutation test for fiducial summary plots
-* use_pyarrow
 * Handle files with missing first col in header like this:
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
@@ -12,7 +12,7 @@
 * Diagram of workflow
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
-* Automatically check deltaz_step_step
+* Automatically check z_step_step sign and WARN if wrong
 * Should throw errors for ERROR messages (eg. when there's no fiducials)
 * Add option to export only fiducials or good fiducials plus detections 
 * Option to exclude fiducials that are missing detections in some time intervals
@@ -35,6 +35,7 @@
 * Count detections per fitting range
 
 ### DONE:
+* use_pyarrow
 * df.to_csv () can be slow; use some other alternative?
   - df.to_csv("output.csv", index=False, engine="pyarrow") (require package pyarrow)
   - import polars as pl; pl.from_pandas(df).write_csv("output.csv")

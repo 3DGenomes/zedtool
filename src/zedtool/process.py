@@ -17,6 +17,7 @@ from zedtool.configuration import config_validate, config_update, config_validat
 from zedtool.deconvolution import deconvolve_z
 from zedtool.timepoints import plot_time_point_metrics
 from zedtool.fsc import plot_fourier_correlation
+from zedtool.rotation import rotation_correct_detections
 from zedtool import __version__
 
 def read_config(yaml_config_file: str) -> dict:
@@ -41,12 +42,15 @@ def read_config(yaml_config_file: str) -> dict:
     config = config_update(config_default(), config) # Update defaults with settings from file
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
     config['cache_dir'] = os.path.join(config['output_dir'],'cache')
+    config['time_point_metrics_dir'] = os.path.join(config['output_dir'], 'time_point_metrics')
 
     # Make output directories (requires config)
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
     if config['make_caches']:
         os.makedirs(config['cache_dir'], exist_ok=True)
+    if config['plot_time_point_metrics']:
+        os.makedirs(config['time_point_metrics_dir'], exist_ok=True)
     # set up logging (requires output_dir to exist)
     logfile = os.path.join(config['output_dir'], 'zedtool.log')
     print(f"Writing log output to {logfile}")
@@ -97,11 +101,12 @@ def read_config(yaml_config_file: str) -> dict:
         logging.error("Parallel processing is not supported when not headless.")
         return {}
 
-    # Are we doing corrections - in which case a second pass is needed
+    # Are we doing corrections? If so then a second pass is needed to replot things
     config['making_corrrections'] = (config['zstep_correct_fiducials'] or
                             config['drift_correct_detections'] or
                             config['drift_correct_detections_multi_pass'] or
                             config['deltaz_correct_detections'] or
+                            config['rotation_correct_detections'] or
                             config['deconvolve_z']
                            )
 
@@ -312,6 +317,9 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     if config['zstep_correct_fiducials']:
         df_fiducials, df = zstep_correct_fiducials(df_fiducials, df, config)
 
+    if config['rotation_correct_detections']:
+        df = rotation_correct_detections(df, df_fiducials, config)
+
     # Correct detections using (possibly corrected) fiducials
     # df_fiducials gains cols with consensus and fitting error
     if config['drift_correct_detections']:
@@ -339,6 +347,7 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     config_post = config.copy()
 
     # don't do corrections
+    config_post['rotation_correct_detections'] = 0
     config_post['drift_correct_detections'] = 0
     config_post['drift_correct_detections_multi_pass'] = 0
     config_post['zstep_correct_fiducials'] = 0
@@ -352,46 +361,49 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     # make new directory for post processing outputs
     config_post['output_dir'] = f"{config_post['output_dir']}_corrected"
     config_post['fiducial_dir'] = os.path.join(config_post['output_dir'], 'fiducials')
+    config_post['time_point_metrics_dir'] = os.path.join(config_post['output_dir'], 'time_point_metrics')
     # Make output directories for second pass
     os.makedirs(config_post['output_dir'], exist_ok=True)
     os.makedirs(config_post['fiducial_dir'], exist_ok=True)
+    if config_post['plot_time_point_metrics']:
+        os.makedirs(config_post['time_point_metrics_dir'], exist_ok=True)
 
     # don't use included/excluded fiducials because the labelling will have changed
-    if config['resegment_after_correction']:
+    if config_post['resegment_after_correction']:
         config_post['excluded_fiducials'] =  pd.Series(dtype="int64")
         config_post['included_fiducials'] =  pd.Series(dtype="int64")
 
     # add deltaz column in case it was removed before saving corrected detections
-    df = compute_deltaz(df, config)
+    df = compute_deltaz(df, config_post)
     # add image_id column in case it was removed before saving corrected detections
-    df = compute_image_id(df, config)
+    df = compute_image_id(df, config_post)
     # recursively call process_detections with the new config just to do the post-correction plotting/saving
     # Potentially re-segment the fiducials, depending on the config
-    if config['resegment_after_correction']:
+    if config_post['resegment_after_correction']:
         df, df_fiducials = process_detections(df, None, config_post)
     else:
         df, df_fiducials = process_detections(df, df_fiducials, config_post)
 
     # Write corrected df to output dir
     is_fiducial = df['is_fiducial'].values  #  column may be removed, but we still need it
-    df = df[config['output_column_names']] # Select output_column_names from df
+    df = df[config_post['output_column_names']] # Select output_column_names from df
     output_file = os.path.join(config_post['output_dir'], 'corrected_detections.csv')
     logging.info(f"Writing corrected detections to {output_file}")
-    if config['use_pyarrow']:
+    if config_post['use_pyarrow']:
         table = pa.Table.from_pandas(df, preserve_index=False)
         pyarrow.csv.write_csv(table, output_file)
     else:
-        df.to_csv(output_file, index=False, float_format=config['float_format'])
+        df.to_csv(output_file, index=False, float_format=config_post['float_format'])
 
     # Save non-fiducials to csv
     if config_post['save_non_fiducial_detections']:
         output_file = os.path.join(config_post['output_dir'], 'corrected_detections_no_fiducials.csv')
         logging.info(f"Writing non-fiducial corrected detections to {output_file}")
-        if config['use_pyarrow']:
+        if config_post['use_pyarrow']:
             table = pa.Table.from_pandas(df[is_fiducial == 0], preserve_index=False)
             pyarrow.csv.write_csv(table, output_file)
         else:
-            df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config['float_format'])
+            df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config_post['float_format'])
     return df
 
 def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:

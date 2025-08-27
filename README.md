@@ -42,6 +42,7 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation
 - `num_threads`: Number of threads to use for multiprocessing. Default is all available.
 - `float_format`: printf-style format for floating point numbers in outputs files (default %.6g)
+- `ignore_image_id_col`: If 1, ignore the image_id_col column in the input file. If dropped it will be regenerated.
 - `use_pyarrow`: If 1, use pyarrow for reading/writing tabular data. This is faster but requires more memory.
 
 ### **Detection Filtering**
@@ -126,7 +127,8 @@ You can disable/enable various processing steps and visualizations by setting th
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step
 - `plot_fourier_correlation`: Plot Fourier Ring/Shell Correlation for the 2D/3D binned image.
 - `zstep_correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. Experimental. 
-- `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition, it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above. 
+- `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... In addition, it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.
+- `rotation_correct_detections`: Correct for rotation/translation of the sample at time point boundaries.
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation
 - `deconvolve_z`: Reduce variation in z using a deconvolution-like approach. Experimental. 
 - `save_non_fiducial_detections` Save non-fiducial detections to a separate file, `non_fiducial_detections.tsv`
