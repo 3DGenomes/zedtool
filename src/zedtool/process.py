@@ -219,8 +219,10 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # processes that can be done multiple times in the pipeline
-    # If this happens it will be with recursion - calling with modified config
-    # and skipping the correction steps
+    # processs_detections() is called twice
+    # (i) from main() to make plot and correct detections
+    # (ii) from post_process_detections() to make plots after corrections have been performed.
+    # In the case of (ii) it will be with a modified config and skipping the correction steps
     logging.info("process_detections")
     # Bin the detections to allow them to be treated as an image
     # Combine x,y,x into a single array with shape (n,3)
@@ -310,7 +312,7 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
         plot_fourier_correlation(counts_xyz, n_xy, config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
-    if config['making_corrrections']:
+    if config['making_corrrections'] and config['create_backup_columns']:
         df = create_backup_columns(df, config)
 
     # Correct fiducials with zstep model
@@ -343,7 +345,6 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
 
 def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
     logging.info("post_process_detections")
-
     config_post = config.copy()
 
     # don't do corrections

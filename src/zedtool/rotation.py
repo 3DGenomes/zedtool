@@ -48,14 +48,17 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
         xy_2_valid = xy_2[is_valid_fiducial,:]
         R, t, X_aligned, rmse = euclidean_rigid_alignment(xy_2_valid, xy_1_valid)
         # Apply the rotation and translation to all points in df at timepoint
-        idx = df[config['time_point_col']] == timepoint
+        idx = (timepoints == timepoint)
         xy = np.column_stack((x[idx], y[idx]))
         xy_rotated = (R @ xy.T).T + t
-        df.loc[idx, config['x_col']] = xy_rotated[:,0]
-        df.loc[idx, config['y_col']] = xy_rotated[:,1]
+        x[idx] = xy_rotated[:,0]
+        y[idx] = xy_rotated[:,1]
         logging.info(f'Applied rotation and translation at time point {timepoint}: RMSE = {rmse:.3f} nm')
         logging.info(f'Rotation matrix at time point {timepoint}: [cos(theta), sin(theta)] = {R[0,:]}')
         logging.info(f'Translation vector at time point {timepoint}: [x, y] = {t}')
+    # Update the dataframe with rotated coordinates
+    df[config['x_col']] = x
+    df[config['y_col']] = y
     return df
 
 def euclidean_rigid_alignment(X, Y):

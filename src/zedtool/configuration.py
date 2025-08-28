@@ -19,6 +19,7 @@ def config_default() -> dict:
         'float_format': '%.6g',
         'output_column_names': None,
         'ignore_image_id_col': 0,
+        'create_backup_columns': 0,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,

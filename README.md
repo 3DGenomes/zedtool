@@ -43,6 +43,7 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 - `num_threads`: Number of threads to use for multiprocessing. Default is all available.
 - `float_format`: printf-style format for floating point numbers in outputs files (default %.6g)
 - `ignore_image_id_col`: If 1, ignore the image_id_col column in the input file. If dropped it will be regenerated.
+- `create_backup_columns`: If 1 then backup x_col,y_col,z_col, x_sd_col,y_sd_col,z_sd_col before changing them
 - `use_pyarrow`: If 1, use pyarrow for reading/writing tabular data. This is faster but requires more memory.
 
 ### **Detection Filtering**

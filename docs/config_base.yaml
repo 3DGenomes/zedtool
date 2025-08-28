@@ -19,6 +19,7 @@ num_threads: 3 # number of threads to use for multiprocessing; if empty, then us
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files
 output_column_names: # Comma separated list of columns to output. If empty, uses the columns in the input file.
 ignore_image_id_col: 0 # if 1 then ignore image-ID column and regenerate it from frame,z-step,cycle,time-point
+create_backup_columns: 0 # if 1 then backup x_col,y_col,z_col, x_sd_col,y_sd_col,z_sd_col before changing them
 use_pyarrow: 0 # if 1 then use pyarrow engine to read and write csv files (faster but requires more memory)
 
 # Detection filtering - based on either density in the binned image or columns in the detections file
