@@ -2,7 +2,8 @@
 tests/
 .idea/
 .vscode/
-
+docs/build/
+docs/source/README.md
 # Python compiled files
 *.pyc
 __pycache__/

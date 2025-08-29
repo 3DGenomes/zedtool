@@ -1,10 +1,9 @@
-# ZEDTool 
-Z Estimate Diagnostic Tool.
+# Overview
+Z Estimate Diagnostic Tool - a tool for evaluating and adjusting detections from SMLM experiments.
 
-A tool for evaluating and adjusting detections from SMLM experiments.
 ## Installation
 
-To install ZEDTool from source:
+To install zedtool from source:
 
 ```bash
 git clone https://github.com/3DGenomes/zedtool.git
@@ -14,9 +13,9 @@ cd zedtool
 pip install .
 ```
  
-## Running ZEDTool
+## Running zedool
 
-Once installed, you can run ZEDTool using:
+Once installed, you can run zedtool using:
 
 ```bash
 python -m zedtool config.yaml
@@ -26,7 +25,7 @@ where `config.yaml` is a YAML configuration file containing experiment-specific 
 
 ## Configuration Options
 
-ZEDTool relies on a YAML file for specifying various options. Below is a detailed explanation of the parameters used in the configuration file:
+All options for zedool are supplied in a YAML configuration file specified on the command line. Below is a detailed explanation of the parameters used in the file:
 
 ### **Input and Output**
 - `detections_file`: Path to the input file containing detections. Can be any object that can be opened by 

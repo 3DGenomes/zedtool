@@ -18,6 +18,23 @@ from zedtool.image import add_axes_and_scale_bar
 # Write out a table with both corrected and uncorrected z.
 
 def construct_plot_path(filename: str, filetype: str, config: dict) -> str:
+    """
+    Constructs the full path for saving a plot file, ensuring the output directory exists.
+
+    Parameters
+    ----------
+    filename : str
+        Base filename for the plot.
+    filetype : str
+        File extension/type for the plot (e.g., 'png', 'html').
+    config : dict
+        Configuration dictionary containing output directory info.
+
+    Returns
+    -------
+    str
+        Full path to the plot file.
+    """
     use_plots_dir = False
     # if filename doesn't contain config['output_dir'], prepend it
     if not filename.startswith(config['output_dir']):
@@ -35,6 +52,31 @@ def construct_plot_path(filename: str, filetype: str, config: dict) -> str:
     return figure_path
 
 def plot_scatter(x: np.ndarray, y: np.ndarray, xlabel: str, ylabel: str, title: str, filename: str, config: dict) -> int:
+    """
+    Plots a scatter plot of x vs y and saves it as a PNG file.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of x values.
+    y : np.ndarray
+        Array of y values.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    title : str
+        Title of the plot.
+    filename : str
+        Filename for saving the plot.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     filetype = "png"
     plt.figure()
     # Scale point size with number of detections
@@ -55,6 +97,33 @@ def plot_scatter(x: np.ndarray, y: np.ndarray, xlabel: str, ylabel: str, title: 
     return 0
 
 def plotly_scatter(x: np.ndarray, y: np.ndarray, y_err: np.ndarray, xlabel: str, ylabel: str, title: str, filename: str, config: dict) -> int:
+    """
+    Plots an interactive scatter plot with error bars using Plotly and saves as HTML.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of x values.
+    y : np.ndarray
+        Array of y values.
+    y_err : np.ndarray
+        Array of y error values.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    title : str
+        Title of the plot.
+    filename : str
+        Filename for saving the plot.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     filetype = "html"
     figure = px.scatter(x=x, y=y, error_y=y_err, title=title, labels={xlabel: xlabel, ylabel: ylabel})
     # if filename doesn't contain config['output_dir'], prepend it
@@ -63,6 +132,29 @@ def plotly_scatter(x: np.ndarray, y: np.ndarray, y_err: np.ndarray, xlabel: str,
     return 0
 
 def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename: str, config: dict) -> int:
+    """
+    Plots a histogram of x and saves it as a PNG file.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of values to plot.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    title : str
+        Title of the plot.
+    filename : str
+        Filename for saving the plot.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     hist_bins = 100 # TODO: make this a config option
     filetype = "png"
     plt.figure()
@@ -77,6 +169,23 @@ def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename
     return 0
 
 def plot_detections(df: pd.DataFrame, filename: str, config: dict):
+    """
+    Plots projections and histograms of detection coordinates from a DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing detection data.
+    filename : str
+        Filename for saving the plot.
+    config : dict
+        Configuration dictionary for column names and output settings.
+
+    Returns
+    -------
+    None
+        Saves the plot to file.
+    """
     logging.info("plot_detections")
     # plot projections  of det_xyz
     fig, ax = plt.subplots(2, 2, figsize=(12, 9))
@@ -103,6 +212,27 @@ def plot_detections(df: pd.DataFrame, filename: str, config: dict):
     plt.close()
 
 def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np.ndarray, filename: str, config: dict):
+    """
+    Plots binned detection statistics including log counts, mean, and standard deviation.
+
+    Parameters
+    ----------
+    n_xy : np.ndarray
+        2D array of detection counts per bin.
+    mean_xy : np.ndarray
+        2D array of mean values per bin.
+    sd_xy : np.ndarray
+        2D array of standard deviation values per bin.
+    filename : str
+        Filename for saving the plot.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    None
+        Saves the plot to file.
+    """
     logging.info("plot_binned_detections_stats")
     fig, ax = plt.subplots(3, 2, figsize=(12, 8))
     plt.subplots_adjust(hspace=0.5)
@@ -135,8 +265,23 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
     plt.close()
 
 def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
-    # Plot detections and other quantities
+    """
+    Plots summary statistics for detections and other quantities.
 
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing detection data.
+    det_xyz : np.ndarray
+        Array of detection coordinates.
+    config : dict
+        Configuration dictionary for column names and output settings.
+
+    Returns
+    -------
+    None
+        Saves the plot(s) to file.
+    """
 
     plot_histogram(df[config['x_sd_col']], f"{config['x_sd_col']} (nm)", 'Detections',
                    f"Detections {config['x_sd_col']}", 'x_sd_histogram', config)
@@ -170,8 +315,22 @@ def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
     df_z['diff_z_max'] = df_z['z_max'].diff()
     df_z.to_csv(os.path.join(config['output_dir'], 'z_mean_max_vs_z_step.tsv'), sep='\t', index=False)
 
-
 def stats_text(x: np.ndarray,title: str) -> str:
+    """
+    Calculates summary statistics (count, mean, standard deviation, FWHM) for an array and returns as formatted text.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of values to summarize.
+    title : str
+        Title for the statistics summary.
+
+    Returns
+    -------
+    str
+        Formatted statistics summary text.
+    """
     # Calculate some statistics
     n = len(x)
     mean_x = np.mean(x)
@@ -185,6 +344,23 @@ def stats_text(x: np.ndarray,title: str) -> str:
     return text
 
 def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:
+    """
+    Plots fiducial regions of interest (ROIs) on the detections image and saves annotated images.
+
+    Parameters
+    ----------
+    df_fiducials : pd.DataFrame
+        DataFrame containing fiducial ROI coordinates and labels.
+    df : pd.DataFrame
+        DataFrame containing detection data.
+    config : dict
+        Configuration dictionary for output settings and image resolution.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     # Plot the fiducials on the detections image so that they can be identified in the image
     logging.info("plot_fiducial_rois")
     detections_img_file = 'binned_detections_2d.tif'
@@ -247,7 +423,23 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     return 0
 
 def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> int:
-    #   * plot z vs time, projections coloured by quantities, dendrogram of groupings
+    """
+    Plots fiducial summary images and individual fiducial statistics, optionally using multiprocessing.
+
+    Parameters
+    ----------
+    df_fiducials : pd.DataFrame
+        DataFrame containing fiducial information.
+    df : pd.DataFrame
+        DataFrame containing detection data.
+    config : dict
+        Configuration dictionary for output settings and multiprocessing options.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     logging.info("plot_fiducials")
     # Plot summary image first
     plot_fiducial_rois(df_fiducials, df, config)
@@ -270,6 +462,25 @@ def plot_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -
     return 0
 
 def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd.DataFrame, config: dict) -> int:
+    """
+    Plots statistics and projections for a single fiducial region of interest (ROI).
+
+    Parameters
+    ----------
+    fiducial_label : int
+        Label identifying the fiducial ROI.
+    fiducial_name : str
+        Name of the fiducial ROI.
+    df_detections_roi : pd.DataFrame
+        DataFrame containing detection data for the ROI.
+    config : dict
+        Configuration dictionary for output settings and column names.
+
+    Returns
+    -------
+    int
+        0 on success.
+    """
     # foreach roi, plot the dependence of z on config['image_id_col'], config['z_step_col'], config['cycle_col'],...
     # Also plot histogram of x,y,x
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
@@ -415,6 +626,21 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
 
 
 def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
+    """
+    Plots quality metrics for fiducials, including statistics and boxplots.
+
+    Parameters
+    ----------
+    df_fiducials : pd.DataFrame
+        DataFrame containing fiducial statistics.
+    config : dict
+        Configuration dictionary for output settings and column names.
+
+    Returns
+    -------
+    None
+        Saves the plots to file.
+    """
     dimnames =config['dimnames']
     ndim = len(dimnames)
     quantities = ['deltaz_slope','deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
@@ -475,6 +701,21 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     plt.close()
 
 def plot_drift_correction(df_drift: pd.DataFrame, config: dict):
+    """
+    Plots drift correction statistics for x, y, z dimensions over time.
+
+    Parameters
+    ----------
+    df_drift : pd.DataFrame
+        DataFrame containing drift correction data.
+    config : dict
+        Configuration dictionary for output settings and column names.
+
+    Returns
+    -------
+    None
+        Saves the plots to file.
+    """
     x_col = ['x', 'y', 'z']
     xsd_col = ['x_sd', 'y_sd', 'z_sd']
     ndims = len(x_col)
@@ -488,6 +729,21 @@ def plot_drift_correction(df_drift: pd.DataFrame, config: dict):
                      f'Correction {x_col[j]} vs image-ID', outpath, config)
 
 def plot_time_derivatives(df_drift: pd.DataFrame, config: dict):
+    """
+    Plots time derivatives of drift correction for x, y, z dimensions.
+
+    Parameters
+    ----------
+    df_drift : pd.DataFrame
+        DataFrame containing drift correction data.
+    config : dict
+        Configuration dictionary for output settings and column names.
+
+    Returns
+    -------
+    None
+        Saves the plots to file.
+    """
     x_col = ['x', 'y', 'z']
     xsd_col = ['x_sd', 'y_sd', 'z_sd']
     ndims = len(x_col)
@@ -499,6 +755,23 @@ def plot_time_derivatives(df_drift: pd.DataFrame, config: dict):
                      f'Correction {x_col[j]} vs image-ID', outpath, config)
 
 def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
+    """
+    Saves a 3D numpy array to a TIFF file, choosing data type based on pixel values.
+
+    Parameters
+    ----------
+    counts_xyz : np.ndarray
+        3D array of pixel values to save.
+    filename : str
+        Filename for the TIFF file.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    None
+        Saves the TIFF file to disk.
+    """
     logging.info("save_to_tiff_3d")
     # Save a 3D array to a TIFF file
     maxpixel = np.max(counts_xyz)
@@ -515,6 +788,23 @@ def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
         tifffile.imwrite(imgfile, img.astype(np.float32), imagej=True)
 
 def save_to_tiff_2d(img: np.ndarray, filename: str, config: dict):
+    """
+    Saves a 2D numpy array to a TIFF file, choosing data type based on pixel values.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        2D array of pixel values to save.
+    filename : str
+        Filename for the TIFF file.
+    config : dict
+        Configuration dictionary for output settings.
+
+    Returns
+    -------
+    None
+        Saves the TIFF file to disk.
+    """
     logging.info("save_to_tiff_2d")
     # Save a 3D array to a TIFF file
     maxpixel = np.max(img)
@@ -526,5 +816,3 @@ def save_to_tiff_2d(img: np.ndarray, filename: str, config: dict):
         tifffile.imwrite(imgfile, img.astype(np.uint16), imagej=True)
     else:
         tifffile.imwrite(imgfile, img.astype(np.float32), imagej=True)
-
-

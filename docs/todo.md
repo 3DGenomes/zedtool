@@ -25,7 +25,6 @@
 * Histogram binned detections gets a log scale on y
 * Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
-* Contact SMLM authors asking for detection data with fiducials? Or download without from fightclub?
 * Add defaults to config file/README.md
 * Write tutorial on github
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
@@ -35,6 +34,7 @@
 * Count detections per fitting range
 
 ### DONE:
+* Contact SMLM authors asking for detection data with fiducials? Or download without from fightclub?
 * use_pyarrow
 * df.to_csv () can be slow; use some other alternative?
   - df.to_csv("output.csv", index=False, engine="pyarrow") (require package pyarrow)
