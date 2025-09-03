@@ -111,7 +111,7 @@ def read_config(yaml_config_file: str) -> dict:
                            )
 
     # if num_threads is not set then use all available threads
-    if config['num_threads'] is None:
+    if (config['num_threads'] is None) or (config['num_threads']==0):
         config['num_threads'] = os.cpu_count()
     if config['multiprocessing']:
         if config['num_threads'] > os.cpu_count():
