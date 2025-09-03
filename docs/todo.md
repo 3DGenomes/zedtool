@@ -7,7 +7,6 @@
   0,0,170.53981,269.0068,0.5935291,4966.0,0.039154563,0.039881457,21.0,0.15018058,0.15018058
   ...
   ```
-* Find public data on microscope zenobo/ 
 * Fail if there are no good fiducials and report why there might be a problem (filtering turned on while using included_fiducial)
 * Diagram of workflow
 * Multi-pass does not seem to be filtering on goodness of fit

@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Tuple
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
 import skimage
@@ -10,8 +10,8 @@ from scipy.cluster.hierarchy import weighted
 from skimage.morphology import disk
 import scipy.ndimage
 import scipy.stats
+import scipy.ndimage
 from sklearn.cluster import KMeans
-import tifffile
 import os
 import platform
 import logging
@@ -227,7 +227,6 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     # Small and sparse fiducials are likely noise
     detections_cutoff = config['min_fiducial_detections']
     area_cutoff = config['min_fiducial_size']
-    doublet_cutoff = config['max_detections_per_image']
     quantile_outlier_cutoff = config['quantile_outlier_cutoff']
     quantile_max = 1 - quantile_outlier_cutoff
     quantile_min = quantile_outlier_cutoff

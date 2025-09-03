@@ -1,6 +1,8 @@
 # Directories with binaries
 tests/
 .idea/
+.idea/misc.xml
+.idea/zedtool.iml
 .vscode/
 docs/build/
 docs/source/README.md

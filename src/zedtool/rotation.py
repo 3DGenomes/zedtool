@@ -3,12 +3,6 @@
 import numpy as np
 import pandas as pd
 import logging
-from typing import Tuple
-import sklearn
-import os
-import scipy
-import multiprocessing
-import matplotlib.pyplot as plt
 
 
 def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
@@ -26,8 +20,8 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
     # Loop over all steps and find and apply translation and rotation correction at each step boundary
     for timepoint in range(min_time_point+1, max_time_point+1):
         logging.info(f'Correcting rotation at time point {timepoint}')
-        idx_1 = (timepoints < timepoint) & (is_fiducial)
-        idx_2 = (timepoints == timepoint) & (is_fiducial)
+        idx_1 = (timepoints < timepoint) & is_fiducial
+        idx_2 = (timepoints == timepoint) & is_fiducial
         if np.sum(idx_1) < MIN_FIDUCIAL_DETECTIONS or np.sum(idx_2) < MIN_FIDUCIAL_DETECTIONS:
             logging.warning(f'insufficient detections on one side of time point: {timepoint}')
             logging.warning(f'{np.sum(idx_1)} detections before, {np.sum(idx_2)} detections at time point')

@@ -203,7 +203,7 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     # Add image_id column if missing
     df = compute_image_id(df, config)
     # image_id and deltaz are added before filtering, so that they are available for filtering
-    # Remove detections outside of the selected columns' ranges
+    # Remove detections outside the selected columns' ranges
     if config['select_cols'] != '' and config['select_ranges'] != '':
         df = filter_detections(df, config)
         logging.info(f"Filtered to {df.shape[0]} rows")

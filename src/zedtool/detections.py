@@ -36,7 +36,7 @@ def mask_detections_3d(mask_xyz: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarra
     idx = mask_xyz[x_idx,y_idx,z_idx]
     return(idx.astype(bool))
 
-def bin_detections(det_xyz: np.array,resolution: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def bin_detections(det_xyz: np.ndarray,resolution: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     logging.info("bin_detections")
     # bin detections into a 3D grid
     x = det_xyz[:,0]
@@ -268,8 +268,8 @@ def fwhm_from_points(x):
         # Positions of the half-height crossings
         left_idx = int(results_half[2][0])
         right_idx = int(results_half[3][0])
-        left_x = bin_centers[left_idx]
-        right_x = bin_centers[right_idx]
+        left_x = float(bin_centers[left_idx])
+        right_x = float(bin_centers[right_idx])
         half_height = counts[max_peak_index] / 2
     else:
         return np.nan
