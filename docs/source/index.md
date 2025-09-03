@@ -6,4 +6,5 @@
 :caption: Contents:
 
 README
+manual
 index_api

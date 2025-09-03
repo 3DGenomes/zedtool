@@ -28,7 +28,7 @@ def config_default() -> dict:
         'timename': 't', # not from config file
         # Filtering settings
         'n_min_cutoff': 1,
-        'n_max_cutoff': 10000000000,
+        'n_max_cutoff': 1e10,
         'select_cols': '',
         'select_ranges': '0-0',
         'mask_dimensions': 2,

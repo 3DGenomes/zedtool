@@ -24,7 +24,6 @@
 * Histogram binned detections gets a log scale on y
 * Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
-* Add defaults to config file/README.md
 * Write tutorial on github
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
@@ -33,6 +32,7 @@
 * Count detections per fitting range
 
 ### DONE:
+* Add defaults to config file/README.md
 * Contact SMLM authors asking for detection data with fiducials? Or download without from fightclub?
 * use_pyarrow
 * df.to_csv () can be slow; use some other alternative?
