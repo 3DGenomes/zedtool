@@ -345,3 +345,14 @@ def fwhm_from_points2(x):
         fwhm_value = right_crossing - left_crossing
     return fwhm_value
 
+def check_z_step(df: pd.DataFrame, config: dict) -> int:
+    logging.info('check_z_step')
+    # Check that deltaz is within the expected range
+    z_step_slope, intercept, cor, p_value, std_err = scipy.stats.linregress(df[config['z_step_col']], df[config['z_col']])
+    # if the sign of z_step_step is different to the sign of z_step_slope then warn
+    if np.sign(z_step_slope) != np.sign(config['z_step_step']):
+        logging.warning(f"Sign of empirical z_step_step {z_step_slope} is different to sign of z_step_step {config['z_step_step']}")
+        return 1
+    else:
+        logging.info(f"Empirical z_step_step: {z_step_slope} Config z_step_step: {config['z_step_step']}")
+        return 0

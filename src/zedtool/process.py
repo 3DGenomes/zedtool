@@ -10,7 +10,9 @@ import pyarrow as pa
 import pyarrow.csv
 import fsspec
 from typing import Tuple
-from zedtool.detections import filter_detections, mask_detections_2d, mask_detections_3d, bin_detections, bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz, compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment
+from zedtool.detections import filter_detections, mask_detections_2d, mask_detections_3d, bin_detections
+from zedtool.detections import bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz
+from zedtool.detections import compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment, check_z_step
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d, save_to_tiff_2d
 from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
@@ -215,6 +217,8 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
             pyarrow.csv.write_csv(table, output_file)
         else:
             df.to_csv(output_file, index=False, float_format=config['float_format'])
+    # Check z-step direction and correct if needed
+    check_z_step(df, config)
     return df
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:

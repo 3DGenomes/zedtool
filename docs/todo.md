@@ -1,7 +1,6 @@
 ### TODO:
 * Use ignore_image_id_col to determine output cols?
 * distance correlation (dCor) algorithm and permutation test for fiducial summary plots
-* Automatically check z_step_step sign and WARN if wrong
 * Handle files with missing first col in header like this:
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
@@ -13,7 +12,6 @@
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * Should throw errors for ERROR messages (eg. when there's no fiducials)
 * Option to exclude fiducials that are missing detections in some time intervals
-* In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
@@ -28,6 +26,8 @@
 * Check that precision is being preserved in corrected_detections,csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
+* Automatically check z_step_step sign and WARN if wrong
 * Add option to export only fiducials or good fiducials plus detections 
 * Write tutorial on github
 * Add doc building stuff to requirements 
