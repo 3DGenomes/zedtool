@@ -1,0 +1,75 @@
+digraph zedtool_flow {
+    rankdir=LR;
+    fontsize=12;
+    fontname="Helvetica";
+
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+
+    // Input files cluster
+    subgraph cluster_inputs {
+        label = "Input files";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style=filled;
+        color=black;
+        fillcolor="#e6f2ff"; // pale blue
+
+        inputs [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">config.yaml</TD></TR>
+                <TR><TD ALIGN="LEFT">detections_file.csv</TD></TR>
+                <TR><TD ALIGN="LEFT">concatenate_detections_file.csv</TD></TR>
+                <TR><TD ALIGN="LEFT">concatenate_offset_file.csv</TD></TR>
+                <TR><TD ALIGN="LEFT">zedtool.log</TD></TR>
+            </TABLE>
+        >, shape=box, style=rounded, fillcolor=white];
+    }
+
+    // Output detections and plots cluster
+    subgraph cluster_output {
+        label = "Output detections and plots";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style=filled;
+        color=black;
+        fillcolor="#eaffea"; // pale green
+
+        outputs [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">output_dir</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/summary_plots</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/time_point_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/fiducial_step_fit</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/fiducials/histograms</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/fiducials/f_idnum_z_value_y_value_x_value</TD></TR>
+            </TABLE>
+        >, shape=box, style=rounded, fillcolor=white];
+    }
+
+    // Corrected detections and plots cluster
+    subgraph cluster_corrected {
+        label = "Corrected detections and plots";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style=filled;
+        color=black;
+        fillcolor="#fff0e6"; // pale orange
+
+        corrected [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">output_dir_corrected</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir/summary_plots</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir_corrected/time_point_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir_corrected/fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir_corrected/fiducials/histograms</TD></TR>
+                <TR><TD ALIGN="LEFT">output_dir_corrected/fiducials/f_idnum_z_value_y_value_x_value</TD></TR>
+            </TABLE>
+        >, shape=box, style=rounded, fillcolor=white];
+    }
+
+    // Arrows only between clusters
+    inputs -> outputs;
+    inputs -> corrected;
+}
+

@@ -122,6 +122,11 @@ def read_config(yaml_config_file: str) -> dict:
         logging.info(f"Using {config['num_threads']} threads for processing")
     else:
         logging.info("multiprocessing is disabled")
+    # Warn if included_fiducials or excluded_fiducials are set as well as either config['quantile_outlier_cutoff'] or config['min_fiducial_detections'] being non-zero
+    if (not config['included_fiducials'].empty or not config['excluded_fiducials'].empty) and (config['quantile_outlier_cutoff']>0 or config['min_fiducial_detections']>0):
+        logging.warning("included_fiducials or excluded_fiducials are set, so quantile_outlier_cutoff and min_fiducial_detections should be zero but are not.")
+    if (config['quantile_outlier_cutoff']>0 and config['min_fiducial_detections']>0):
+        logging.warning("Both quantile_outlier_cutoff and min_fiducial_detections are set to non-zero values. Only one should be set to non-zero.")
     return config
 
 def read_detections(config: dict) -> pd.DataFrame:

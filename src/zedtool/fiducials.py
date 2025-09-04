@@ -31,7 +31,7 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     dilation_disc_radius = config['dilation_disc_radius']
     # gaussian_filter_disc_radius = 1
     fiducial_label_file = 'fiducials_labels.png'
-    plot_histogram(np.log10(img[img>0]), 'log10(bin)', 'Number of bins', 'Histogram of binned detections image', 'histogram_binned_detections', config)
+    plot_histogram(np.log10(img[img>0]), 'log10(detections in bin)', 'number of bins (log scale)', 'Histogram of binned detections image', 'histogram_binned_detections', config)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_filter_disc_radius))
     # img_filt = skimage.filters.gaussian(img, sigma=gaussian_filter_disc_radius)
     if config['only_fiducials']:
@@ -275,6 +275,13 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
                 if ub > 0:
                     idx = idx & (x <= x_max)
                     logging.info(f"Filtering {col}: {np.sum(x > x_max)} entries > {x_max:.2f} from total {len(df_fiducials)}")
+                # in addition to quantile or sd_outlier_cutoff filtering for detections_per_image, also apply max_detections_per_image from config
+                if col=='detections_per_image':
+                    logging.info(f"Filtering {col}: mean {np.mean(x):.2f}, max {np.max(x):.2f}")
+                    max_detections_per_image = config['max_detections_per_image']
+                    if max_detections_per_image > 0:
+                        idx = idx & (x <= max_detections_per_image)
+                        logging.info(f"Filtering {col}: {np.sum(x > max_detections_per_image)} entries > {max_detections_per_image:.2f} from total {len(df_fiducials)}")
             else:
                 logging.warning(f'Column {col} not found in df_fiducials')
 

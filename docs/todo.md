@@ -1,31 +1,27 @@
 ### TODO:
 * Use ignore_image_id_col to determine output cols?
 * distance correlation (dCor) algorithm and permutation test for fiducial summary plots
-* Handle files with missing first col in header like this:
-  ```
-  ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
-  0,0,170.53981,269.0068,0.5935291,4966.0,0.039154563,0.039881457,21.0,0.15018058,0.15018058
-  ...
-  ```
-* Fail if there are no good fiducials and report why there might be a problem (filtering turned on while using included_fiducial)
+* Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
+* Throw error if there are no good fiducials and report why there might be a problem
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
-* Should throw errors for ERROR messages (eg. when there's no fiducials)
 * Option to exclude fiducials that are missing detections in some time intervals
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
-* Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
+* Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
-* Reinstate max_detections_per_image
-* Histogram binned detections gets a log scale on y
-* Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
 * Count detections per fitting range
-* Check that precision is being preserved in corrected_detections,csv (or replaced with something usable - maybe plot old and new)
+* Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* Warn:  (eg. filtering turned on while using included_fiducial)
+* problem with make_fiducial_correlations?
+* Make a webpage with all relevant output. Fixed up dirs instead
+* Reinstate max_detections_per_image
+* Histogram binned detections gets a log scale on y
 * In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
 * Automatically check z_step_step sign and WARN if wrong
 * Add option to export only fiducials or good fiducials plus detections 

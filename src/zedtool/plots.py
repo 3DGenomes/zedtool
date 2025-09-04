@@ -162,7 +162,8 @@ def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-
+    if "log" in ylabel.lower():
+        plt.yscale("log")
     figure_path = construct_plot_path(filename, filetype, config)
     plt.savefig(figure_path, dpi=300)
     plt.close()
@@ -282,38 +283,43 @@ def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
     None
         Saves the plot(s) to file.
     """
-
     plot_histogram(df[config['x_sd_col']], f"{config['x_sd_col']} (nm)", 'Detections',
-                   f"Detections {config['x_sd_col']}", 'x_sd_histogram', config)
+                   f"Detections {config['x_sd_col']}", os.path.join('summary_plots', 'x_sd_histogram'), config)
     plot_histogram(df[config['y_sd_col']], f"{config['y_sd_col']} (nm)", 'Detections',
-                   f"Detections {config['y_sd_col']}", 'y_sd_histogram', config)
+                   f"Detections {config['y_sd_col']}", os.path.join('summary_plots','y_sd_histogram'), config)
     plot_histogram(df[config['z_sd_col']], f"{config['z_sd_col']} (nm)", 'Detections',
-                   f"Detections {config['z_sd_col']}", 'z_sd_histogram', config)
-    plot_histogram(df[config['z_step_col']], 'z-step', 'Detections', "Detections by z-step", "zstep_histogram", config)
+                   f"Detections {config['z_sd_col']}", os.path.join('summary_plots','z_sd_histogram'), config)
+    plot_histogram(df[config['z_step_col']], 'z-step', 'Detections',
+                   "Detections by z-step", os.path.join('summary_plots','zstep_histogram') , config)
     plot_histogram(df[config['deltaz_col']], f"{config['deltaz_col']} (nm)", 'Detections',
-                   'Detections delta z', 'delta_z_histogram', config)
-    plot_scatter(df[config['image_id_col']], df[config['z_col']], f"{config['image_id_col']}", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['image_id_col']}", 'z_vs_t', config)
-    plotly_scatter(df[config['image_id_col']], df[config['z_col']],None, f"{config['image_id_col']}", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['image_id_col']}", 'z_vs_t', config)
-    plot_scatter(df[config['image_id_col']], df[config['photons_col']], f"{config['image_id_col']}", f"{config['photons_col']}", f"{config['photons_col']} vs {config['image_id_col']}",
-                 'photon_count_vs_t', config)
-    plotly_scatter(df[config['image_id_col']], df[config['photons_col']], None, f"{config['image_id_col']}", f"{config['photons_col']}", f"{config['photons_col']} vs {config['image_id_col']}",
-                 'photon_count_vs_t', config)
-    plot_scatter(df[config['image_id_col']], df[config['z_step_col']], f"{config['image_id_col']}", f"{config['z_step_col']}", f"{config['z_step_col']} vs {config['image_id_col']}",
-                 'zstep_vs_t', config)
+                   'Detections delta z', os.path.join('summary_plots','delta_z_histogram'), config)
+    plot_scatter(df[config['image_id_col']], df[config['z_col']], f"{config['image_id_col']}", f"{config['z_col']} (nm)",
+                 f"{config['z_col']} vs {config['image_id_col']}", os.path.join('summary_plots','z_vs_t'), config)
+    plotly_scatter(df[config['image_id_col']], df[config['z_col']],None, f"{config['image_id_col']}", f"{config['z_col']} (nm)",
+                   f"{config['z_col']} vs {config['image_id_col']}", os.path.join('summary_plots','z_vs_t'), config)
+    plot_scatter(df[config['image_id_col']], df[config['photons_col']], f"{config['image_id_col']}", f"{config['photons_col']}",
+                 f"{config['photons_col']} vs {config['image_id_col']}",os.path.join('summary_plots','photon_count_vs_t'), config)
+    plotly_scatter(df[config['image_id_col']], df[config['photons_col']], None, f"{config['image_id_col']}", f"{config['photons_col']}",
+                   f"{config['photons_col']} vs {config['image_id_col']}",os.path.join('summary_plots','photon_count_vs_t'), config)
+    plot_scatter(df[config['image_id_col']], df[config['z_step_col']], f"{config['image_id_col']}", f"{config['z_step_col']}",
+                 f"{config['z_step_col']} vs {config['image_id_col']}",os.path.join('summary_plots','zstep_vs_t'), config)
     plot_scatter(df[config['deltaz_col']] , df[config['z_col']],
-                 f"{config['deltaz_col']} (nm)", f"{config['z_col']} (nm)", f"{config['z_col']} vs {config['deltaz_col']}", 'z_vs_delta_z', config)
+                 f"{config['deltaz_col']} (nm)", f"{config['z_col']} (nm)",
+                 f"{config['z_col']} vs {config['deltaz_col']}", os.path.join('summary_plots','z_vs_delta_z'), config)
 
     for colname in [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
         z_mean, t = z_means_by_marker(det_xyz, df[colname].values)
-        plot_scatter(t, z_mean, colname, f'mean(z) per {colname} (nm)', f"mean(z) vs {colname}", f'z_mean_per_{colname}_vs_{colname}', config)
+        plot_scatter(t, z_mean, colname, f'mean(z) per {colname} (nm)',
+                     f"mean(z) vs {colname}", os.path.join('summary_plots',f'z_mean_per_{colname}_vs_{colname}'), config)
     # For zstep, save as a tsv file with diff(z_mean)
     # This file can be useful in determining z_step_step empirically if it's not known
+    # Alternatively, check the logfile for the estimate therein.
     z_mean, z_step = z_means_by_marker(det_xyz, df[config['z_step_col']].values)
     z_max, z_step = z_max_by_marker(det_xyz, df[config['z_step_col']].values)
     df_z = pd.DataFrame({'z_step': z_step, 'z_mean': z_mean, 'z_max': z_max})
     df_z['diff_z_mean'] = df_z['z_mean'].diff()
     df_z['diff_z_max'] = df_z['z_max'].diff()
-    df_z.to_csv(os.path.join(config['output_dir'], 'z_mean_max_vs_z_step.tsv'), sep='\t', index=False)
+    df_z.to_csv(os.path.join(config['output_dir'], os.path.join('summary_plots','z_mean_max_vs_z_step.tsv')), sep='\t', index=False)
 
 def stats_text(x: np.ndarray,title: str) -> str:
     """
@@ -590,7 +596,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         cax = divider.append_axes("right", size="15%", pad=0.2)
         cbar = plt.colorbar(sc, cax=cax, label=col)
         cbar.set_alpha(1.0)  # Set colorbar alpha to 1.0 (fully opaque) - otherwise it's too transparent
-        cbar.draw_all()  # Redraw to apply the alpha setting
+        cbar.update_normal(sc)  # Update colorbar to apply the alpha setting
         ax[1, 1].set_axis_off()
         outpath = os.path.join(outdir, f"{fiducial_name}_cov_{col}")
         figure_path = construct_plot_path(outpath, "png", config)

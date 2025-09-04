@@ -6,9 +6,11 @@ Text
 
 ### Steps
 
-![Plot Example](images/flowchart.png)
+<!-- ![Plot Example](images/flowchart.png) --> 
+<img src="images/flowchart.png" alt="Plot Example" width="300"/>
 
 ### Input and output files
+![Plot Example](images/files.png)
 
 ### Detection file format
 
@@ -56,6 +58,9 @@ setting: value
 ### Assessing
 
 ### Filtering
+* quantile or sd_outlier_cutoff
+* filtering quantities: 'n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr'
+* detections_per_image also has cutoff from max_detections_per_image
 
 ### Selection
 
