@@ -1,0 +1,92 @@
+digraph ZedToolFlow {
+    rankdir=TB;
+    node [shape=box, style=rounded, fontsize=11, fontname="Helvetica"];
+
+    # --- Preprocess ---
+    subgraph cluster_preprocess {
+        label = "Pre-process";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style="filled,rounded";        
+        color=black;
+        fillcolor="#e6f2ff";  # pale blue
+
+        preprocess [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">cat_experiment</TD></TR>
+                <TR><TD ALIGN="LEFT">apply_corrections</TD></TR>
+                <TR><TD ALIGN="LEFT">compute_deltaz_and_image_id</TD></TR>
+                <TR><TD ALIGN="LEFT">filter_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">threshold_detections_2d</TD></TR>
+                <TR><TD ALIGN="LEFT">threshold_detections_3d</TD></TR>
+            </TABLE>
+        >, shape=box, style=rounded];
+    }
+
+    subgraph cluster_plots_pre {
+        label = "Plots (Pre-correction)";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style="filled,rounded";        
+        color=black;
+        fillcolor="#fff0f5";  # pale pink
+
+        plots_pre [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">filter_fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducial_quality_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducial_correlations</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_summary_stats</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_time_point_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fourier_correlation</TD></TR>
+            </TABLE>
+        >];
+    }
+
+    subgraph cluster_corrections {
+        label = "Corrections";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style="filled,rounded";        
+        color=black;
+        fillcolor="#eaf7ea";  # pale green
+
+        corrections [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">zstep_correct_fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">rotation_correct_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">drift_correct_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">deltaz_correct_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">deconvolve_z</TD></TR>
+            </TABLE>
+        >];
+    }
+
+    subgraph cluster_plots_post {
+        label = "Plots (Post-correction)";
+        fontsize=14;
+        fontname="Helvetica-Bold";
+        style="filled,rounded";        
+        color=black;
+        fillcolor="#fff0f5";  # pale pink
+
+        plots_post [label=<
+            <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="1">
+                <TR><TD ALIGN="LEFT">filter_fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_detections</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducial_quality_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducial_correlations</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fiducials</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_summary_stats</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_time_point_metrics</TD></TR>
+                <TR><TD ALIGN="LEFT">plot_fourier_correlation</TD></TR>
+            </TABLE>
+        >];
+    }
+
+    # Flow arrows
+    preprocess -> plots_pre -> corrections -> plots_post;
+}
+

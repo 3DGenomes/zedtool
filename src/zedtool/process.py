@@ -237,20 +237,20 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     # x_idx gives the bin x-index for each detection, similarly for y and z
     x_idx, y_idx, z_idx = make_image_index(det_xyz, x_bins, y_bins, z_bins)
 
-    if config['mask_on_density']:
+    if config['threshold_on_density']:
         # Mask on density to remove bright/dim areas
         # Mostly unused but can speed up processing and remove background
-        if config['mask_dimensions']==2:
+        if config['threshold_dimensions']==2:
             mask = make_density_mask(n_xy, config)
-        elif config['mask_dimensions']==3:
+        elif config['threshold_dimensions']==3:
             mask = make_density_mask(counts_xyz, config)
         else:
-            logging.error("mask_dimensions must be 2 or 3")
+            logging.error("threshold_dimensions must be 2 or 3")
         logging.info(f"Before masking on density: {len(df)} detections")
         # Select detections in mask
-        if config['mask_dimensions']==2:
+        if config['threshold_dimensions']==2:
             idx = mask_detections_2d(mask, x_idx, y_idx)
-        elif config['mask_dimensions']==3:
+        elif config['threshold_dimensions']==3:
             idx = mask_detections_3d(mask, x_idx, y_idx, z_idx)
         logging.info(f"After masking on density: {np.sum(idx)} detections")
         # Apply masks
@@ -273,20 +273,24 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
         save_to_tiff_3d(counts_xyz,"binned_detections_3d", config)
 
-    # If we don't already have them, then find fiducials in the binned image
+    # If we don't already have them, then find fiducials in the binned image.
     # Treat n_xy as an image and segment, expand segmented areas, make labels and attached to df. Save centroids and labels
     if df_fiducials is None:
         df, df_fiducials = find_fiducials(n_xy, df, x_idx, y_idx, config)
 
-    # Find wobbliness, detections per fiducial, correlation between x, y and z for each fiducial
+    # Find "wobbliness", detections per fiducial, correlation between x, y and z for each fiducial
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     outpath = os.path.join(config['fiducial_dir'], "fiducials_unfiltered.tsv")
     df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
-    # Remove problematic and outlier fiducials
-    df, df_fiducials = filter_fiducials(df_fiducials, df, config)
-    outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
-    df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
+    # Remove problematic and outlier fiducials.
+    # Normally you always want to do this.
+    # One exception would be if you are benchmarking and you want to compare like-with-like.
+    # That is, you want to do plots on the same set of fiducials (correction can change which fiducials are accepted).
+    if config['making_corrrections'] or config['refilter_fiducials_after_correction']:
+        df, df_fiducials = filter_fiducials(df_fiducials, df, config)
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
+        df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     if config['make_quality_metrics']:
         df_metrics = make_quality_metrics(df, df_fiducials, config)
@@ -347,15 +351,17 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     logging.info("post_process_detections")
     config_post = config.copy()
 
-    # don't do corrections
+    # don't do corrections or other modifications in the second pass
     config_post['rotation_correct_detections'] = 0
     config_post['drift_correct_detections'] = 0
     config_post['drift_correct_detections_multi_pass'] = 0
     config_post['zstep_correct_fiducials'] = 0
     config_post['deltaz_correct_detections'] = 0
     config_post['deconvolve_z'] = 0
+    config_post['making_corrrections'] = 0
+    config['create_backup_columns'] = 0 # no need to back up again
     # no density masking - already done
-    config_post['mask_on_density'] = 0
+    config_post['threshold_on_density'] = 0
 
     # don't make caches if we're just plotting the first pass
     config_post['make_caches'] = 0
@@ -366,8 +372,7 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     # Make output directories for second pass
     os.makedirs(config_post['output_dir'], exist_ok=True)
     os.makedirs(config_post['fiducial_dir'], exist_ok=True)
-    if config_post['plot_time_point_metrics']:
-        os.makedirs(config_post['time_point_metrics_dir'], exist_ok=True)
+    os.makedirs(config_post['time_point_metrics_dir'], exist_ok=True)
 
     # don't use included/excluded fiducials because the labelling will have changed
     if config_post['resegment_after_correction']:
@@ -405,6 +410,15 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
             pyarrow.csv.write_csv(table, output_file)
         else:
             df[is_fiducial == 0].to_csv(output_file, index=False, float_format=config_post['float_format'])
+    # Save fiducials only to csv
+    if config_post['save_fiducial_detections']:
+        output_file = os.path.join(config_post['output_dir'], 'corrected_detections_fiducials.csv')
+        logging.info(f"Writing fiducial corrected detections to {output_file}")
+        if config_post['use_pyarrow']:
+            table = pa.Table.from_pandas(df[is_fiducial == 1], preserve_index=False)
+            pyarrow.csv.write_csv(table, output_file)
+        else:
+            df[is_fiducial == 1].to_csv(output_file, index=False, float_format=config_post['float_format'])
     return df
 
 def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -428,6 +442,7 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
     outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected_2.tsv")
+    df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config)
     outpath = os.path.join(config['output_dir'], "quality_metrics_summary_pass_2.tsv")

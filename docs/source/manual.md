@@ -3,6 +3,8 @@ Performing QC and artifact correction with zedtool
 
 ## Workflow overview
 Text
+![Plot Example](images/flowchart.png)
+
 ### Steps
 
 ### Input and output files
@@ -10,7 +12,8 @@ Text
 ### Detection file format
 
 #### Specifying column names
-
+* Adding and using the zeros column.
+ 
 ## Quality assessment
 
 ### Plots 

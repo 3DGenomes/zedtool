@@ -54,6 +54,10 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 This can be used for quality filtering and or for processing only a portion of the field of view. (``)
 - `select_ranges`: Comma-separated list of value ranges for filtering detections. 
 Number of entries must match select_cols. (`0-0`)
+- `threshold_on_density`: If 1 then threshold detections based on density in binned image. (`0`)
+- `threshold_dimensions`: Dimensions used for binning the image used for thresholding (2 or 3). (`2`)
+- `threshold_min_cutoff`: Minimum detections in a bin for thresholding. (`1`)
+- `threshold_max_cutoff`: Maximum detections in a bin for thresholding. (`1e10`)
 
 ### **Frame, z-step, cycle, and time-point Ranges**
 - `frame_range`: Range of frames per z-step. (`0-0`)
@@ -141,7 +145,8 @@ In addition, it writes a file to the output directory called `drift_correction.t
 - `rotation_correct_detections`: Correct for rotation/translation of the sample at time point boundaries.  (`0`)
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation. (`0`)
 - `deconvolve_z`: Reduce variation in z using a deconvolution-like approach. Experimental.  (`0`)
-- `save_non_fiducial_detections` Save non-fiducial detections to a separate file, `non_fiducial_detections.tsv`  (`0`)
+- `save_non_fiducial_detections` Save corrected non-fiducial detections to a separate file, `corrected_detections_no_fiducials.csv`  (`0`)
+- `save_fiducial_detections` Save corrected fiducial detections to a separate file, `corrected_detections_fiducials.csv`  (`0`)
 ## Example Configuration File
 Options are read from a yaml configuration file supplied on the command line. Here is an example:
 

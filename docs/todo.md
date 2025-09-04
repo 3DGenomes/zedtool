@@ -1,6 +1,7 @@
 ### TODO:
 * Use ignore_image_id_col to determine output cols?
 * distance correlation (dCor) algorithm and permutation test for fiducial summary plots
+* Automatically check z_step_step sign and WARN if wrong
 * Handle files with missing first col in header like this:
   ```
   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
@@ -8,15 +9,11 @@
   ...
   ```
 * Fail if there are no good fiducials and report why there might be a problem (filtering turned on while using included_fiducial)
-* Diagram of workflow
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
-* Automatically check z_step_step sign and WARN if wrong
 * Should throw errors for ERROR messages (eg. when there's no fiducials)
-* Add option to export only fiducials or good fiducials plus detections 
 * Option to exclude fiducials that are missing detections in some time intervals
 * In process_detections() reduce unnecessary operations if only appending or plotting segmentation.
-* Check that precision is being preserved in corrected_detections,csv (or replaced with something usable - maybe plot old and new)
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise: - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
@@ -24,14 +21,20 @@
 * Histogram binned detections gets a log scale on y
 * Make a webpage with all relevant output
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
-* Write tutorial on github
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
   - see if data type requiring less data can be specified.
-* Optionally add faked error cols if they are not there. Or do without somehow.
 * Count detections per fitting range
+* Check that precision is being preserved in corrected_detections,csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* Add option to export only fiducials or good fiducials plus detections 
+* Write tutorial on github
+* Add doc building stuff to requirements 
+* Optionally do not re-filter fiducials to allow for benchmarking
+* Change mask to thresholding and add to doc    
+* Optionally add faked error cols if they are not there. Or do without somehow.
+* Diagram of workflow
 * Add defaults to config file/README.md
 * Contact SMLM authors asking for detection data with fiducials? Or download without from fightclub?
 * use_pyarrow

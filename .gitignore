@@ -4,6 +4,8 @@ tests/
 .vscode/
 docs/build/
 docs/source/README.md
+docs/source/tutorial.md
+docs/source/images/*sh
 # Python compiled files
 *.pyc
 __pycache__/

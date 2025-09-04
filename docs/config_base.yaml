@@ -28,6 +28,10 @@ n_max_cutoff: 10000000000
 mask_dimensions: 2 # dimensions used for masking detections in binned image (2 or 3)
 select_cols: x,y,precisionz # comma separated list of selection criteria for ranges
 select_ranges: 30000-40000,30000-40000,0-100 # comma separated list of ranges
+threshold_on_density: 0 # if 1 then threshold detections based on density in binned image
+threshold_dimensions: 2 # dimensions used for binning the image used for thresholding (2 or 3)
+threshold_min_cutoff: 0 # minimum detections in a bin for thresholding
+threshold_max_cutoff: 1e10 # maximum detections in a bin for thresholding
 
 # Deconvolution parameters
 decon_min_cluster_sd: 10 # Minimum standard deviation of clusters to be considered for deconvolution.
@@ -103,3 +107,4 @@ drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to 
 deltaz_correct_detections: 0 # correct z co-ordinate of all detections for deltaz variation
 deconvolve_z: 0 # deconvolve z from the detections
 save_non_fiducial_detections: 0 # save non-fiducial detections to a separate file
+save_fiducial_detections: 0 # save fiducial detections to a separate file

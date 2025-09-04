@@ -20,6 +20,7 @@ def config_default() -> dict:
         'output_column_names': None,
         'ignore_image_id_col': 0,
         'create_backup_columns': 0,
+        'refilter_fiducials_after_correction': 1,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,
@@ -27,11 +28,11 @@ def config_default() -> dict:
         'dimnames': ['x','y','z'], # not from config file
         'timename': 't', # not from config file
         # Filtering settings
-        'n_min_cutoff': 1,
-        'n_max_cutoff': 1e10,
+        'threshold_min_cutoff': 1,
+        'threshold_max_cutoff': 1e10,
         'select_cols': '',
         'select_ranges': '0-0',
-        'mask_dimensions': 2,
+        'threshold_dimensions': 2,
         # experiment settings
         'frame_range': '0-0',
         'z_step_range': '0-0',
@@ -84,7 +85,7 @@ def config_default() -> dict:
         'apply_drift_correction': 0,
         'concatenate_detections': 0,
         'save_binned_detections': 0,
-        'mask_on_density': 0,
+        'threshold_on_density': 0,
         'make_quality_metrics': 0,
         'plot_per_fiducial_fitting': 0,
         'plot_fiducial_correlations': 0,
@@ -94,6 +95,7 @@ def config_default() -> dict:
         'plot_fiducials': 0,
         'plot_fourier_correlation': 0,
         'save_non_fiducial_detections': 0,
+        'save_fiducial_detections': 0,
         'zstep_correct_fiducials': 0,
         'deltaz_correct_detections': 0,
         'deconvolve_z': 0,
@@ -135,6 +137,7 @@ def config_validate(config: dict) -> int:
     return ret
 
 def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
+
     ret = 1
     # Check existence of columns
     required_cols = [config['frame_col'],

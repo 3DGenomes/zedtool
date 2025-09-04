@@ -9,8 +9,8 @@ import re
 
 def make_density_mask(n: np.ndarray, config: dict) -> np.ndarray:
     # Make a mask for the density of detections in the x-y plane or in xyz
-    n_max = config['n_max_cutoff']
-    n_min = config['n_min_cutoff']
+    n_max = config['threshold_max_cutoff']
+    n_min = config['threshold_min_cutoff']
     mask = np.zeros(n.shape)
     mask[ (n >= n_min) & (n <= n_max) ] = 1
     return mask
@@ -24,17 +24,17 @@ def make_image_index(det_xyz, x_bins, y_bins, z_bins) -> Tuple[np.ndarray, np.nd
 
 def im_to_detection_entry(im: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray) -> np.ndarray:
     # Mask detections in the x-y plane
-    return(im[x_idx,y_idx])
+    return im[x_idx,y_idx]
 
 def mask_detections_2d(mask_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray) -> np.ndarray:
     # Mask detections in the x-y plane
     idx = mask_xy[x_idx,y_idx]
-    return(idx.astype(bool))
+    return idx.astype(bool)
 
 def mask_detections_3d(mask_xyz: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, z_idx: np.ndarray) -> np.ndarray:
     # Mask detections in the x-y plane
     idx = mask_xyz[x_idx,y_idx,z_idx]
-    return(idx.astype(bool))
+    return idx.astype(bool)
 
 def bin_detections(det_xyz: np.ndarray,resolution: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     logging.info("bin_detections")
