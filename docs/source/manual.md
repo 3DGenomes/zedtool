@@ -3,26 +3,28 @@ Performing QC and artifact correction with zedtool
 
 ## Workflow overview
 Text
-![Plot Example](images/flowchart.png)
 
 ### Steps
+
+![Plot Example](images/flowchart.png)
 
 ### Input and output files
 
 ### Detection file format
 
 #### Specifying column names
-* Adding and using the zeros column.
+* Adding and using the zeros column for use in missing columns.
  
 ## Quality assessment
 
 ### Plots 
 
+![Plot Example](images/fiducials_plot.png)
+
 ### Tables
 
 ### Fiducials
 Text
-![Plot Example](images/fiducials_plot.png)
 
 ```bash
 setting: value
@@ -49,13 +51,20 @@ setting: value
 ```
 ## Fiducial markers
 
+### Segmenting
+
 ### Assessing
 
 ### Filtering
 
 ### Selection
 
+## Rotation correction
+
 ## Drift correction
+* How the method works
+
+### Fitting parameters
 
 ### Choosing fiducials
 
@@ -63,7 +72,10 @@ setting: value
 
 ### Importing and exporting drift correction
 
+## Deltaz correction
+
 ## Joining experiments
+* Files required and offsets
 
 ## Further data exploration
 
