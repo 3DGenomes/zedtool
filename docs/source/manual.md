@@ -88,6 +88,9 @@ setting: value
 
 ### Movement at small time scales
 
-
+## Example of typical use cases
+* Example 1: Simple QC and drift correction
+* Example 2: Experiment in two parts that require joining
+* Example 3: Experiment requiring manual fiducial selection
 
 

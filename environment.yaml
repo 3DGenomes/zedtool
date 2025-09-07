@@ -1,4 +1,4 @@
-name: zedtool-env-312
+name: zedtool-env
 channels:
   - conda-forge
   - defaults

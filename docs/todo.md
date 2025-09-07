@@ -1,4 +1,7 @@
 ### TODO:
+* INFO - Making array of fiducial distances for 42 fiducials
+- /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:351: RuntimeWarning: All-NaN slice encountered   median_dzdt = np.nanmedian(dzdt)
+- /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:352: RuntimeWarning: All-NaN slice encountered   dzdt_mad[i,j] = np.nanmedian(np.abs(dzdt - median_dzdt))
 * Use ignore_image_id_col to determine output cols?
 * distance correlation (dCor) algorithm and permutation test for fiducial summary plots
 * Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
