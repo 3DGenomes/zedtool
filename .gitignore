@@ -2,6 +2,8 @@
 tests/
 .idea/
 .vscode/
+build/
+zedtool.egg-info/
 docs/build/
 docs/source/README.md
 docs/source/tutorial.md
