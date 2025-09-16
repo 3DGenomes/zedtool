@@ -74,6 +74,7 @@ max_detections_per_image: 1.1 # maximum number of detections per fiducial per im
 quantile_outlier_cutoff: 0 # throws away tails of several distributions for fiducial qc metrics (typically = 0.01-0.05)
 sd_outlier_cutoff: 0 # standard deviation outlier cutoff for fiducial qc metrics; overrides quantile method. (typically = 2)
 filter_fiducials_with_clustering: 0 # if 1, then use pre-drift correction clustering to filter fiducials
+filter_columns: # comma separated list of columns to use for filtering fiducials. (mean_intensity,n_detections,x_sd,y_sd,z_sd,photons_mean,x_madr,y_madr,z_madr,time_point_separation)
 polynomial_degree: 2 # degree of polynomial to fit drift correction
 fitting_interval: time_point # interval over which to fit the polynomial - [frame|z_step|cycle|time_point]
 use_weights_in_fit: 0 # use the precision values in the fit

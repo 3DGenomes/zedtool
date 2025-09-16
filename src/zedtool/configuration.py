@@ -20,7 +20,7 @@ def config_default() -> dict:
         'output_column_names': None,
         'ignore_image_id_col': 0,
         'create_backup_columns': 0,
-        'refilter_fiducials_after_correction': 1,
+        'refilter_fiducials_after_correction': 0,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,
@@ -33,6 +33,7 @@ def config_default() -> dict:
         'select_cols': '',
         'select_ranges': '0-0',
         'threshold_dimensions': 2,
+        'filter_columns': ['mean_intensity','n_detections','x_sd','y_sd','z_sd','photons_mean','x_madr','y_madr','z_madr','time_point_separation'],
         # experiment settings
         'frame_range': '0-0',
         'z_step_range': '0-0',

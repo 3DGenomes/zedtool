@@ -42,7 +42,7 @@ def main(yaml_config_file: str) -> int:
     if df is None:
         print(f"Failed to process detections file {config['detections_file']}")
         return 1
-    if config['making_corrrections']:
+    if config['making_corrections']:
         df = post_process_detections(df, df_fiducials, config)
     if df is None:
         print(f"Failed to post process detections file {config['detections_file']}")

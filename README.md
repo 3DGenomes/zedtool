@@ -102,6 +102,8 @@ comparisons of pre- and post-correction fiducial positions.
 20 fiducials then set this to 0. (`0.02`)
 - `filter_fiducials_with_clustering`: If 1, then cluster on intensity in 2D binned image and select high population. 
 Not very robust. Use only if all else fails. (`0`)
+- `filter_columns`: Comma separated list of columns to use for filtering fiducials.
+(`mean_intensity,n_detections,x_sd,y_sd,z_sd,photons_mean,x_madr,y_madr,z_madr,time_point_separation`)
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 1 or 2. (`2`)
 - `fitting_interval`: Interval over which to fit the polynomial curve to the drift correction - [frame|z_step|cycle|time_point]. (`time_point`)
 - `use_weights_in_fit`: Whether to use uncertainty values for x,y,z when fitting. (`0`)

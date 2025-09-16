@@ -69,7 +69,7 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
     crossings = np.where(frc_vals < 1 / 7)[0]
     if crossings.size > 0:
         cutoff_resolution_nm = spatial_resolutions[crossings[0]]
-        print(f"Estimated resolution: {cutoff_resolution_nm:.1f} nm")
+        print(f"Estimated resolution {ndim}D: {cutoff_resolution_nm:.1f} nm")
         # Write on plot
         plt.text(0.1, 0.3, f"Estimated resolution: {cutoff_resolution_nm:.1f} nm", transform=plt.gca().transAxes,
                     fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
@@ -115,7 +115,7 @@ def compute_fsc(n, binsize, config) -> Tuple[np.ndarray, np.ndarray]:
     freqs = [np.fft.fftfreq(j, d=binsize) for j in shape]
     # Create a meshgrid of frequencies for all axes
     mesh = np.meshgrid(*freqs, indexing='ij')
-    # Compute the radial frequency (Euclidean norm) at each poij')
+    # Compute the radial frequency (Euclidean norm) at each ij')
     kr = np.linalg.norm(np.stack(mesh, axis=-1), axis=-1)
 
     max_freq = kr.max()

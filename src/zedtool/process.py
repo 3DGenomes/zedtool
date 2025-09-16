@@ -98,13 +98,17 @@ def read_config(yaml_config_file: str) -> dict:
     logging.info(f"Excluded fiducials: {config['excluded_fiducials'].to_list()}")
     logging.info(f"Included fiducials: {config['included_fiducials'].to_list()}")
 
+    # if filter_columns is set then convert comma-separated string to list
+    if isinstance(config['filter_columns'], str):
+        config['filter_columns'] = config['filter_columns'].split(',')
+
     # Parallel processing is incompatible with no_display = False
     if config['multiprocessing'] and no_display==False:
         logging.error("Parallel processing is not supported when not headless.")
         return {}
 
     # Are we doing corrections? If so then a second pass is needed to replot things
-    config['making_corrrections'] = (config['zstep_correct_fiducials'] or
+    config['making_corrections'] = (config['zstep_correct_fiducials'] or
                             config['drift_correct_detections'] or
                             config['drift_correct_detections_multi_pass'] or
                             config['deltaz_correct_detections'] or
@@ -293,10 +297,10 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     # Remove problematic and outlier fiducials.
-    # Normally you always want to do this.
-    # One exception would be if you are benchmarking and you want to compare like-with-like.
-    # That is, you want to do plots on the same set of fiducials (correction can change which fiducials are accepted).
-    if config['making_corrrections'] or config['refilter_fiducials_after_correction']:
+    # Normally only done on the first pass when you're making corrections.
+    # Not when you're just plotting the results of a previous correction.
+    # But the option is there to re-filter after correction if desired.
+    if config['making_corrections'] or config['refilter_fiducials_after_correction']:
         df, df_fiducials = filter_fiducials(df_fiducials, df, config)
         outpath = os.path.join(config['fiducial_dir'], "fiducials_filtered.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
@@ -325,7 +329,7 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
         plot_fourier_correlation(counts_xyz, n_xy, config)
 
     # Backup x,y,z, and sd columns in df to x1, y1, z1,... before they are changed
-    if config['making_corrrections'] and config['create_backup_columns']:
+    if config['making_corrections'] and config['create_backup_columns']:
         df = create_backup_columns(df, config)
 
     # Correct fiducials with zstep model
@@ -367,7 +371,7 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     config_post['zstep_correct_fiducials'] = 0
     config_post['deltaz_correct_detections'] = 0
     config_post['deconvolve_z'] = 0
-    config_post['making_corrrections'] = 0
+    config_post['making_corrections'] = 0
     config['create_backup_columns'] = 0 # no need to back up again
     # no density masking - already done
     config_post['threshold_on_density'] = 0

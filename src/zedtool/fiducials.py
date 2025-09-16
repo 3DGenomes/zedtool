@@ -206,7 +206,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
     # Plot histograms of stats from n_detections to photons_sd
     logging.info('filter_fiducials')
     filter_cols = [
-        "log_intensity",
+        "mean_intensity",
         "n_detections",
         "x_sd",
         "y_sd",
@@ -215,13 +215,12 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
         "x_madr",
         "y_madr",
         "z_madr",
-        "consensus_error",
         "time_point_separation"
     ]
     df_filt = pd.DataFrame({
         "colname": filter_cols,
-        "lb": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "ub": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        "lb": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        "ub": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
     })
 
     # Small and sparse fiducials are likely noise
@@ -249,15 +248,16 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
 
     # Set idx to True for all fiducials
     idx = np.ones(len(df_fiducials), dtype=bool)
-    if sd_outlier_cutoff>0 or quantile_outlier_cutoff>0:
+    if sd_outlier_cutoff!=0 or quantile_outlier_cutoff!=0:
         # Get rid of those that are too far from the mean
         for j in range(len(df_filt)):
             col = df_filt.at[j, 'colname']
             lb = df_filt.at[j, 'lb']
             ub = df_filt.at[j, 'ub']
-            if col in df_fiducials.columns:
+            if col in df_fiducials.columns and col in config['filter_columns']:
+                logging.info(f'Filtering fiducials based on {col} with lb={lb} and ub={ub}')
                 x = df_fiducials[col]
-                if sd_outlier_cutoff > 0:
+                if sd_outlier_cutoff != 0:
                     x_median = np.median(x)
                     x_sd = np.std(x)
                     x_mad = scipy.stats.median_abs_deviation(x, scale='normal')
@@ -282,8 +282,6 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
                     if max_detections_per_image > 0:
                         idx = idx & (x <= max_detections_per_image)
                         logging.info(f"Filtering {col}: {np.sum(x > max_detections_per_image)} entries > {max_detections_per_image:.2f} from total {len(df_fiducials)}")
-            else:
-                logging.warning(f'Column {col} not found in df_fiducials')
 
     excluded_labels = pd.concat([excluded_labels, df_fiducials[idx == False]['label']])
     # Add to excluded labels the list in config['exclude_fiducials']
@@ -298,7 +296,7 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
         logging.error('No fiducials left after filtering for stability and photons etc. Is outlier_cutoff too stringent?')
         return None, None
     hists_path = os.path.join(config['fiducial_dir'], 'histograms')
-    for col in ['n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr']:
+    for col in ['n_detections', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr']:
         outpath = os.path.join(hists_path, f"hist_{col}")
         plot_histogram(df_fiducials[col], col, 'Fiducials', '', outpath, config)
 

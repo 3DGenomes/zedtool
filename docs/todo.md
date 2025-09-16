@@ -1,17 +1,18 @@
 ### TODO:
+* Add docstrings to functions
 * INFO - Making array of fiducial distances for 42 fiducials
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:351: RuntimeWarning: All-NaN slice encountered   median_dzdt = np.nanmedian(dzdt)
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:352: RuntimeWarning: All-NaN slice encountered   dzdt_mad[i,j] = np.nanmedian(np.abs(dzdt - median_dzdt))
 * Use ignore_image_id_col to determine output cols?
-* distance correlation (dCor) algorithm and permutation test for fiducial summary plots
+* distance correlation (dCor) algorithm and permutation test for rotation in fiducial summary plots. Also test for non-zero correlation with zstep.
 * Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
+* Check that output does not at "zeros" columns to the output table
 * Throw error if there are no good fiducials and report why there might be a problem
 * Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * Option to exclude fiducials that are missing detections in some time intervals
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
-* Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
 * Select cols to read: pd.read_csv("data.csv", usecols=["D", "B"], dtype={"B": float, "D": int})
   - include columns that SRX needs plus the ones required by zedtool
@@ -20,6 +21,7 @@
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* Make the quantities used for fiducial selection configurable and plot those quantities in histograms.
 * Warn:  (eg. filtering turned on while using included_fiducial)
 * problem with make_fiducial_correlations?
 * Make a webpage with all relevant output. Fixed up dirs instead

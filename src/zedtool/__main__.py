@@ -8,5 +8,4 @@ if __name__ == "__main__":
         print_version()
         sys.exit(1)
     ret = main(sys.argv[1])
-    print(ret)
     sys.exit(ret)
