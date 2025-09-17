@@ -689,7 +689,7 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     plt.close()
 
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
-    outpath = os.path.join(config['output_dir'], f"quality_metrics_summary.png")
+    outpath = os.path.join(config['output_dir'], f"fiducial_quality_metrics_summary.png")
     plt.figure(figsize=(10, 6))
     outdir = config['output_dir']
     os.makedirs(outdir, exist_ok=True)

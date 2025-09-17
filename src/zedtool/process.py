@@ -14,12 +14,13 @@ from zedtool.detections import filter_detections, mask_detections_2d, mask_detec
 from zedtool.detections import bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz
 from zedtool.detections import compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment, check_z_step
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d, save_to_tiff_2d
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials, plot_fiducial_correlations, make_quality_metrics, drift_correct_detections
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials
+from zedtool.fiducials import plot_fiducial_correlations, make_quality_metrics, drift_correct_detections, make_deltaz_quality_metric
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool.deconvolution import deconvolve_z
 from zedtool.timepoints import plot_time_point_metrics
 from zedtool.fsc import plot_fourier_correlation
-from zedtool.rotation import rotation_correct_detections
+from zedtool.rotation import rotation_correct_detections, make_rotation_quality_metric
 from zedtool import __version__
 
 def read_config(yaml_config_file: str) -> dict:
@@ -307,10 +308,16 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
 
     if config['make_quality_metrics']:
         df_metrics = make_quality_metrics(df, df_fiducials, config)
-        outpath = os.path.join(config['output_dir'], "quality_metrics_summary.tsv")
-        df_metrics.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
+        outpath = os.path.join(config['output_dir'], "fiducial_quality_metrics_summary.tsv")
+        df_metrics.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
         # Only plot before correction
         plot_fiducial_quality_metrics(df_fiducials, config)
+        df_rotation_metric = make_rotation_quality_metric(df_fiducials, config)
+        outpath = os.path.join(config['output_dir'], "rotation_quality_metrics.tsv")
+        df_rotation_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
+        df_deltaz_metric = make_deltaz_quality_metric(df_fiducials, config)
+        outpath = os.path.join(config['output_dir'], "deltaz_quality_metrics.tsv")
+        df_deltaz_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
 
     # Make correlations between fiducials between and within sweeps
     if config['plot_fiducial_correlations']:

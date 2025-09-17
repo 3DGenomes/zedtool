@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - aiohttp=3.12.15
+  - dcor=0.6
   - fsspec=2025.7.0
   - matplotlib=3.10.6
   - myst-parser

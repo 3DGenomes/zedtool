@@ -452,6 +452,27 @@ def make_quality_metrics(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: d
     df_metrics['z_non_fiducial_sd'] = df.loc[df['label']==0,config['z_col']].std()
     return df_metrics
 
+def make_deltaz_quality_metric(df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info("make_deltaz_quality_metric")
+    # Test if x_deltaz_slope, y_deltaz_slope, z_deltaz_slope are distributed around zero and return
+    # the mean,sd and a test statistic for each in a data frame.
+    results = {}
+    for dim in config['dimnames']:
+        colname = f'{dim}_deltaz_slope'
+        if colname not in df_fiducials.columns:
+            logging.error(f'Column {colname} not found in df_fiducials')
+            return None
+        mean_slope = df_fiducials[colname].mean()
+        sd_slope = df_fiducials[colname].std()
+        # Perform a t-test to see if the mean is significantly different from zero
+        t_stat, p_value = scipy.stats.ttest_1samp(df_fiducials[colname], 0)
+        logging.info(f'{colname}: mean={mean_slope:.4f}, sd={sd_slope:.4f}, t_stat={t_stat:.4f}, p_value={p_value:.4f}')
+        results[f'{colname}_mean'] = mean_slope
+        results[f'{colname}_sd'] = sd_slope
+        results[f'{colname}_tstatistic'] = t_stat
+        results[f'{colname}_pvalue'] = p_value
+    return pd.DataFrame([results])
+
 def zstep_correct_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return zstep_correct_fiducials_parallel(df_fiducials, df, config)
 

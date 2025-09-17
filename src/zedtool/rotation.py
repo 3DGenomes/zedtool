@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import logging
-
+import dcor
 
 def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
     logging.info('rotation_correct_detections')
@@ -23,7 +23,7 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
         idx_1 = (timepoints < timepoint) & is_fiducial
         idx_2 = (timepoints == timepoint) & is_fiducial
         if np.sum(idx_1) < MIN_FIDUCIAL_DETECTIONS or np.sum(idx_2) < MIN_FIDUCIAL_DETECTIONS:
-            logging.warning(f'insufficient detections on one side of time point: {timepoint}')
+            logging.warning(f'Insufficient detections on one side of time point {timepoint}')
             logging.warning(f'{np.sum(idx_1)} detections before, {np.sum(idx_2)} detections at time point')
             continue
         is_valid_fiducial = np.zeros(n_fiducials, dtype=bool)
@@ -108,3 +108,42 @@ def euclidean_rigid_alignment(X, Y):
     rmse = np.sqrt(np.mean(distances ** 2))
 
     return R, t, X_aligned, rmse
+
+def make_rotation_quality_metric(df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
+    logging.info('make_rotation_quality_metric')
+    # Ensure there are no NaNs in the relevant columns
+    idx = (~df_fiducials['x_mean'].isna()) & (~df_fiducials['y_mean'].isna()) & \
+          (~df_fiducials['x_sd'].isna()) & (~df_fiducials['y_sd'].isna())
+
+    if np.sum(idx) < 2:
+        logging.warning('Insufficient fiducials with valid data for rotation quality metric')
+        return None
+
+    results = {}
+    # use distance correlation algorithm and permutation test to see if x_sd is a function of y_mean and vice versa
+    y = df_fiducials['y_sd'].values
+    x = df_fiducials['x_mean'].values
+
+    # Compute distance correlation (0 = independent, >0 = dependent)
+    dcorr_y = dcor.distance_correlation(x, y)
+    logging.info(f"Distance correlation y: {dcorr_y}")
+    pvalue_y,stat_y = dcor.independence.distance_correlation_t_test(x, y)
+    logging.info(f"Test statistic: {stat_y} p-value: {pvalue_y}")
+
+    y = df_fiducials['x_sd'].values
+    x = df_fiducials['y_mean'].values
+    # Compute distance correlation (0 = independent, >0 = dependent)
+    dcorr_x = dcor.distance_correlation(x, y)
+    logging.info(f"Distance correlation x: {dcorr_x}")
+    pvalue_x,stat_x = dcor.independence.distance_correlation_t_test(x, y)
+    logging.info(f"Test statistic: {stat_x} p-value: {pvalue_x}")
+    results = {
+        'dcorr_y': dcorr_y,
+        'pvalue_y': pvalue_y,
+        'stat_y': stat_y,
+        'dcorr_x': dcorr_x,
+        'pvalue_x': pvalue_x,
+        'stat_x': stat_x
+    }
+    df = pd.DataFrame([results])
+    return df
