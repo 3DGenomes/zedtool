@@ -22,7 +22,8 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     # Iterate over fiducials, dimensions, and time points
     for fiducial_idx in range(nfiducials):
         fiducial_label = df_fiducials.at[fiducial_idx,'label']
-        logging.info(f'Making time point metrics for fiducial {fiducial_label}')
+        if config['verbose']:
+            logging.info(f'Making time point metrics for fiducial {fiducial_label}')
         df_sel = df[df['label'] == fiducial_label]
         n_detections = len(df_sel)
         if n_detections == 0:
@@ -34,14 +35,16 @@ def make_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
             for i in range(min_time_point, max_time_point + 1):
                 idx = df_sel[time_point_col] == i
                 if np.sum(idx) == 0:
-                    logging.warning(f'No detections for fiducial {fiducial_label} at time point {i}')
+                    if config['verbose']:
+                        logging.warning(f'No detections for fiducial {fiducial_label} at time point {i}')
                     continue
                 x_i = np.nanmean(df_sel[idx][dimcol].values)
                 # j loops from min_time_point to max_time_point
                 for j in range(i+1, max_time_point + 1):
                     idx = df_sel[time_point_col] == j
                     if np.sum(idx) == 0:
-                        logging.warning(f'No detections for fiducial {fiducial_label} at time point {j}')
+                        if config['verbose']:
+                            logging.warning(f'No detections for fiducial {fiducial_label} at time point {j}')
                         continue
                     x_j = np.nanmean(df_sel[idx][dimcol].values)
                     metrics_ijfd[i,j,fiducial_idx,dim] = np.abs(x_i - x_j)

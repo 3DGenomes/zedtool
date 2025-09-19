@@ -11,6 +11,7 @@ def config_default() -> dict:
         'z_step_step': -100,
         # Debugging and misc settings
         'debug': 0,
+        'verbose': 1,
         'noclobber': 0,
         'make_caches': 0,
         'multiprocessing': 0,

@@ -35,7 +35,12 @@ def main(yaml_config_file: str) -> int:
         # Check that the output column names are in the df
         for col in config['output_column_names']:
             if col not in df.columns:
-                logging.warning(f"Column {col} specified in output_column_names not found in detections file")
+                logging.error(f"Column {col} specified in output_column_names not found in detections file")
+
+    # if config['output_column_names'] contains "zeros" then remove it since it shouldn't be output
+    # it is only used internally as a dummy column for when required columns are missing
+    if 'zeros' in config['output_column_names']:
+        config['output_column_names'].remove('zeros')
 
     df = pre_process_detections(df, config)
     df, df_fiducials = process_detections(df, None, config)

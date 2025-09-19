@@ -117,7 +117,8 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
 
     for j in range(n_fiducials):
         fiducial_label = df_fiducials.at[j,'label']
-        logging.info(f'Making stats for fiducial {fiducial_label}')
+        if config['verbose']:
+            logging.info(f'Making stats for fiducial {fiducial_label}')
         df_sel = df[df['label'] == fiducial_label]
         n_detections = len(df_sel)
         if n_detections == 0:
@@ -505,7 +506,8 @@ def zstep_correct_fiducial(fiducial_label: int, fiducial_name: str, df: pd.DataF
     # Correct for z-step dependence. Assumes that impact is the same for all cycles
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     correct_z_only = 0
-    logging.info(f'correct_fiducial: {fiducial_name}')
+    if config['verbose']:
+        logging.info(f'correct_fiducial: {fiducial_name}')
     min_cycle, max_cycle = map(int, config['cycle_range'].split('-'))
     min_frame, max_frame = map(int, config['frame_range'].split('-'))
     min_z_step, max_z_step = map(int, config['z_step_range'].split('-'))
@@ -528,7 +530,8 @@ def zstep_correct_fiducial(fiducial_label: int, fiducial_name: str, df: pd.DataF
         if correct_z_only and k<2:
             return df, idx_cor
         colname = xyz_colnames[k]
-        logging.info(f'Correcting #{fiducial_label} label:{fiducial_name}:{colname}')
+        if config['verbose']:
+            logging.info(f'Correcting #{fiducial_label} label:{fiducial_name}:{colname}')
         # Get x,y,z values for each cycle
         for j in range(num_time_points):
             for i in range(num_cycles):
@@ -978,7 +981,8 @@ def group_fiducial_fits_round_robin(x_ft: np.ndarray, xsd_ft: np.ndarray, config
 
 def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
     # Assumes that x_ft and xsd_ft are 1D arrays with indexing by dim and fiducial already done
-    logging.info(f"fit_fiducial_step_parallel: fid_idx: {i} dim_idx: {k}")
+    if config['verbose']:
+        logging.info(f"fit_fiducial_step_parallel: fid_idx: {i} dim_idx: {k}")
     x_fit_ft = np.zeros_like(x_ft)
     x_fit_ft.fill(np.nan)
     xsd_fit_ft = np.zeros_like(xsd_ft)
@@ -986,14 +990,16 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
 
     for j in range(len(fitting_intervals) - 1):
         idx = np.arange(fitting_intervals[j], fitting_intervals[j + 1])
-        logging.info(f'fit_fiducial_step: fid_idx: {i} dim_idx: {k} seg_idx: {j} ')
+        if config['verbose']:
+            logging.info(f'fit_fiducial_step: fid_idx: {i} dim_idx: {k} seg_idx: {j} ')
         x_fit_ft[idx], xsd_fit_ft[idx] = fit_fiducial_step(x_ft[idx], xsd_ft[idx], config)
         y = x_ft[idx]
         ysd = xsd_ft[idx]
         y_fit = x_fit_ft[idx]
         if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
-            logging.warning(
-                f'No valid data for fitting in fit_fiducial_detections() for fiducial id {i+1} dimension {k} interval {j}')
+            if config['verbose']:
+                logging.warning(
+                    f'No valid data for fitting in fit_fiducial_detections() for fiducial id {i+1} dimension {k} interval {j}')
             if j > 0:
                 x_fit_ft[idx] = x_fit_ft[fitting_intervals[j] - 1]
                 xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j] - 1]
@@ -1008,7 +1014,8 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
         idx = np.arange(fitting_intervals[j - 1], fitting_intervals[j])
         if np.sum(xsd_fit_ft[idx] == 0) > 0:
             # If there are no valid data points in the interval, use the previous interval
-            logging.info(f"No valid data in fit_fiducial_detections() for fiducial id {i+1}")
+            if config['verbose']:
+                logging.warning(f"No valid data in fit_fiducial_detections() for fiducial id {i+1}")
             xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j]]
             x_fit_ft[idx] = x_fit_ft[fitting_intervals[j]]
 
@@ -1024,7 +1031,8 @@ def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_
     x = np.arange(len(y))
     plt.figure(figsize=(10, 6))
     if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
-        logging.warning(f'No valid data for fitting in plot_fiduciual_step_fit() for fiducial {fiducial_index} dimension {dim} interval {interval_index}')
+        if config['verbose']:
+            logging.warning(f'No valid data for fitting in plot_fiduciual_step_fit() for fiducial {fiducial_index} dimension {dim} interval {interval_index}')
         return
     sc = plt.scatter(x, y, c = ysd, s = 0.1, label='Original Data')
     plt.colorbar(sc, label='sd')
@@ -1051,7 +1059,8 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
     w[non_nan_indices] = 1 / xt_sd[non_nan_indices] # avoid division by zero
 
     if np.sum(non_nan_indices) == 0:
-        logging.warning('No valid data for fitting in fit_fiducial_step()')
+        if config['verbose']:
+            logging.warning('No valid data for fitting in fit_fiducial_step()')
         return np.full_like(xt, np.nan), np.full_like(xt, np.nan)
 
     first_non_nan = np.min(np.where(non_nan_indices))
@@ -1163,7 +1172,8 @@ def extract_fiducial_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
     sd_colnames = [config['x_sd_col'], config['y_sd_col'], config['z_sd_col']]
     for i in range(nfiducials):
         label = df_fiducials.at[i, 'label']
-        logging.info(f'Extracting detections for fiducial {label}')
+        if config['verbose']:
+            logging.info(f'Extracting detections for fiducial {label}')
         for k, colname in enumerate(xyz_colnames):
             df_sel = df[df['label'] == label]
             image_id = df_sel[config['image_id_col']]

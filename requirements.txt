@@ -1,8 +1,7 @@
 aiohttp==3.12.15
-dcor==0.6
 fsspec==2025.7.0
-matplotlib==3.10.6
-numpy==2.3.2
+matplotlib==3.7.3
+numpy==1.25.2
 pandas==2.3.2
 Pillow==11.3.0
 plotly==6.3.0
@@ -10,6 +9,6 @@ pyarrow==21.0.0
 PyYAML==6.0.2
 requests==2.32.5
 scikit_learn==1.7.1
-scipy==1.16.1
-scikit-image==0.25.2
-tifffile==2025.8.28
+scipy==1.10.1
+scikit-image==0.24.0
+tifffile==2025.9.9

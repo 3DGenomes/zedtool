@@ -494,7 +494,8 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     dimnames = config['dimnames']
     outdir = os.path.join(config['fiducial_dir'], f"{fiducial_name}")
     os.makedirs(outdir, exist_ok=True)
-    logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
+    if config['verbose']:
+        logging.info(f"Plotting fiducial {fiducial_name} with label {fiducial_label}")
 
     x = df_detections_roi[config['x_col']]
     y = df_detections_roi[config['y_col']]
@@ -653,7 +654,8 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     units = ['', 'nm', 'nm', '']
 
     for unit,fiducial_stat in zip (units, quantities):
-        logging.info(f"Plotting fiducial stat {fiducial_stat}")
+        if config['verbose']:
+            logging.info(f"Plotting fiducial stat {fiducial_stat}")
         outdir = os.path.join(config['fiducial_dir'])
         os.makedirs(outdir, exist_ok=True)
         outpath = os.path.join(outdir, f"{fiducial_stat}_vs_xyz")

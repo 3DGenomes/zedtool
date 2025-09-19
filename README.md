@@ -36,7 +36,8 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 ### **Binning and Debugging Options**
 - `bin_resolution`: Bin size in nm for the binned image. (`20`)
 - `z_step_step`: Step size in nm for one step in the Z direction. Sign must match microscope setting. (`-100`)
-- `debug`: Controls verbosity and plot output with 1=verbose, 0=quiet. (`1`)
+- `debug`: If set to 1, prints extra output and maks extra files. (`0`)
+- `verbose`: If set to 1, prints extra output to the terminal. (`1`)
 - `noclobber`: If set to 1, prevents overwriting some cached intermediate results. Safest to leave = 0. (`0`)
 - `make_caches`: If set to 1, saves detections and corrections to binary files for faster subsequent loading. Safest to leave = 0. (`0`)
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation. (`0`)

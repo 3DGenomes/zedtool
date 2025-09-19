@@ -1,24 +1,22 @@
 name: zedtool-env
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - aiohttp=3.12.15
-  - dcor=0.6
-  - fsspec=2025.7.0
-  - matplotlib=3.10.6
+  - fsspec=2025.7
+  - matplotlib=3.7
   - myst-parser
-  - numpy=2.3.2
+  - numpy=1.25
   - pandas=2.3.2
-  - pillow=11.3.0
-  - plotly=6.3.0
-  - pyarrow=21.0.0
-  - pyyaml=6.0.2
-  - python=3.12
+  - pillow=11.3
+  - plotly=6.3
+  - pyarrow
+  - python=3.11.13
+  - pyyaml=6.0
   - requests=2.32.5
+  - scipy=1.10
   - scikit-learn=1.7.1
-  - scipy=1.16.1
-  - scikit-image=0.25.2
+  - scikit-image=0.24.0
   - sphinx_rtd_theme
-  - tifffile=2025.8.28
+  - tifffile=2025.9.9
 
