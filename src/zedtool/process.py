@@ -342,6 +342,7 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     # Correct fiducials with zstep model
     if config['zstep_correct_fiducials']:
         df_fiducials, df = zstep_correct_fiducials(df_fiducials, df, config)
+
     # 3D rigid rotation correction at time step intervals
     if config['rotation_correct_detections']:
         df = rotation_correct_detections(df, df_fiducials, config)

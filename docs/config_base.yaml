@@ -24,9 +24,6 @@ create_backup_columns: 0 # if 1 then backup x_col,y_col,z_col, x_sd_col,y_sd_col
 use_pyarrow: 0 # if 1 then use pyarrow engine to read and write csv files (faster but requires more memory)
 
 # Detection filtering - based on either density in the binned image or columns in the detections file
-n_min_cutoff: 1 # remove detections based on their density in the binned x,y image
-n_max_cutoff: 10000000000
-mask_dimensions: 2 # dimensions used for masking detections in binned image (2 or 3)
 select_cols: x,y,precisionz # comma separated list of selection criteria for ranges
 select_ranges: 30000-40000,30000-40000,0-100 # comma separated list of ranges
 threshold_on_density: 0 # if 1 then threshold detections based on density in binned image
@@ -94,7 +91,6 @@ concatenate_offset_file: /your/path/to/offsets.csv # offsets to apply to the det
 concatenate_detections: 0 # concatenate all detections from concatenate_detections_file using offsets from concatenate_offset_file
 apply_drift_correction: 0 # apply pre-made drift correction read from drift_correction_file to detections
 plot_detections: 0 # plot all detections as images - binned in x-y and projected in all three dimensions
-mask_on_density: 0 # remove detections based on density in the binned image.
 make_quality_metrics: 0 # compute quality metrics for fiducials - before and after z-step and drift correction
 plot_fiducial_correlations: 0 # plot correlations between fiducials
 plot_fiducials: 0 # plot the fiducials prior to correction

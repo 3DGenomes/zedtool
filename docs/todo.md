@@ -1,4 +1,7 @@
 ### TODO:
+* Does the translation introduced in rotation upset fiducial location?
+* Turn off fiducial filtering if they are being specified with included/excluded_fiducials
+* Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Add docstrings to functions
 * INFO - Making array of fiducial distances for 42 fiducials
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:351: RuntimeWarning: All-NaN slice encountered   median_dzdt = np.nanmedian(dzdt)
