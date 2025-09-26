@@ -6,7 +6,7 @@ dependencies:
   - fsspec=2025.7
   - matplotlib=3.9.4
   - myst-parser
-  - numpy=1.26
+  - numpy=1.26.4
   - pandas=2.3.2
   - pillow=11.3
   - plotly=6.3
