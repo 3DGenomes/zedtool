@@ -22,6 +22,6 @@ setup(
     package_dir = {'zedtool':'src/zedtool'},
     package_data = {'zedtool': ['test/*']},
     install_requires=parse_requirements("requirements.txt"),
-    python_requires=">=3.11",
+    python_requires=">=3.12",
     include_package_data=True
 )

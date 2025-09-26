@@ -1022,7 +1022,8 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
     return i, k, x_fit_ft, xsd_fit_ft
 
 def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_index: int, y: np.ndarray, ysd: np.ndarray, y_fit: np.ndarray, ysd_fit: np.ndarray, config: dict) -> int:
-    logging.info('plot_fiduciual_step_fit')
+    if config['verbose']:
+        logging.info('plot_fiduciual_step_fit')
     dimnames = config['dimnames']
     dim = dimnames[dimension_index]
     outdir = os.path.join(config['output_dir'], "fiducial_step_fit")

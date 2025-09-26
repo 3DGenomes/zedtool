@@ -1,5 +1,4 @@
 ### TODO:
-* Does the translation introduced in rotation upset fiducial location?
 * Turn off fiducial filtering if they are being specified with included/excluded_fiducials
 * Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Add docstrings to functions
@@ -19,6 +18,7 @@
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* Does the translation introduced in rotation upset fiducial location?
 * Sync windows and unix environments.
 * Check that output does not add "zeros" columns to the output table
 * Put many warnings into debug mode only

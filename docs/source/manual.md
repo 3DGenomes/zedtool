@@ -65,6 +65,8 @@ setting: value
 ### Selection
 
 ## Rotation correction
+* How the method works
+* When to use it
 
 ## Drift correction
 * How the method works
@@ -78,6 +80,8 @@ setting: value
 ### Importing and exporting drift correction
 
 ## Deltaz correction
+* How the method works
+* When to use it
 
 ## Joining experiments
 * Files required and offsets

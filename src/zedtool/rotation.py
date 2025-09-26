@@ -9,13 +9,14 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
     logging.info('rotation_correct_detections')
     MIN_FIDUCIAL_DETECTIONS = 100
     min_time_point, max_time_point = map(int, config['time_point_range'].split('-'))
-    n_fiducials = len(df_fiducials)
     timepoints = df[config['time_point_col']].values
     fiducial_label = df['label'].values
+    fiducial_labels = df_fiducials['label'].values
+    n_labels = len(fiducial_labels)
     is_fiducial = df['is_fiducial'].values
     xyz = np.column_stack((df[config['x_col']].values, df[config['y_col']].values, df[config['z_col']].values))
-    xyz_1 = np.zeros((n_fiducials, 3))
-    xyz_2 = np.zeros((n_fiducials, 3))
+    xyz_1 = np.zeros((n_labels, 3))
+    xyz_2 = np.zeros((n_labels, 3))
     # Loop over all steps and find and apply translation and rotation correction at each time-point boundary
     # Tries to align successive time-points with those that came before.
     for timepoint in range(min_time_point+1, max_time_point+1):
@@ -26,27 +27,42 @@ def rotation_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
             logging.warning(f'Insufficient detections on one side of time point {timepoint}')
             logging.warning(f'{np.sum(idx_1)} detections before, {np.sum(idx_2)} detections at time point')
             continue
-        is_valid_fiducial = np.zeros(n_fiducials, dtype=bool)
-        for j in range(n_fiducials):
-            fiducial_idx = (fiducial_label == (j+1))
+        is_valid_fiducial = np.zeros(n_labels, dtype=bool)
+        for j in range(n_labels):
+            fiducial_idx = (fiducial_label == fiducial_labels[j])
             idx_1j = idx_1 & fiducial_idx
             idx_2j = idx_2 & fiducial_idx
             if np.sum(idx_1j) >= MIN_FIDUCIAL_DETECTIONS and np.sum(idx_2j) >= MIN_FIDUCIAL_DETECTIONS:
-                # logging.info(f'Using fiducial {j+1} for rotation correction at time point {timepoint}. ndetections before: {np.sum(idx_1j)}, at time point: {np.sum(idx_2j)}')
+                if config['verbose']:
+                    logging.info(f'Using fiducial {fiducial_labels[j]} for rotation correction at time point {timepoint}. ndetections before: {np.sum(idx_1j)}, at time point: {np.sum(idx_2j)}')
                 is_valid_fiducial[j] = True
                 xyz_1[j,:] = np.nanmean(xyz[idx_1j,:], axis=0)
                 xyz_2[j,:] = np.nanmean(xyz[idx_2j,:], axis=0)
+            else:
+                logging.info(f'Skipping fiducial {fiducial_labels[j]} for rotation correction at time point {timepoint}. ndetections before: {np.sum(idx_1j)}, at time point: {np.sum(idx_2j)}')
+        if np.sum(is_valid_fiducial) < 3:
+            logging.error(f'Insufficient valid fiducials for rotation correction at time point {timepoint}')
+            logging.error(f'{np.sum(is_valid_fiducial)} valid fiducials found')
+            continue
         xyz_1_valid = xyz_1[is_valid_fiducial,:]
         xyz_2_valid = xyz_2[is_valid_fiducial,:]
         rotation_matrix, translation, x_aligned, rmse = euclidean_rigid_alignment_3d(xyz_2_valid, xyz_1_valid)
+        # check translation and rotation for nans or infs
+        if np.any(np.isnan(translation)) or np.any(np.isinf(translation)):
+            logging.error(f'Invalid translation vector at time point {timepoint}')
+            continue
+        if np.any(np.isnan(rotation_matrix)) or np.any(np.isinf(rotation_matrix)):
+            logging.error(f'Invalid rotation matrix at time point {timepoint}')
+            continue
+        # Convert rotation matrix to axis-angle representation for logging
         axis, angle = rotation_axis_angle(rotation_matrix)
         # Apply the rotation and translation to all points in df at timepoint
         idx = (timepoints == timepoint)
         xyz_rotated = (rotation_matrix @ xyz[idx,:].T).T + translation
         xyz[idx,:] = xyz_rotated
         logging.info(f'Applied rotation and translation at time point {timepoint}: RMSE = {rmse:.3f} nm')
-        logging.info(f'Translation vector at time point {timepoint}: [x, y] = {translation}')
-        logging.info(f'Rotation matrix at time point {timepoint}: theta = {angle*180/np.pi:.4f} deg around axis = {axis}')
+        logging.info(f'Translation vector at time point {timepoint}: [x,y,z] = {translation} nm')
+        logging.info(f'Rotation matrix at time point {timepoint}: theta = {angle*180/np.pi:.4f} degrees around axis [x,y,z] = {axis}')
         if config['verbose']:
             logging.info(f'Rotation matrix:\n{rotation_matrix}')
     # end for timepoint
