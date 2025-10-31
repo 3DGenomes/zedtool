@@ -1,4 +1,6 @@
 ### TODO:
+* fiducials.py:139: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+    -  detect constant zstep and put something sensible in the correlations with it 
 * Turn off fiducial filtering if they are being specified with included/excluded_fiducials
 * Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Add docstrings to functions
@@ -8,7 +10,6 @@
 * Use ignore_image_id_col to determine output cols?
 * Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
 * Throw error if there are no good fiducials and report why there might be a problem
-* Multi-pass does not seem to be filtering on goodness of fit
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * Option to exclude fiducials that are missing detections in some time intervals
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
@@ -18,6 +19,7 @@
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 
 ### DONE:
+* Multi-pass does not seem to be filtering on goodness of fit - which it should be doing
 * Does the translation introduced in rotation upset fiducial location?
 * Sync windows and unix environments.
 * Check that output does not add "zeros" columns to the output table

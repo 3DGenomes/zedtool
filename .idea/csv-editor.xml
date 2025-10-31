@@ -10,6 +10,321 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_STORM_loc-3/2025-07-08_re-2025-07-03_Uni-MS1_STORM_loc-3.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_STORM_loc-3/2025-07-09_re-2025-07-03_Uni-BS1_Af9_STORM_loc-3.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_STORM_loc-3/loc3_cat1/concatenated_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_STORM_loc-3/loc3_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_STORM_loc-3/loc3_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-08_re-2025-07-03_Uni-MS1_STORM_loc-3/particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/2025-07-09_re-2025-07-03_Uni-BS1_Af9_STORM_loc-3/particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/loc1_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-08_Af9_Mll_Uni_manual-3steps/loc3_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/2025-07-16_4-Uni_Af9_Loc-2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/2025-07-16_4_last_Mll-Af9_EXTRA_Loc-X.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/2025-07-21_3-Uni_Mll_Loc-2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/loc1_step4_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/loc2_step3_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/loc2_step4_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/locx_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/locx_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/locx_step3_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-16_first-last_Mll-Af9_Uni-Mll_Uni-Af9_Exported-particles/locx_step4_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_1-first_Mll-Af9_Loc-1_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_1-first_Mll-Af9_Loc-2_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_1-first_Mll-Af9_Loc-3_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_1-first_Mll-Af9_Loc4_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-1_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-2A_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-2B_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-3A_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-3b_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_2-last_Mll-Af9_Loc-4_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_3-Af9_Loc-1_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_3-Af9_Loc-2_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_3-Af9_Loc-3_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/2025-07-23_4-Mll_Loc-2_export-particles.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc1_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc1_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc1_step3_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc2A_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc2_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc2_step3_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc2_step4_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc3_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc3_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc3_step3_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc4_step1_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/tests/zedtool_manuscript_data/peter/2025-07-23_1-first_2-last_Mll-Af9_3-Uni-Mll_4-Uni-Af9_EXPORT-PARTICLES/loc4_step2_corrected/corrected_detections.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

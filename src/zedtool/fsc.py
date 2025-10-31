@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import logging
 
-import pandas as pd
 import numpy as np
 import scipy
 from typing import Tuple
@@ -32,9 +31,9 @@ def plot_fourier_correlation(counts_xyz, counts_xy, config) -> Tuple[np.ndarray,
 
     # For 2D FRC, we can use the counts_xy data
     spatial_freqs, frc_vals, spatial_resolutions = compute_fsc(counts_xy, binsize, config)
-    spatial_freqs, frc_vals = plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim=2, config=config)
+    plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim=2, config=config)
     spatial_freqs, frc_vals, spatial_resolutions = compute_fsc(counts_xyz, binsize, config)
-    spatial_freqs, frc_vals = plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim=3, config=config)
+    plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim=3, config=config)
 
     return spatial_freqs, frc_vals
 
@@ -69,7 +68,10 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
     crossings = np.where(frc_vals < 1 / 7)[0]
     if crossings.size > 0:
         cutoff_resolution_nm = spatial_resolutions[crossings[0]]
-        print(f"Estimated resolution {ndim}D: {cutoff_resolution_nm:.1f} nm")
+        logging.info(f"Estimated resolution {ndim}D: {cutoff_resolution_nm:.1f} nm")
+        # Write to file
+        with open(os.path.join(config['output_dir'], f"fourier_cor_{ndim}d_resolution.txt"), 'w') as f:
+            f.write(f"{cutoff_resolution_nm:.1f} nm\n")
         # Write on plot
         plt.text(0.1, 0.3, f"Estimated resolution: {cutoff_resolution_nm:.1f} nm", transform=plt.gca().transAxes,
                     fontsize=10, verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))

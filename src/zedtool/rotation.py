@@ -177,22 +177,22 @@ def make_rotation_quality_metric(df_fiducials: pd.DataFrame, config: dict) -> pd
     y = df_fiducials['y_sd'].values
     x = df_fiducials['x_mean'].values
     pvalue_yx,stat_yx = dependence_test(x, y)
-    logging.info(f"stat_yx: {stat_yx} p-value: {pvalue_yx}")
+    logging.info(f"stat_yx: norm_mutual_information = {stat_yx}, p_value = {pvalue_yx}")
 
     y = df_fiducials['x_sd'].values
     x = df_fiducials['y_mean'].values
     pvalue_xy,stat_xy = dependence_test(x, y)
-    logging.info(f"stat_xy: {stat_xy} p-value: {pvalue_xy}")
+    logging.info(f"stat_xy: norm_mutual_information = {stat_xy}, p_value = {pvalue_xy}")
 
     y = df_fiducials['z_sd'].values
     x = df_fiducials['x_mean'].values
     pvalue_zx,stat_zx = dependence_test(x, y)
-    logging.info(f"stat_zx: {stat_zx} p-value: {pvalue_zx}")
+    logging.info(f"stat_zx: norm_mutual_information = {stat_zx}, p_value = {pvalue_zx}")
 
     y = df_fiducials['z_sd'].values
     x = df_fiducials['y_mean'].values
     pvalue_zy,stat_zy = dependence_test(x, y)
-    logging.info(f"stat_zy: {stat_zy} p-value: {pvalue_zy}")
+    logging.info(f"stat_zy: norm_mutual_information = {stat_zy}, p_value = {pvalue_zy}")
 
     results = {
         'pvalue_yx': pvalue_yx,

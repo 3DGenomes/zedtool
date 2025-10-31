@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib
 import os
+import psutil
 import yaml
 import sys
 import logging
@@ -229,6 +230,12 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
             df.to_csv(output_file, index=False, float_format=config['float_format'])
     # Check z-step direction and correct if needed
     check_z_step(df, config)
+    # Report memory use
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logging.info(f"Memory use after reading detections.")
+    logging.info(f"Actual RAM use: RSS = {mem_info.rss / (1024 ** 3):.2f} GB")
+    logging.info(f"Total virtual address space: VMS = {mem_info.vms / (1024 ** 3):.2f} GB")
     return df
 
 def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -352,7 +359,7 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
     if config['drift_correct_detections']:
         df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
         # df_fiducials gains cols with consensus and fitting error, save this
-        outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected.tsv")
+        outpath = os.path.join(config['fiducial_dir'], "fiducials_fitted.tsv")
         df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
 
     if config['drift_correct_detections_multi_pass']:
@@ -451,7 +458,7 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     # initial drift correction
     df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
-    outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected_1.tsv")
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_fitted_1.tsv")
     df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config)
@@ -462,7 +469,7 @@ def drift_correct_detections_multi_pass(df_fiducials: pd.DataFrame, df: pd.DataF
     df, df_fiducials = filter_fiducials(df_fiducials, df, config)
     df, df_fiducials = drift_correct_detections(df, df_fiducials, config)
 
-    outpath = os.path.join(config['fiducial_dir'], "fiducials_drift_corrected_2.tsv")
+    outpath = os.path.join(config['fiducial_dir'], "fiducials_fitted_2.tsv")
     df_fiducials.to_csv(outpath, sep='\t', index=False, float_format=config['float_format'])
     df_fiducials = make_fiducial_stats(df_fiducials, df, config)
     df_metrics = make_quality_metrics(df, df_fiducials, config)

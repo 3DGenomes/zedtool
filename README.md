@@ -108,6 +108,7 @@ Not very robust. Use only if all else fails. (`0`)
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 1 or 2. (`2`)
 - `fitting_interval`: Interval over which to fit the polynomial curve to the drift correction - [frame|z_step|cycle|time_point]. (`time_point`)
 - `use_weights_in_fit`: Whether to use uncertainty values for x,y,z when fitting. (`0`)
+- `minimum_detections_for_fit`: Minimum number of fiducial detections required per fitting interval. (`1000`)
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. 
 If you want to find the fiducials automatically then set this to 0. (`0`)
 - `consensus_method`: Method for determining the consensus z value for a fiducial. Options are 'weighted_mean' and 'median'. (`median`)

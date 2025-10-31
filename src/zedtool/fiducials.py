@@ -216,12 +216,13 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
         "x_madr",
         "y_madr",
         "z_madr",
-        "time_point_separation"
+        "time_point_separation",
+        "consensus_error"
     ]
     df_filt = pd.DataFrame({
         "colname": filter_cols,
-        "lb": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-        "ub": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+        "lb": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "ub": [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     })
 
     # Small and sparse fiducials are likely noise
@@ -1013,7 +1014,7 @@ def fit_fiducial_step_parallel(i, k, fitting_intervals, x_ft, xsd_ft, config):
     for j in range(len(fitting_intervals) - 2, 0, -1):
         idx = np.arange(fitting_intervals[j - 1], fitting_intervals[j])
         if np.sum(xsd_fit_ft[idx] == 0) > 0:
-            # If there are no valid data points in the interval, use the previous interval
+            # If there are no valid data points in the interval, use the last value from the previous interval
             if config['verbose']:
                 logging.warning(f"No valid data in fit_fiducial_detections() for fiducial id {i+1}")
             xsd_fit_ft[idx] = xsd_fit_ft[fitting_intervals[j]]
@@ -1051,6 +1052,7 @@ def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_
 def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     polynomial_degree = config['polynomial_degree']
     use_weights_in_fit = (config['use_weights_in_fit']!=0)
+    minimum_detections_for_fit = config['minimum_detections_for_fit']
     extrapolate_to_end = True
     median_filter_size = 100
     outlier_threshold = 3
@@ -1058,10 +1060,10 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
     non_nan_indices = ~np.isnan(xt) & (xt_sd != 0)
     nan_indices = ~non_nan_indices
     w[non_nan_indices] = 1 / xt_sd[non_nan_indices] # avoid division by zero
-
-    if np.sum(non_nan_indices) == 0:
+    valid_detections = np.sum(non_nan_indices)
+    if valid_detections < minimum_detections_for_fit:
         if config['verbose']:
-            logging.warning('No valid data for fitting in fit_fiducial_step()')
+            logging.warning(f'Insufficient valid data in fit_fiducial_step(): have {valid_detections} need {minimum_detections_for_fit}')
         return np.full_like(xt, np.nan), np.full_like(xt, np.nan)
 
     first_non_nan = np.min(np.where(non_nan_indices))
@@ -1133,7 +1135,7 @@ def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, confi
         results = pool.starmap(fit_fiducial_step_parallel,
                                [(i, k, fitting_intervals, x_ft[k,i,:], xsd_ft[k,i,:], config) for i in range(nfiducials) for k in
                                 range(ndim)])
-
+    # k = dimension index, i = fiducial index
     for i, k, x_fit, xsd_fit in results:
         x_fit_ft[k, i, :] = x_fit
         xsd_fit_ft[k, i, :] = xsd_fit

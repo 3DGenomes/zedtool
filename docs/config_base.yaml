@@ -76,6 +76,7 @@ filter_columns: # comma separated list of columns to use for filtering fiducials
 polynomial_degree: 2 # degree of polynomial to fit drift correction
 fitting_interval: time_point # interval over which to fit the polynomial - [frame|z_step|cycle|time_point]
 use_weights_in_fit: 0 # use the precision values in the fit
+minimum_detections_for_fit: 1000 # minimum number of fiducial detections in the fitting interval required to compute drift correction
 only_fiducials: 0 # non-zero if ALL the "bright spots" in the binned image are taken to be fiducials. If 0, Otsu threshold image otherwise use min_fiducial_detections
 consensus_method: median # method to compute drift correction from fiducials - median or weighted_mean
 

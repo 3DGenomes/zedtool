@@ -34,7 +34,7 @@ def config_default() -> dict:
         'select_cols': '',
         'select_ranges': '0-0',
         'threshold_dimensions': 2,
-        'filter_columns': ['mean_intensity','n_detections','x_sd','y_sd','z_sd','photons_mean','x_madr','y_madr','z_madr','time_point_separation'],
+        'filter_columns': ['mean_intensity','n_detections','x_sd','y_sd','z_sd','photons_mean','x_madr','y_madr','z_madr','time_point_separation','consensus_error'],
         # experiment settings
         'frame_range': '0-0',
         'z_step_range': '0-0',
@@ -72,6 +72,7 @@ def config_default() -> dict:
         'sd_outlier_cutoff': 0,
         'polynomial_degree': 2,
         'use_weights_in_fit': 0,
+        'minimum_detections_for_fit': 1000,
         'only_fiducials': 0,
         'consensus_method': 'median',
         'filter_fiducials_with_clustering': 0,
