@@ -27,6 +27,8 @@ def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray,
     if config['multiprocessing']:
         return deconvolve_z_parallel(df, df_fiducials, n_xy, x_idx, y_idx, config)
     logging.info("deconvolve_z")
+    outdir = os.path.join(config['output_dir'], 'cluster_plots')
+    os.makedirs(outdir, exist_ok=True)
     bin_threshold = config['decon_bin_threshold']
     min_cluster_sd = config['decon_min_cluster_sd']
     sd_shrink_ratio = config['decon_sd_shrink_ratio']
