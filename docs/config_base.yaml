@@ -2,6 +2,7 @@
 # Experiment-specific elements. Customise for each experiment by replacing variables with the appropriate values.
 detections_file: /your/path/to/input.csv # input file with detections
 output_dir: /your/path/to/output # all output files will be saved under this directory
+drift_correction_file: /you/path/to/drift_correction.tsv # file to read drift correction values from if apply_drift_correction==1
 
 # Number of frames, z-steps, cycles, time-points to expect in the data
 frame_range: 0-199 # frames per z-step
@@ -72,13 +73,15 @@ max_detections_per_image: 1.1 # maximum number of detections per fiducial per im
 quantile_outlier_cutoff: 0 # throws away tails of several distributions for fiducial qc metrics (typically = 0.01-0.05)
 sd_outlier_cutoff: 0 # standard deviation outlier cutoff for fiducial qc metrics; overrides quantile method. (typically = 2)
 filter_fiducials_with_clustering: 0 # if 1, then use pre-drift correction clustering to filter fiducials
-filter_columns: # comma separated list of columns to use for filtering fiducials. (mean_intensity,n_detections,x_sd,y_sd,z_sd,photons_mean,x_madr,y_madr,z_madr,time_point_separation)
+filter_columns: # comma separated list of columns to use for filtering fiducials. (mean_intensity, n_detections, x_sd, y_sd, z_sd, photons_mean, x_madr, y_madr, z_madr, time_point_separation)
 polynomial_degree: 2 # degree of polynomial to fit drift correction
 fitting_interval: time_point # interval over which to fit the polynomial - [frame|z_step|cycle|time_point]
 use_weights_in_fit: 0 # use the precision values in the fit
 minimum_detections_for_fit: 1000 # minimum number of fiducial detections in the fitting interval required to compute drift correction
 only_fiducials: 0 # non-zero if ALL the "bright spots" in the binned image are taken to be fiducials. If 0, Otsu threshold image otherwise use min_fiducial_detections
 consensus_method: median # method to compute drift correction from fiducials - median or weighted_mean
+covariate_plot_quantities: # list of columns to plot as per-fiducial covariates (image_id_col, z_step_col, cycle_col, time_point_col, deltaz_col, photons_col, x_sd_col, y_sd_col, z_sd_col)
+refilter_fiducials_after_correction: 0 # if 1, then refilter fiducials after applying drift correction but before re-doing QC metrics
 
 # Files used when combining experiments
 # concatenate_offset_file contains one row with the offsets to add.

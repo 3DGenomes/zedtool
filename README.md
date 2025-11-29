@@ -1,5 +1,5 @@
 # Overview
-Z Estimate Diagnostic Tool - a tool for evaluating and adjusting detections from SMLM experiments.
+*Z* *E*stimate *D*iagnostic tool (zedtool) - a tool for evaluating and adjusting detections from SMLM experiments.
 
 ## Installation
 
@@ -12,7 +12,16 @@ conda activate zedtool-env
 cd zedtool
 pip install .
 ```
- 
+An alternative to git clone is to download the source code as a zip file from the GitHub repository.
+In this case, unzip the file and navigate to the resulting directory before running the pip install command.
+For example:
+
+```bash
+unzip zedtool-master.zip
+cd zedtool-master
+pip install .
+```
+
 ## Running zedool
 
 Once installed, you can run zedtool using:
@@ -48,9 +57,6 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 - `use_pyarrow`: If 1, use pyarrow for reading/writing tabular data. This is faster but requires more memory. (`0`)
 
 ### **Detection Filtering**
-- `n_min_cutoff`: Minimum detection density in the binned x,y image to retain detections. (`1`)
-- `n_max_cutoff`: Maximum detection density in the binned x,y image. (`1e10`)
-- `mask_dimensions`: Number of dimensions used when masking detections in binned image (2 or 3). (`2`)
 - `select_cols`: Comma-separated list of selection criteria columns. All criteria are *and*-ed together. 
 This can be used for quality filtering and or for processing only a portion of the field of view. (``)
 - `select_ranges`: Comma-separated list of value ranges for filtering detections. 
@@ -71,11 +77,12 @@ Number of entries must match select_cols. (`0-0`)
 - `decon_sd_shrink_ratio`: Ratio of final/initial standard deviation of clusters following deconvolution. (`0.25`)
 - `decon_bin_threshold`: Minimum x-y bin threshold to be considered for deconvolution. (`100`)
 - `decon_kmeans_max_k`: Maximum number of clusters in z to be considered for deconvolution. (`5`)
-- `decon_kmeans_proximity_threshold`: Clusters closer than (SD1+SD2)*proximity_threshold are merged. (`2.0`)
+- `decon_kmeans_proximity_threshold`: Clusters closer than (SD1 + SD2) * proximity_threshold are merged. (`2.0`)
 - `decon_kmeans_min_cluster_detections`: Minimum number of detections in a cluster to be considered for deconvolution. (`5`)
 
 ### **Column Names in Input Data**
 These specify how different columns in the detections file are named:
+
 - `frame_col` (`frame`), `image_id_col` (`image-ID`), `z_step_col` (`z-step`), `cycle_col` (`cycle`), `time_point_col (`time-point`)`: 
 Identifiers for frames, image-ids, z-steps, cycles, and time-points.
 - `x_col` (`x`), `y_col` (`y`), `z_col` (`z`): Spatial coordinates.
@@ -89,7 +96,7 @@ Identifiers for frames, image-ids, z-steps, cycles, and time-points.
 
 ### **Fiducial Segmentation and Filtering**
 - `excluded_fiducials`: Comma-separated list of fiducials to exclude from drift correction. (`None`)
-- `inluded_fiducials`: Comma-separated list of fiducials to use for drift correction (use _only_ these). (`None`)
+- `included_fiducials`: Comma-separated list of fiducials to use for drift correction (use _only_ these). (`None`)
 - `resegment_after_correction:` If set to 1, re-segment the fiducials after drift correction. (`0`)
 This improves the accuracy of the fiducial measurements but potentially changes their labels, their by invalidating
 comparisons of pre- and post-correction fiducial positions.
@@ -100,11 +107,13 @@ comparisons of pre- and post-correction fiducial positions.
 - `min_fiducial_detections`: Minimum number of detections required for a fiducial. (`10`)
 - `max_detections_per_image`: Maximum number of detections allowed per fiducial per image. (`1.1`)
 - `quantile_outlier_cutoff`: Discarded fraction of extreme values for quality control (typically 0.01-0.05). If you have less than
-20 fiducials then set this to 0. (`0.02`)
-- `filter_fiducials_with_clustering`: If 1, then cluster on intensity in 2D binned image and select high population. 
+20 fiducials or are selecting them manually then set this to 0. (`0`)
+- `sd_outlier_cutoff`: Discard fiducials that are more than this many standard deviations away from the mean.
+If you have less than 20 fiducials or are selecting them manually then set this to 0. (`0`)
+- `filter_fiducials_with_clustering`: If 1, then cluster on intensity in 2D binned image and select "high" cluster. 
 Not very robust. Use only if all else fails. (`0`)
 - `filter_columns`: Comma separated list of columns to use for filtering fiducials.
-(`mean_intensity,n_detections,x_sd,y_sd,z_sd,photons_mean,x_madr,y_madr,z_madr,time_point_separation`)
+(`mean_intensity, n_detections, x_sd, y_sd, z_sd, photons_mean, x_madr, y_madr, z_madr, time_point_separation`)
 - `polynomial_degree`: Polynomial degree for drift correction fitting. Best left at 1 or 2. (`2`)
 - `fitting_interval`: Interval over which to fit the polynomial curve to the drift correction - [frame|z_step|cycle|time_point]. (`time_point`)
 - `use_weights_in_fit`: Whether to use uncertainty values for x,y,z when fitting. (`0`)
@@ -112,9 +121,12 @@ Not very robust. Use only if all else fails. (`0`)
 - `only_fiducials`: If set to 1, assumes all "bright spots" in the image are fiducials. 
 If you want to find the fiducials automatically then set this to 0. (`0`)
 - `consensus_method`: Method for determining the consensus z value for a fiducial. Options are 'weighted_mean' and 'median'. (`median`)
+- `refilter_fiducials_after_correction`: If set to 1, refilter fiducials after initial drift correction. 
+Not recommended because it invalidates the comparison between metrics before and after correction. (`0`)
 
 ### **Appending another experiment**
 Done before all other operations when `concatenate_detections` is set.
+
 - `concatenate_detections_file`: file to concatenate on the end of the current experiment. (`None`)
 - `concatenate_offset_file`: offsets to apply to the detections in the concatenate_detections_file. (`None`)
 The file `concatenate_offset_file` contains one row with the offsets to add.
@@ -131,11 +143,12 @@ The values in the column `image_id_col` in `drift_correction_file` must match.
 
 ### **Computation and Plotting Options**
 You can disable/enable various processing steps and visualizations by setting these values to 0/1. These are listed  below in the order in which they are performed.
+
 - `concatenate_detections`: Concatenate all detections from concatenate_detections_file using offsets from concatenate_offset_file. (`0`)
 - `apply_drift_correction`: Apply pre-made drift corrections from `drift_correction_file` to detections. 
 If `correct_detections` is set then a drift correction file is written out that can be applied to a set of detections from the same experiment.(`0`)
 - `plot_detections`: Plot all detections as binned x-y images and 3D projections. (`0`)
-- `mask_on_density`: Remove detections based on density in the binned image. Can be useful to remove background that can drag down the threshold for segmentation. (`0`)
+- `threshold_on_density`: Remove detections based on density in the binned image. Can be useful to remove background that can drag down the threshold for segmentation. (`0`)
 - `make_quality_metrics`: Compute quality metrics for fiducials before correction. Quality metrics are re-computed at the end after all corrections. (`0`)
 - `plot_fiducial_correlations`: Plot correlations between fiducials. Normally not necessary. Can be slow! (`0`)
 - `plot_fiducials`: Plot fiducials before any correction. (`0`)
@@ -171,8 +184,6 @@ bin_resolution: 20
 z_step_step: -100 
 
 # Detection filtering
-n_min_cutoff: 1 
-n_max_cutoff: 10000000000
 select_cols: x,y 
 select_ranges: 0-10000,20000-30000 
 
@@ -201,7 +212,7 @@ dilation_disc_radius: 10
 min_fiducial_size: 100 
 min_fiducial_detections: 10 
 max_detections_per_image: 1.1 
-quantile_tail_cutoff: 0.02 
+sd_outlier_cutoff: 2 
 polynomial_degree: 2 
 only_fiducials: 0 
 

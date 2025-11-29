@@ -88,7 +88,6 @@ def config_default() -> dict:
         # steps
         'apply_drift_correction': 0,
         'concatenate_detections': 0,
-        'save_binned_detections': 0,
         'threshold_on_density': 0,
         'make_quality_metrics': 0,
         'plot_per_fiducial_fitting': 0,
