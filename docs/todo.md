@@ -1,8 +1,9 @@
 ### TODO:
+* Use config file to select which covariates are plotted
+ - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 
 * fiducials.py:139: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
     -  detect constant zstep and put something sensible in the correlations with it 
 * Turn off fiducial filtering if they are being specified with included/excluded_fiducials
-* Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Add docstrings to functions
 * INFO - Making array of fiducial distances for 42 fiducials
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:351: RuntimeWarning: All-NaN slice encountered   median_dzdt = np.nanmedian(dzdt)
@@ -15,10 +16,12 @@
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
-* Count detections per fitting range
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
+* When fitting ranges are missing detections, better alternative to extrapolating forwards/backwards.
 
 ### DONE:
+* Count detections per fitting range
+* Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Multi-pass does not seem to be filtering on goodness of fit - which it should be doing
 * Does the translation introduced in rotation upset fiducial location?
 * Sync windows and unix environments.

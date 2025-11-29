@@ -578,11 +578,22 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     plt.savefig(figure_path, dpi=600)
     plt.close()
     # Plot detections colour coded by possible covariates
-    columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col'],
-               config['deltaz_col'], config['photons_col'] ]
-    for col in columns:
-        fig, ax = plt.subplots(2, 2, figsize=(12, 9))
+    covariate_plot_quantities = []
+    for q in config.get('covariate_plot_quantities', []):
+        if q in config:
+            covariate_plot_quantities.append(config[q])
+        else:
+            logging.warning(f"Unknown covariate key in config['covariate_plot_quantities']: {q}")
+
+    for col in covariate_plot_quantities:
+        if col not in df_detections_roi.columns:
+            logging.warning(f"Covariate column {col} not found in detections dataframe for fiducial {fiducial_name}. Skipping plot.")
+            continue
         vals = df_detections_roi[col]
+        if np.var(vals) == 0:
+            logging.warning(f"Covariate column {col} has zero variance in fiducial {fiducial_name}. Skipping plot.")
+            continue
+        fig, ax = plt.subplots(2, 2, figsize=(12, 9))
         sc = ax[0, 0].scatter(x, z, s=point_size, c=vals, alpha=0.25)
         ax[0, 0].set_xlabel('x (nm)')
         ax[0, 0].set_ylabel('z (nm)')

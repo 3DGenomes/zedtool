@@ -24,9 +24,14 @@ Text
 ![Plot Example](images/fiducials_plot.png)
 
 ### Tables
+Text
 
 ### Fiducials
 Text
+
+### Quality filtering without correction
+
+## Adjusting segmentation settings
 
 ```bash
 setting: value
@@ -52,14 +57,16 @@ setting: value
 setting: value
 ```
 ## Fiducial markers
+Text
 
 ### Segmenting
 
 ### Assessing
 
-### Filtering
+### Filtering amd plotting
 * quantile or sd_outlier_cutoff
 * filtering quantities: 'n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr'
+* plotting covariates: 'image_id_col', 'z_step_col', 'cycle_col', 'time_point_col', 'deltaz_col', 'photons_col', 'x_sd_col', 'y_sd_col', 'z_sd_col'
 * detections_per_image also has cutoff from max_detections_per_image
 
 ### Selection
@@ -85,6 +92,10 @@ setting: value
 
 ## Joining experiments
 * Files required and offsets
+
+## Non-Vutara file formats
+* Example Thunderstorm dataset
+* Use of "zeros" column for missing columns
 
 ## Further data exploration
 

@@ -713,7 +713,7 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     # Need at least 2 fiducials to make a consensus fit
     nfiducials = len(df_fiducials)
     if nfiducials < 6:
-        logging.warning('Only have {nfiducials} fiducials. Less than 6 or so may not make a very good drift correction')
+        logging.warning(f'Only have {nfiducials} fiducials. Less than 6 or so may not make a very good drift correction')
 
     noclobber = config['noclobber']
     x_col = ['x', 'y', 'z']

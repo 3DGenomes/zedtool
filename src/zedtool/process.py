@@ -320,11 +320,13 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
         # Only plot before correction
         plot_fiducial_quality_metrics(df_fiducials, config)
         df_rotation_metric = make_rotation_quality_metric(df_fiducials, config)
-        outpath = os.path.join(config['output_dir'], "rotation_quality_metrics.tsv")
-        df_rotation_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
+        if df_rotation_metric is not None:
+            outpath = os.path.join(config['output_dir'], "rotation_quality_metrics.tsv")
+            df_rotation_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
         df_deltaz_metric = make_deltaz_quality_metric(df_fiducials, config)
-        outpath = os.path.join(config['output_dir'], "deltaz_quality_metrics.tsv")
-        df_deltaz_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
+        if df_deltaz_metric is not None:
+            outpath = os.path.join(config['output_dir'], "deltaz_quality_metrics.tsv")
+            df_deltaz_metric.T.to_csv(outpath, sep='\t', index=True, header=False, float_format=config['float_format'])
 
     # Make correlations between fiducials between and within sweeps
     if config['plot_fiducial_correlations']:
