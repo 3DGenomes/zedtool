@@ -14,19 +14,19 @@ To install zedtool from source:
 
 ```bash
 git clone https://github.com/3DGenomes/zedtool.git
+cd zedtool
 conda env create --file=environment.yaml
 conda activate zedtool-env
-cd zedtool
 pip install .
 ```
 An alternative to git clone is to download the source code as a zip file from the GitHub repository.
-In this case, unzip the file and navigate to the resulting directory before running the pip install command.
+In this case, unzip the file and navigate to the resulting directory and proceed as before.
 For example:
 
 ```bash
 unzip zedtool-master.zip
 cd zedtool-master
-pip install .
+...
 ```
 
 ## Running zedool
