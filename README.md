@@ -1,5 +1,12 @@
 # Overview
-*Z* *E*stimate *D*iagnostic tool (zedtool) - a tool for evaluating and adjusting detections from SMLM experiments.
+*Z* *E*stimate *D*iagnostic tool (zedtool) - a tool for evaluating and processing detections from SMLM experiments.
+
+## Prerequisites
+zedtool requires Python 3.12 or higher and miniconda/conda-forge for managing dependencies.
+
+To install python, follow the instructions at https://www.python.org/downloads/
+
+To install miniconda, follow the instructions at https://www.anaconda.com/docs/getting-started/miniconda/install
 
 ## Installation
 
