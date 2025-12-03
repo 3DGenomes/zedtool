@@ -29,11 +29,10 @@ def find_fiducials(img: np.ndarray, df: pd.DataFrame, x_idx: np.ndarray, y_idx: 
     filling_disc_radius = config['filling_disc_radius']
     median_filter_disc_radius = config['median_filter_disc_radius']
     dilation_disc_radius = config['dilation_disc_radius']
-    # gaussian_filter_disc_radius = 1
     fiducial_label_file = 'fiducials_labels.png'
-    plot_histogram(np.log10(img[img>0]), 'log10(detections in bin)', 'number of bins (log scale)', 'Histogram of binned detections image', 'histogram_binned_detections', config)
+    outpath = os.path.join('summary_plots', 'histogram_binned_detections')
+    plot_histogram(np.log10(img[img>0]), 'log10(detections in bin)', 'number of bins (log scale)', 'Histogram of binned detections image', outpath, config)
     img_filt = skimage.filters.median(img, skimage.morphology.disk(median_filter_disc_radius))
-    # img_filt = skimage.filters.gaussian(img, sigma=gaussian_filter_disc_radius)
     if config['only_fiducials']:
         thresh = config['min_fiducial_detections']
     else:
