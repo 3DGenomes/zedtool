@@ -555,28 +555,31 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     point_size = 100 / np.max([n_detections,1])
     point_size = np.max([point_size, 0.05])
     point_size = np.min([point_size, 1.0])
-
-    # Plot x,y,z dependence on deltaz
-    fig, ax = plt.subplots(3, 1, figsize=(12, 9))
-    outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
-    figure_path = construct_plot_path(outpath, "png", config)
-    colours = ['blue', 'green', 'red']
-    for k in range(len(dimnames)):
-        col = xyz_colnames[k]
-        vals = df_detections_roi[col]
-        ax[k].scatter(deltaz, vals, s=point_size, c=colours[k], alpha=0.25)
-        # Find the regression line and plot that and the factor and points
-        slope, intercept, cor, p_value, std_err = scipy.stats.linregress(deltaz, vals)
-        x_fit = np.linspace(np.min(deltaz), np.max(deltaz), 100)
-        y_fit = slope * x_fit + intercept
-        ax[k].plot(x_fit, y_fit, linestyle=':', color='lightgray')
-        # write slope, cor on plot
-        ax[k].annotate(f"slope = {slope:.3f}\ncor = {cor:.3f}\n", xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
-                       bbox=dict(facecolor='white', alpha=0.25), ha='right', va='top')
-        ax[k].set_xlabel('delta z (nm)')
-        ax[k].set_ylabel(f'{col} (nm)')
-    plt.savefig(figure_path, dpi=600)
-    plt.close()
+    var_deltaz = np.nanvar(deltaz)
+    colours_xyz = ['blue', 'green', 'red']
+    if np.isfinite(var_deltaz) and not np.isclose(var_deltaz, 0.0):
+        # Plot x,y,z dependence on deltaz
+        fig, ax = plt.subplots(3, 1, figsize=(12, 9))
+        outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
+        figure_path = construct_plot_path(outpath, "png", config)
+        for k in range(len(dimnames)):
+            col = xyz_colnames[k]
+            vals = df_detections_roi[col]
+            ax[k].scatter(deltaz, vals, s=point_size, c=colours_xyz[k], alpha=0.25)
+            # Find the regression line and plot that and the factor and points
+            slope, intercept, cor, p_value, std_err = scipy.stats.linregress(deltaz, vals)
+            x_fit = np.linspace(np.min(deltaz), np.max(deltaz), 100)
+            y_fit = slope * x_fit + intercept
+            ax[k].plot(x_fit, y_fit, linestyle=':', color='lightgray')
+            # write slope, cor on plot
+            ax[k].annotate(f"slope = {slope:.3f}\ncor = {cor:.3f}\n", xy=(0.9, 0.9), xycoords='axes fraction', fontsize=8,
+                           bbox=dict(facecolor='white', alpha=0.25), ha='right', va='top')
+            ax[k].set_xlabel('delta z (nm)')
+            ax[k].set_ylabel(f'{col} (nm)')
+        plt.savefig(figure_path, dpi=600)
+        plt.close()
+    else:
+        logging.info(f"Skipping deltaz dependence plot for fiducial {fiducial_name} due to zero variance in deltaz.")
     # Plot detections colour coded by possible covariates
     covariate_plot_quantities = []
     for q in config.get('covariate_plot_quantities', []):
@@ -621,7 +624,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         x = df_detections_roi[x_col_id]
         y_col_id = xyz_sd_colnames[k]
         y = df_detections_roi[y_col_id]
-        ax[k].scatter(x, y, s=point_size, c=colours[k], alpha=0.25)
+        ax[k].scatter(x, y, s=point_size, c=colours_xyz[k], alpha=0.25)
         # Possibly interesting but not generally applicable, so commented out
         do_fit=False
         if do_fit:
@@ -792,6 +795,10 @@ def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
         Saves the TIFF file to disk.
     """
     logging.info("save_to_tiff_3d")
+    if counts_xyz.size == 0:
+        logging.warning("Warning: no detections to save in binned 3D image.")
+        return
+
     # Save a 3D array to a TIFF file
     maxpixel = np.max(counts_xyz)
     imgfile = construct_plot_path(filename, "tif", config)

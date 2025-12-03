@@ -1,6 +1,7 @@
 import logging
 import os
 import pandas as pd
+import numpy as np
 
 def config_default() -> dict:
     config = {
@@ -200,7 +201,7 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
     frames_per_cycle = num_frames * num_z_steps
     total_frames = total_cycles * frames_per_cycle
     if config['image_id_col'] in df.columns:
-        max_image_id = df[config['image_id_col']].max()
+        max_image_id = df[config['image_id_col']].max().astype(int)
         if max_image_id > total_frames:
             logging.error(f"Max {config['image_id_col']} = {max_image_id} exceeds total possible frames {total_frames}")
             ret = 0
@@ -209,7 +210,8 @@ def config_validate_detections(df: pd.DataFrame, config: dict) -> int:
                             (df[config['z_step_col']] - min_z_step) * num_frames +
                             (df[config['cycle_col']] - min_cycle) * frames_per_cycle +
                             (df[config['time_point_col']] - min_time_point) * frames_per_cycle * num_cycles)
-        if not expected_image_id.equals(df[config['image_id_col']]):
+        idx = (expected_image_id != df[config['image_id_col']])
+        if np.sum(idx)>0:
             logging.error(f"Image-ID column does not match frame, z-step, cycle, time-point columns")
             idx = expected_image_id != df[config['image_id_col']]
             logging.error(f"Expected: {expected_image_id[idx].to_numpy()}")

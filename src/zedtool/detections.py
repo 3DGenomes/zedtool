@@ -45,7 +45,11 @@ def bin_detections(det_xyz: np.ndarray,resolution: int) -> Tuple[np.ndarray, np.
     # Add an extra bin to the end for histogramdd() then remove it later
     x_bins = np.arange(np.nanmin(x), np.nanmax(x) + resolution, resolution)
     y_bins = np.arange(np.nanmin(y), np.nanmax(y) + resolution, resolution)
-    z_bins = np.arange(np.nanmin(z), np.nanmax(z) + resolution, resolution)
+    # If 2D then z should be a constant, so make bins accordingly
+    if np.all(z == z[0]):
+        z_bins = np.array([z[0]-resolution/2, z[0]+resolution/2])
+    else:
+        z_bins = np.arange(np.nanmin(z), np.nanmax(z) + resolution, resolution)
     counts_xyz = np.histogramdd([x, y, z], bins=[x_bins, y_bins, z_bins])
     return counts_xyz[0], x_bins[:-1], y_bins[:-1], z_bins[:-1]
 
@@ -154,11 +158,11 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     ndimensions = len(xyz_colnames)
     for j in range(ndimensions):
-        tidx = df[config['image_id_col']]
+        tidx = df[config['image_id_col']].astype(int)
         df[xyz_colnames[j]] = df[xyz_colnames[j]] - x_t[j, tidx]
     # Correct deltaz if it exists
     if config['deltaz_col'] in df.columns:
-        df[config['deltaz_col']] = df[config['deltaz_col']] - x_t[2, df[config['image_id_col']]]
+        df[config['deltaz_col']] = df[config['deltaz_col']] - x_t[2, df[config['image_id_col']].astype(int)]
     return df
 
 def deltaz_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:

@@ -139,10 +139,15 @@ def make_fiducial_stats(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: di
         x_z_step_cor = scipy.stats.pearsonr(x, z_step)[0]
         y_z_step_cor = scipy.stats.pearsonr(y, z_step)[0]
         z_z_step_cor = scipy.stats.pearsonr(z, z_step)[0]
-        # fit a linear model of z versus deltaz
-        x_deltaz_slope, intercept, x_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, x)
-        y_deltaz_slope, intercept, y_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, y)
-        z_deltaz_slope, intercept, z_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, z)
+        # fit a linear model of x,y,z versus deltaz
+        # If deltaz has no variance (or is all-NaN) set *_deltaz_* to 0, else run linregress
+        if np.isnan(np.nanvar(deltaz)) or np.isclose(np.nanvar(deltaz), 0.0):
+            x_deltaz_slope = y_deltaz_slope = z_deltaz_slope = 0.0
+            x_deltaz_cor = y_deltaz_cor = z_deltaz_cor = 0.0
+        else:
+            x_deltaz_slope, intercept, x_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, x)
+            y_deltaz_slope, intercept, y_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, y)
+            z_deltaz_slope, intercept, z_deltaz_cor, p_value, std_err = scipy.stats.linregress(deltaz, z)
         x_sd = np.std(x)
         x_mean = np.mean(x)
         x_fwhm = fwhm_from_points(x)
@@ -320,8 +325,11 @@ def filter_fiducials(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict)
 def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     # Make correlations between fiducial stats
     logging.info('make_fiducial_correlations')
+    if np.var(df[config['z_col']]) == 0:
+        logging.warning('No variance in z positions, skipping fiducial correlations')
+        return None, None
     n_fiducials = len(df_fiducials)
-    n_images = np.max(df[config['image_id_col']]) + 1
+    n_images = int(np.max(df[config['image_id_col']]) + 1)
     logging.info(f'Making fiducial array: n_fiducials: {n_fiducials}, n_images: {n_images}')
     z =  np.full((n_images, n_fiducials), np.nan)
     for i in range(len(df_fiducials)):
@@ -1179,7 +1187,7 @@ def extract_fiducial_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, co
             logging.info(f'Extracting detections for fiducial {label}')
         for k, colname in enumerate(xyz_colnames):
             df_sel = df[df['label'] == label]
-            image_id = df_sel[config['image_id_col']]
+            image_id = df_sel[config['image_id_col']].astype(int)
             x_ft[k,i, image_id] = df_sel[colname].values
             xsd_ft[k,i, image_id] = df_sel[sd_colnames[k]].values
     return x_ft, xsd_ft

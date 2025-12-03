@@ -152,6 +152,10 @@ def read_detections(config: dict) -> pd.DataFrame:
         if config['make_caches']:
             df.to_pickle(binary_detections_file)
 
+    # make frame_col, image_id_col, z_step_col, cycle_col, time_point_col into ints
+    for col in [config['frame_col'], config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
+        if col in df.columns:
+            df[col] = df[col].astype(int)
     # make sure detections are consistent with config
     logging.info(f"Loaded {df.shape[0]} rows")
     if not config_validate_detections(df, config):
@@ -402,7 +406,8 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     # Make output directories for second pass
     os.makedirs(config_post['output_dir'], exist_ok=True)
     os.makedirs(config_post['fiducial_dir'], exist_ok=True)
-    os.makedirs(config_post['time_point_metrics_dir'], exist_ok=True)
+    if config_post['plot_time_point_metrics']:
+        os.makedirs(config_post['time_point_metrics_dir'], exist_ok=True)
 
     # don't use included/excluded fiducials because the labelling will have changed
     if config_post['resegment_after_correction']:

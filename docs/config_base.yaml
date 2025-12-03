@@ -105,7 +105,7 @@ plot_fourier_correlation: 0 # plot Fourier Ring/Shell Correlation for the 2D/3D 
 zstep_correct_fiducials: 0  # correct z co-ordinate of fiducial detections for z-step variation
 drift_correct_detections: 0 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
 rotation_correct_detections: 0 # if 1, then correct for rotation/translation of the sample at time point boundaries
-drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to correct the drift
+drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to correct the drift. Re-filters fiducials after initial correction and re-computes drift correction.
 deltaz_correct_detections: 0 # correct z co-ordinate of all detections for deltaz variation
 deconvolve_z: 0 # deconvolve z from the detections
 save_non_fiducial_detections: 0 # save non-fiducial detections to a separate file
