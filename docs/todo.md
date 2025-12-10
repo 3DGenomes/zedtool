@@ -1,4 +1,7 @@
 ### TODO:
+* Help about joining experiments
+* Help about iterative use
+* Random subsampling - especially for plots
 * Use config file to select which covariates are plotted
  - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 
 * fiducials.py:139: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
