@@ -95,7 +95,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     # Plot the fiducials movement over time
     for k in range(ndims_ex):
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.png")
+        outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
         for j in range(nfiducials):
             label = df_fiducials.label[j]
@@ -114,7 +114,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
 
     for k in range(ndims_ex):
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"summary_fiducial_cumulative_{y_col}_vs_timepoint_dist.png")
+        outpath = os.path.join(outdir, f"summary_fiducial_cumulative_{y_col}_vs_timepoint_dist.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
         # Do a box and whisker plot using metrics_ifdex
         plt.boxplot(np.transpose(metrics_ijfdex[1:, 0, :, k]), positions=np.arange(1, metrics_ijfdex.shape[0]), widths=0.5)
@@ -127,7 +127,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
     # Plot the time point metrics. metrics_if and metrics_ifd - per fiducial and summary
     for k in range(ndims_ex):
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.png")
+        outpath = os.path.join(outdir, f"fiducial_dist_{y_col}_vs_timepoint_dist.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
         for j in range(nfiducials):
             label = df_fiducials.label[j]
@@ -147,7 +147,7 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
 
     for k in range(ndims_ex):
         y_col = xyz_colnames[k]
-        outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.png")
+        outpath = os.path.join(outdir, f"summary_fiducial_dist_{y_col}_vs_timepoint_dist.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
         # Do a box and whisker plot using metrics_ifdex
         plt.boxplot(np.transpose(metrics_ifdex[:, :, k]), positions=np.arange(metrics_ifdex.shape[0])+1, widths=0.5)

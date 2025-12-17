@@ -81,7 +81,7 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
         plt.ylabel('Stddev')
         plt.title('Stddev vs Size')
         plt.colorbar(label='Number of Peaks')
-        outfile = os.path.join(config['output_dir'], 'cluster_plots', 'summary.png')
+        outfile = os.path.join(config['output_dir'], 'cluster_plots', f'summary.{config['plot_format']}')
         plt.savefig(outfile)
         plt.close()
 
@@ -203,6 +203,6 @@ def plot_deconvolution(z: np.ndarray, z_adjusted: np.ndarray, filename: str, con
     plt.legend()
     outdir = os.path.join(config['output_dir'], 'cluster_plots')
     os.makedirs(outdir, exist_ok=True)
-    outfile = os.path.join(outdir, f'{filename}.png')
+    outfile = os.path.join(outdir, f'{filename}.{config['plot_format']}')
     plt.savefig(outfile)
     plt.close()

@@ -418,8 +418,8 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
         plt.xlabel("Samples")
         plt.ylabel("Distance")
         outfile = os.path.join(config['fiducial_dir'], "dendrogram_dz_mad")
-        figure_path = construct_plot_path(outfile, "png", config)
-        plt.savefig(figure_path, dpi=600)
+        figure_path = construct_plot_path(outfile, config['plot_format'], config)
+        plt.savefig(figure_path, dpi=config['plot_dpi'])
         plt.close()
         # Mask the lower triangle
         mask = np.tri(dz_mad.shape[0], k=-1)
@@ -435,8 +435,8 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
         plt.xlabel("Samples")
         plt.ylabel("Distance")
         outfile = os.path.join(config['fiducial_dir'], "dendrogram_dzdt_mad")
-        figure_path = construct_plot_path(outfile, "png", config)
-        plt.savefig(figure_path, dpi=600)
+        figure_path = construct_plot_path(outfile, config['plot_format'], config)
+        plt.savefig(figure_path, dpi=config['plot_dpi'])
         plt.close()
     return dz_mad, dzdt_mad
 

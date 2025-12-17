@@ -1,4 +1,9 @@
 ### TODO:
+* Make figures writable to pdf and svg as well as png
+* Remove zstep_correct_fiducials and deconvolve_z from paper version and plots
+* Write something to the logfile about whether rotation and deltza correction should be done.
+* Clean up euclidean_rigid_alignment_3d() - use scipy.spatial.transform.Rotation.align_vectors
+* Add minimum sample data and test to repo
 * Help about joining experiments
 * Help about iterative use
 * Random subsampling - especially for plots
@@ -18,7 +23,7 @@
 * Option to exclude fiducials that are missing detections in some time intervals
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
-* Look at Irene's cima code: TB=SG.TransformBlurrer(), TB.SR_gaussian_blur(strOBJ,Precision, 1)
+* Remove duplicate parallel code
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 * When fitting ranges are missing detections, better alternative to extrapolating forwards/backwards.
 

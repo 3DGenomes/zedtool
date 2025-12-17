@@ -58,7 +58,7 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
     plt.ylabel('Correlation')
     plt.title(f"{ndim}D Fourier {ring_shell} Correlation")
     plt.grid()
-    outpath = os.path.join(config['output_dir'], f"fourier_cor_vs_f_{ndim}d.png")
+    outpath = os.path.join(config['output_dir'], f"fourier_cor_vs_f_{ndim}d.{config['plot_format']}")
     plt.savefig(outpath)
 
     plt.figure(figsize=(6, 4))
@@ -81,7 +81,7 @@ def plot_fsc(spatial_freqs, frc_vals, spatial_resolutions, ndim, config) -> Tupl
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    outpath = os.path.join(config['output_dir'], f"fourier_cor_vs_x_{ndim}d.png")
+    outpath = os.path.join(config['output_dir'], f"fourier_cor_vs_x_{ndim}d.{config['plot_format']}")
     plt.savefig(outpath)
 
     # Save the results to a TSV file with header and cols names spatial_freqs, spatial_resolutions, frc_vals

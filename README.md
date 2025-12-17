@@ -173,6 +173,8 @@ In addition, it writes a file to the output directory called `drift_correction.t
 - `save_non_fiducial_detections` Save corrected non-fiducial detections to a separate file, `corrected_detections_no_fiducials.csv`  (`0`)
 - `save_fiducial_detections` Save corrected fiducial detections to a separate file, `corrected_detections_fiducials.csv`  (`0`)
 - `covariate_plot_quantities`: List of columns to plot as per-fiducial covariates (`image_id_col`, `z_step_col`, `cycle_col`, `time_point_col`, `deltaz_col`, `photons_col`, `x_sd_col`, `y_sd_col`, `z_sd_col`)
+- `plot_format`: File type to be used for plotting - [png|jpg|pdf|svg|...]. Use vector plots at your own risk.  (`png`)
+- `plot_dpi`: DPI to use for raster plots (`150`)
 ## Example Configuration File
 Options are read from a yaml configuration file supplied on the command line. Here is an example:
 

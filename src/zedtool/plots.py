@@ -77,7 +77,7 @@ def plot_scatter(x: np.ndarray, y: np.ndarray, xlabel: str, ylabel: str, title: 
     int
         0 on success.
     """
-    filetype = "png"
+    filetype = config['plot_format']
     plt.figure()
     # Scale point size with number of detections
     if len(x) > 0:
@@ -92,7 +92,7 @@ def plot_scatter(x: np.ndarray, y: np.ndarray, xlabel: str, ylabel: str, title: 
     plt.ylabel(ylabel)
     plt.title(title)
     figure_path = construct_plot_path(filename, filetype, config)
-    plt.savefig(figure_path, dpi=300)
+    plt.savefig(figure_path, dpi=config['plot_dpi'])
     plt.close()
     return 0
 
@@ -156,7 +156,7 @@ def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename
         0 on success.
     """
     hist_bins = 100 # TODO: make this a config option
-    filetype = "png"
+    filetype = config['plot_format']
     plt.figure()
     plt.hist(x, bins=hist_bins)
     plt.xlabel(xlabel)
@@ -165,7 +165,7 @@ def plot_histogram(x: np.ndarray, xlabel: str, ylabel: str, title: str, filename
     if "log" in ylabel.lower():
         plt.yscale("log")
     figure_path = construct_plot_path(filename, filetype, config)
-    plt.savefig(figure_path, dpi=300)
+    plt.savefig(figure_path, dpi=config['plot_dpi'])
     plt.close()
     return 0
 
@@ -208,8 +208,8 @@ def plot_detections(df: pd.DataFrame, filename: str, config: dict):
     ax[1, 1].hist(df[config['z_col']], bins=100)
     ax[1, 1].set_xlabel('z (nm)')
     ax[1, 1].set_ylabel('count')
-    figure_path = construct_plot_path(filename, "png", config)
-    plt.savefig(figure_path, dpi=600)
+    figure_path = construct_plot_path(filename, config['plot_format'], config)
+    plt.savefig(figure_path, dpi=config['plot_dpi'])
     plt.close()
 
 def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np.ndarray, filename: str, config: dict):
@@ -261,8 +261,8 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
     ax[2, 0].set_ylabel('mean(z) nm')
     ax[2, 1].set_xlabel('log_10(n)')
     ax[2, 1].set_ylabel('mean(z) nm')
-    figure_path = construct_plot_path(filename, "png", config)
-    fig.savefig(figure_path, dpi=600)
+    figure_path = construct_plot_path(filename, config['plot_format'], config)
+    fig.savefig(figure_path, dpi=config['plot_dpi'])
     plt.close()
 
 def plot_summary_stats(df: pd.DataFrame, det_xyz: np.ndarray, config: dict):
@@ -371,6 +371,7 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     logging.info("plot_fiducial_rois")
     detections_img_file = 'binned_detections_2d.tif'
     fiducials_plot_file = 'fiducials_plot'
+    fiducials_plot_cropped_file = 'fiducials_plot_cropped'
     line_intensity = 228
     # read in the image and the segmentation from tifs
     img_filt = tifffile.imread(os.path.join(config['output_dir'], detections_img_file))
@@ -413,7 +414,7 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     imp = add_axes_and_scale_bar(imp, scale_bar_length=50, bin_resolution=config['bin_resolution'])
     # imp.show()
     imfile = os.path.join(config['output_dir'], fiducials_plot_file)
-    figure_path = construct_plot_path(imfile, "png", config)
+    figure_path = construct_plot_path(imfile, 'png', config)
     imp.save(figure_path, quality=95)
     # Extract array with pixels from imp
     im_crop = np.array(imp)
@@ -422,8 +423,8 @@ def plot_fiducial_rois(df_fiducials: pd.DataFrame, df: pd.DataFrame, config: dic
     idx_col = np.sum(im_crop>=line_intensity,axis=0)>0
     im_crop = im_crop[idx_row][:,idx_col]
     # Write to png
-    imfile = os.path.join(config['output_dir'], 'fiducials_plot_cropped')
-    figure_path = construct_plot_path(imfile, "png", config)
+    imfile = os.path.join(config['output_dir'], fiducials_plot_cropped_file)
+    figure_path = construct_plot_path(imfile, 'png', config)
     imp_crop = Image.fromarray(im_crop)
     imp_crop.save(figure_path, quality=95)
     return 0
@@ -549,7 +550,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
     axs[1, 1].set_ylabel('Frequency')
     # Adjust layout
     plt.tight_layout()
-    plt.savefig(outpath, dpi=300)
+    plt.savefig(outpath, dpi=config['plot_dpi'])
     plt.close()
     # Set point size to suit number of detections
     point_size = 100 / np.max([n_detections,1])
@@ -561,7 +562,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         # Plot x,y,z dependence on deltaz
         fig, ax = plt.subplots(3, 1, figsize=(12, 9))
         outpath = os.path.join(outdir, f"{fiducial_name}_deltaz_dependence")
-        figure_path = construct_plot_path(outpath, "png", config)
+        figure_path = construct_plot_path(outpath, config['plot_format'], config)
         for k in range(len(dimnames)):
             col = xyz_colnames[k]
             vals = df_detections_roi[col]
@@ -576,7 +577,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
                            bbox=dict(facecolor='white', alpha=0.25), ha='right', va='top')
             ax[k].set_xlabel('delta z (nm)')
             ax[k].set_ylabel(f'{col} (nm)')
-        plt.savefig(figure_path, dpi=600)
+        plt.savefig(figure_path, dpi=config['plot_dpi'])
         plt.close()
     else:
         logging.info(f"Skipping deltaz dependence plot for fiducial {fiducial_name} due to zero variance in deltaz.")
@@ -614,8 +615,8 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         cbar.update_normal(sc)  # Update colorbar to apply the alpha setting
         ax[1, 1].set_axis_off()
         outpath = os.path.join(outdir, f"{fiducial_name}_cov_{col}")
-        figure_path = construct_plot_path(outpath, "png", config)
-        plt.savefig(figure_path, dpi=600)
+        figure_path = construct_plot_path(outpath, config['plot_format'], config)
+        plt.savefig(figure_path, dpi=config['plot_dpi'])
         plt.close()
     # Plot x,y,z vs x_sd, y_sd, z_sd  to see if error estimate is realistic
     fig, ax = plt.subplots(3, 1, figsize=(12, 9))
@@ -639,8 +640,8 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         ax[k].set_xlabel(f'{x_col_id} (nm)')
         ax[k].set_ylabel(f'{y_col_id} (nm)')
     outpath = os.path.join(outdir, f"{fiducial_name}_sd")
-    figure_path = construct_plot_path(outpath, "png", config)
-    plt.savefig(figure_path, dpi=600)
+    figure_path = construct_plot_path(outpath, config['plot_format'], config)
+    plt.savefig(figure_path, dpi=config['plot_dpi'])
     plt.close()
 
     return 0
@@ -685,7 +686,7 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
                 axs[j, k].set_ylabel(f"{y_col} {unit}")
                 axs[j, k].scatter(x,y)
         plt.tight_layout()
-        plt.savefig(outpath, dpi=300)
+        plt.savefig(outpath, dpi=config['plot_dpi'])
         plt.close()
 
     # plot photons versus x_mean, y_mean, z_mean in a 3 panel plot
@@ -701,11 +702,11 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
         axs[j].set_xlabel(f"{x_col} (nm)")
         axs[j].set_ylabel("photons")
     plt.tight_layout()
-    plt.savefig(outpath, dpi=300)
+    plt.savefig(outpath, dpi=config['plot_dpi'])
     plt.close()
 
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
-    outpath = os.path.join(config['output_dir'], f"fiducial_quality_metrics_summary.png")
+    outpath = os.path.join(config['output_dir'], f"fiducial_quality_metrics_summary.{config['plot_format']}")
     plt.figure(figsize=(10, 6))
     outdir = config['output_dir']
     os.makedirs(outdir, exist_ok=True)

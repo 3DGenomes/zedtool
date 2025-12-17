@@ -24,6 +24,8 @@ def config_default() -> dict:
         'create_backup_columns': 0,
         'refilter_fiducials_after_correction': 0,
         'covariate_plot_quantities': ['image_id_col', 'z_step_col', 'cycle_col', 'time_point_col', 'deltaz_col', 'photons_col', 'x_sd_col', 'y_sd_col', 'z_sd_col'],
+        'plot_format': 'png',
+        'plot_dpi': 150,
         # Concatenating experiments
         'concatenate_detections_file': None,
         'concatenate_offset_file': None,
