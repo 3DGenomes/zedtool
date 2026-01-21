@@ -102,7 +102,6 @@ def config_default() -> dict:
         'plot_fourier_correlation': 0,
         'save_non_fiducial_detections': 0,
         'save_fiducial_detections': 0,
-        'zstep_correct_fiducials': 0,
         'deltaz_correct_detections': 0,
         'deconvolve_z': 0,
         'drift_correct_detections_multi_pass': 0,

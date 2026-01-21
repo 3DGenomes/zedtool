@@ -163,7 +163,6 @@ If `correct_detections` is set then a drift correction file is written out that 
 - `plot_time_point_metrics`: Plot time-point metrics of drift correction for fiducials. (`0`)
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step (`0`)
 - `plot_fourier_correlation`: Plot Fourier Ring/Shell Correlation for the 2D/3D binned image. (`0`)
-- `zstep_correct_fiducials`: Correct the z-coordinate of fiducial detections for z-step variations. Experimental. (`0`)
 - `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... 
 In addition, it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.  (`0`)
 - `rotation_correct_detections`: Correct for rotation/translation of the sample at time point boundaries.  (`0`)

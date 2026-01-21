@@ -102,7 +102,6 @@ plot_summary_stats: 0 # plots summary statistics for all detections
 plot_time_point_metrics: 0 # plot time-point metrics of drift correction for fiducials
 plot_per_fiducial_fitting: 0 # make debugging images about extracting drift correction from fiducials
 plot_fourier_correlation: 0 # plot Fourier Ring/Shell Correlation for the 2D/3D binned image.
-zstep_correct_fiducials: 0  # correct z co-ordinate of fiducial detections for z-step variation
 drift_correct_detections: 0 # drift correct all detections based on fiducials. Writes out drift correction file and corrected detections
 rotation_correct_detections: 0 # if 1, then correct for rotation/translation of the sample at time point boundaries
 drift_correct_detections_multi_pass: 0 # if 1, then use multiple pass method to correct the drift. Re-filters fiducials after initial correction and re-computes drift correction.

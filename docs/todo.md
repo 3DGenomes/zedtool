@@ -1,5 +1,4 @@
 ### TODO:
-* Remove zstep_correct_fiducials and deconvolve_z from paper version and plots
 * Write something to the output files and to the logfile about whether rotation and deltaz correction should be done.
 * Clean up euclidean_rigid_alignment_3d() - use scipy.spatial.transform.Rotation.align_vectors
 * Add minimum sample data and test to repo
@@ -8,7 +7,7 @@
 * Random subsampling - especially for plots
 * fiducials.py:139: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
     -  detect constant zstep and put something sensible in the correlations with it 
-* Turn off fiducial filtering if they are being specified with included/excluded_fiducials
+* Turn off fiducial filtering if included/excluded_fiducials are specified
 * Add docstrings to functions
 * INFO - Making array of fiducial distances for 42 fiducials
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:351: RuntimeWarning: All-NaN slice encountered   median_dzdt = np.nanmedian(dzdt)
@@ -17,14 +16,16 @@
 * Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
 * Throw error if there are no good fiducials and report why there might be a problem
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
-* Option to exclude fiducials that are missing detections in some time intervals
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
 * Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Remove duplicate parallel code
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 * When fitting ranges are missing detections, better alternative to extrapolating forwards/backwards.
+ - allow fiducial fits to have missing data and deal with NAs in optimisation/consensus process?
+ - fiducials that are missing detections in some time intervals might then be allowed
 
 ### DONE:
+* Remove zstep_correct_fiducials and deconvolve_z from paper version and plots
 * Use config file to select which covariates are plotted
  - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 
 * Make figures writable to pdf and svg as well as png
