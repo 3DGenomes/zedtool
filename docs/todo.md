@@ -1,14 +1,11 @@
 ### TODO:
-* Make figures writable to pdf and svg as well as png
 * Remove zstep_correct_fiducials and deconvolve_z from paper version and plots
-* Write something to the logfile about whether rotation and deltza correction should be done.
+* Write something to the output files and to the logfile about whether rotation and deltaz correction should be done.
 * Clean up euclidean_rigid_alignment_3d() - use scipy.spatial.transform.Rotation.align_vectors
 * Add minimum sample data and test to repo
 * Help about joining experiments
 * Help about iterative use
 * Random subsampling - especially for plots
-* Use config file to select which covariates are plotted
- - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 
 * fiducials.py:139: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
     -  detect constant zstep and put something sensible in the correlations with it 
 * Turn off fiducial filtering if they are being specified with included/excluded_fiducials
@@ -28,6 +25,9 @@
 * When fitting ranges are missing detections, better alternative to extrapolating forwards/backwards.
 
 ### DONE:
+* Use config file to select which covariates are plotted
+ - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 
+* Make figures writable to pdf and svg as well as png
 * Count detections per fitting range
 * Check that the best fiducials are not being removed by filtering on brightness/ndetections
 * Multi-pass does not seem to be filtering on goodness of fit - which it should be doing

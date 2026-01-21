@@ -87,7 +87,7 @@ def plot_scatter(x: np.ndarray, y: np.ndarray, xlabel: str, ylabel: str, title: 
     else:
         point_size = 1.0
         logging.warning(f"Empty x array in plot_scatter: {filename}")
-    plt.scatter(x, y, s=point_size)
+    plt.scatter(x, y, s=point_size, rasterized=True)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
@@ -191,17 +191,17 @@ def plot_detections(df: pd.DataFrame, filename: str, config: dict):
     # plot projections  of det_xyz
     fig, ax = plt.subplots(2, 2, figsize=(12, 9))
     # scatter plot of x,y in top left
-    sc = ax[0, 0].scatter(df[config['x_col']], df[config['y_col']], s=0.01,alpha=0.05, c=df[config['z_step_col']])
+    sc = ax[0, 0].scatter(df[config['x_col']], df[config['y_col']], s=0.01,alpha=0.05, rasterized=True, c=df[config['z_step_col']])
     ax[0, 0].set_xlabel('x (nm)')
     ax[0, 0].set_ylabel('y (nm)')
     cbar = plt.colorbar(sc, ax=ax[0, 0])
     cbar.set_label('z-step')
     # scatter plot of x,z in bottom left
-    ax[1, 0].scatter(df[config['x_col']], df[config['z_col']], s=0.01,alpha=0.05, c=df[config['z_step_col']])
+    ax[1, 0].scatter(df[config['x_col']], df[config['z_col']], s=0.01,alpha=0.05, rasterized=True, c=df[config['z_step_col']])
     ax[1, 0].set_xlabel('x (nm)')
     ax[1, 0].set_ylabel('z (nm)')
     # scatter plot of y,z in top right
-    ax[0, 1].scatter(df[config['y_col']], df[config['z_col']], s=0.01,alpha=0.05, c=df[config['z_step_col']])
+    ax[0, 1].scatter(df[config['y_col']], df[config['z_col']], s=0.01,alpha=0.05, rasterized=True, c=df[config['z_step_col']])
     ax[0, 1].set_xlabel('y (nm)')
     ax[0, 1].set_ylabel('z (nm)')
     # histogram of z in bottom right
@@ -246,11 +246,11 @@ def plot_binned_detections_stats(n_xy: np.ndarray,mean_xy: np.ndarray, sd_xy: np
     im=ax[1, 0].imshow(sd_xy.T,origin='lower')
     ax[1, 0].set_axis_off()
     plt.colorbar(im, ax=ax[1,0], label='nm')
-    ax[1, 1].scatter(np.log10(1 + n_xy).flatten(), sd_xy.flatten(), s=0.1, c=mean_xy.flatten())
+    ax[1, 1].scatter(np.log10(1 + n_xy).flatten(), sd_xy.flatten(), s=0.1, rasterized=True, c=mean_xy.flatten())
     plt.colorbar(im, ax=ax[1, 1], label='mean(z) nm')
-    ax[2, 0].scatter(sd_xy.flatten(), mean_xy.flatten(), s=0.1, c=np.log10(1+n_xy).flatten())
+    ax[2, 0].scatter(sd_xy.flatten(), mean_xy.flatten(), s=0.1, rasterized=True, c=np.log10(1+n_xy).flatten())
     plt.colorbar(im, ax=ax[2, 0], label='log10(n)')
-    ax[2, 1].scatter(np.log10(1+n_xy).flatten(), mean_xy.flatten(),s=0.1, c=sd_xy.flatten())
+    ax[2, 1].scatter(np.log10(1+n_xy).flatten(), mean_xy.flatten(),s=0.1, rasterized=True, c=sd_xy.flatten())
     plt.colorbar(im, ax=ax[2, 1], label='sd(z) nm')
     ax[0, 0].set_title('log_10(n)')
     ax[0, 1].set_title('mean(z) (nm)')
@@ -566,7 +566,7 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         for k in range(len(dimnames)):
             col = xyz_colnames[k]
             vals = df_detections_roi[col]
-            ax[k].scatter(deltaz, vals, s=point_size, c=colours_xyz[k], alpha=0.25)
+            ax[k].scatter(deltaz, vals, s=point_size, c=colours_xyz[k], rasterized=True, alpha=0.25)
             # Find the regression line and plot that and the factor and points
             slope, intercept, cor, p_value, std_err = scipy.stats.linregress(deltaz, vals)
             x_fit = np.linspace(np.min(deltaz), np.max(deltaz), 100)
@@ -598,13 +598,13 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
             logging.warning(f"Covariate column {col} has zero variance in fiducial {fiducial_name}. Skipping plot.")
             continue
         fig, ax = plt.subplots(2, 2, figsize=(12, 9))
-        sc = ax[0, 0].scatter(x, z, s=point_size, c=vals, alpha=0.25)
+        sc = ax[0, 0].scatter(x, z, s=point_size, rasterized=True, c=vals, alpha=0.25)
         ax[0, 0].set_xlabel('x (nm)')
         ax[0, 0].set_ylabel('z (nm)')
-        ax[0, 1].scatter(y, z, s=point_size, c=vals, alpha=0.25)
+        ax[0, 1].scatter(y, z, s=point_size, rasterized=True, c=vals, alpha=0.25)
         ax[0, 1].set_xlabel('y (nm)')
         ax[0, 1].set_ylabel('z (nm)')
-        ax[1, 0].scatter(x, y, s=point_size, c=vals, alpha=0.25)
+        ax[1, 0].scatter(x, y, s=point_size, rasterized=True, c=vals, alpha=0.25)
         ax[1, 0].set_xlabel('x (nm)')
         ax[1, 0].set_ylabel('y (nm)')
         # Use make_axes_locatable to create an inset axis for the colorbar
@@ -665,15 +665,16 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     """
     dimnames =config['dimnames']
     ndim = len(dimnames)
-    quantities = ['deltaz_slope','deltaz_cor', 'sd', 'fwhm', 'z_step_cor']
-    units = ['', 'nm', 'nm', '']
+    quantities = ['deltaz_slope','deltaz_cor', 'mean', 'sd', 'fwhm', 'z_step_cor']
+    units = ['', '', 'nm', 'nm', 'nm', '']
+    filetype = config['plot_format']
 
     for unit,fiducial_stat in zip (units, quantities):
         if config['verbose']:
             logging.info(f"Plotting fiducial stat {fiducial_stat}")
         outdir = os.path.join(config['fiducial_dir'])
         os.makedirs(outdir, exist_ok=True)
-        outpath = os.path.join(outdir, f"{fiducial_stat}_vs_xyz")
+        outpath = os.path.join(outdir, f"{fiducial_stat}_vs_xyz.{filetype}")
         fig, axs = plt.subplots(3, 3, figsize=(12, 10))
         for j in range(len(dimnames)):
             for k in range(len(dimnames)):
@@ -691,7 +692,7 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
 
     # plot photons versus x_mean, y_mean, z_mean in a 3 panel plot
     outdir = os.path.join(config['fiducial_dir'])
-    outpath = os.path.join(outdir, "photons_vs_xyz")
+    outpath = os.path.join(outdir, f"photons_vs_xyz.{filetype}")
     fig, axs = plt.subplots(3, 1, figsize=(12, 4))
     for j in range(ndim):
         x_col = f"{dimnames[j]}_mean"
@@ -706,7 +707,7 @@ def plot_fiducial_quality_metrics(df_fiducials: pd.DataFrame, config: dict):
     plt.close()
 
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
-    outpath = os.path.join(config['output_dir'], f"fiducial_quality_metrics_summary.{config['plot_format']}")
+    outpath = os.path.join(config['output_dir'], f"fiducial_quality_metrics_summary.{filetype}")
     plt.figure(figsize=(10, 6))
     outdir = config['output_dir']
     os.makedirs(outdir, exist_ok=True)

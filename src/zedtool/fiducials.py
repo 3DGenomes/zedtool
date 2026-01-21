@@ -330,11 +330,15 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     n_fiducials = len(df_fiducials)
     n_images = int(np.max(df[config['image_id_col']]) + 1)
     logging.info(f'Making fiducial array: n_fiducials: {n_fiducials}, n_images: {n_images}')
+    x =  np.full((n_images, n_fiducials), np.nan)
+    y =  np.full((n_images, n_fiducials), np.nan)
     z =  np.full((n_images, n_fiducials), np.nan)
     for i in range(len(df_fiducials)):
         label = df_fiducials.at[i, 'label']
         idx = df['label'] == label
         frames = df[idx][config['image_id_col']]
+        x[frames, i] = df[idx][config['x_col']]
+        y[frames, i] = df[idx][config['y_col']]
         z[frames, i] = df[idx][config['z_col']]
     # make the column names from z_mean column in df_fiducials
     col_z = df_fiducials['z_mean'].astype(int).astype(str).str.zfill(4).str.replace('-', 'm')
@@ -345,6 +349,8 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     logging.info(f'Making array of fiducial distances for {n_fiducials} fiducials')
     dz_mad = np.zeros((n_fiducials, n_fiducials))
     dzdt_mad = np.zeros((n_fiducials, n_fiducials))
+    x_cor = np.zeros((n_fiducials, n_fiducials))
+    y_cor = np.zeros((n_fiducials, n_fiducials))
     z_cor = np.zeros((n_fiducials, n_fiducials))
     dx = np.zeros((n_fiducials, n_fiducials))
     dy = np.zeros((n_fiducials, n_fiducials))
@@ -359,9 +365,13 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
             dzdt_mad[i,j] = np.nanmedian(np.abs(dzdt - median_dzdt))
             mask = ~np.isnan(z[:,i]) & ~np.isnan(z[:,j])
             if np.sum(mask) >= 2:
+                x_cor[i,j] = scipy.stats.pearsonr(x[mask,i], x[mask,j])[0]
+                y_cor[i,j] = scipy.stats.pearsonr(y[mask,i], y[mask,j])[0]
                 z_cor[i,j] = scipy.stats.pearsonr(z[mask,i], z[mask,j])[0]
             else:
-                z_cor[i,j] = np.nan
+                x_cor[i,j] = np.nan
+                y_cor[i, j] = np.nan
+                z_cor[i, j] = np.nan
             dx[i,j] = np.abs(df_fiducials.at[i, 'x_mean'] - df_fiducials.at[j, 'x_mean'])
             dy[i,j] = np.abs(df_fiducials.at[i, 'y_mean'] - df_fiducials.at[j, 'y_mean'])
             dz[i,j] = np.abs(df_fiducials.at[i, 'z_mean'] - df_fiducials.at[j, 'z_mean'])
@@ -369,11 +379,11 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     # plot_scatter for all pairs in dx, dy, dz, dz_mad, dzdt_mad
     dimensions = ['x', 'y', 'z']
     distances = [dx, dy, dz]
-    plot_quantities = [z_cor, dz_mad, dzdt_mad]
-    quantity_names = ['z_cor', 'dz_mad', 'dzdt_mad']
+    plot_quantities = [x_cor, y_cor, z_cor, dz_mad, dzdt_mad]
+    quantity_names = ['x_cor', 'y_cor', 'z_cor', 'dz_mad (nm)', 'dzdt_mad (nm)']
     for quantity, quantity_name in zip(plot_quantities, quantity_names):
         for dim, dist in zip(dimensions, distances):
-            xlabel = f'{quantity_name} (nm)'
+            xlabel = f'{quantity_name}'
             ylabel = f'Distance in {dim} (nm)'
             outpath = os.path.join(config['fiducial_dir'], f"fiducial_{quantity_name}_vs_d{dim}")
             idx = (quantity != 0) & (~np.isnan(quantity))
@@ -838,7 +848,7 @@ def combine_fiducial_fits(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) ->
         return x_ft, xsd_ft, xsd_f
     # err per time point is a dim x times array
     x_err = np.sqrt(np.average((x_ft - x_t[:, None])**2, axis=1, weights=w))
-    # err per fiducial is a 1D array of length n_fiducials - dim and time summed over
+    # err per fiducial is a 1D array of length n_fiducials where dim and time have been summed over
     f_err = np.sqrt(np.average((x_ft - x_t[:, None])**2, axis=(0,2), weights=w))
     return x_t, x_err, f_err
 
@@ -855,12 +865,16 @@ def make_drift_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd
         logging.info(f'Plotting combined fitted corrections for {x_col[k]}')
         outdir = config['output_dir']
         os.makedirs(outdir, exist_ok=True)
-        outpath = os.path.join(outdir, f"combined_corrections_{x_col[k]}_vs_frame")
+        outpath = os.path.join(outdir, f"combined_corrections_{x_col[k]}_vs_frame.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
+        ax = plt.gca()
+        ax.set_rasterization_zorder(2)
         for j in range(nfiducials):
             label = df_fiducials.label[j]
-            plt.scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], s=0.5, label=f'{label}')
-        plt.scatter(np.arange(x_fit_ft.shape[2]), x_t[k,:], s=0.5, c='black', label='fit')
+            zorder = 1 + (j / (nfiducials+1))
+            plt.scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], s=0.5, zorder = zorder, label=f'{label}')
+        zorder = 1 + (nfiducials / (nfiducials + 1))
+        plt.scatter(np.arange(x_fit_ft.shape[2]), x_t[k,:], s=0.5, zorder = zorder, c='black', label='fit')
         plt.legend(markerscale=4, handletextpad=0.1, loc='best', fancybox=True, framealpha=1, fontsize='medium')
         plt.xlabel('image-ID')
         plt.ylabel(f"{x_col[k]} (nm)")
@@ -1036,22 +1050,24 @@ def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_
     dim = dimnames[dimension_index]
     outdir = os.path.join(config['output_dir'], "fiducial_step_fit")
     os.makedirs(outdir, exist_ok=True)
-    outpath = os.path.join(outdir, f"fidx_{fiducial_index}_i_{interval_index}_d_{dim}_fit")
+    outpath = os.path.join(outdir, f"fidx_{fiducial_index}_i_{interval_index}_d_{dim}_fit.{config['plot_format']}")
     x = np.arange(len(y))
     plt.figure(figsize=(10, 6))
+    ax = plt.gca()
+    ax.set_rasterization_zorder(2)
     if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
         if config['verbose']:
             logging.warning(f'No valid data for fitting in plot_fiduciual_step_fit() for fiducial {fiducial_index} dimension {dim} interval {interval_index}')
         return
-    sc = plt.scatter(x, y, c = ysd, s = 0.1, label='Original Data')
+    sc = plt.scatter(x, y, c = ysd, s = 0.1, zorder=1, label='Detections')
     plt.colorbar(sc, label='sd')
-    plt.scatter(x, y_fit+ysd_fit, s=0.1, label='fit+sd')
-    plt.scatter(x, y_fit-ysd_fit, s=0.1, label='fit-sd')
-    plt.scatter(x, y_fit, s=0.1, label='fit')
+    # plt.scatter(x, y_fit+ysd_fit, s=0.1, label='fit+sd')
+    # plt.scatter(x, y_fit-ysd_fit, s=0.1, label='fit-sd')
+    plt.scatter(x, y_fit, s=0.1, zorder=1.5, label='Fit')
     plt.xlabel('image-ID')
     plt.ylabel(f"{dim} (nm)")
     plt.title(f'Fit for {dim}  fid={fiducial_index} tp={interval_index}')
-    plt.legend()
+    # plt.legend()
     plt.savefig(outpath)
     plt.close()
     return 0

@@ -23,5 +23,10 @@ setup(
     package_data = {'zedtool': ['test/*']},
     install_requires=parse_requirements("requirements.txt"),
     python_requires=">=3.12",
+    entry_points={
+        'console_scripts': [
+            'zedtool=zedtool.cli:main',
+        ],
+    },
     include_package_data=True
 )
