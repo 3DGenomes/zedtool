@@ -34,7 +34,7 @@ cd zedtool-master
 Once installed, you can run zedtool using:
 
 ```bash
-python -m zedtool config.yaml
+zedtool config.yaml
 ```
 
 where `config.yaml` is a YAML configuration file containing experiment-specific parameters.
