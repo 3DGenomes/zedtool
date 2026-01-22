@@ -166,7 +166,7 @@ def apply_corrections(df: pd.DataFrame, x_t: np.ndarray, config: dict) -> pd.Dat
     return df
 
 def deltaz_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dict) -> pd.DataFrame:
-    logging.info('zstep_correct_detections')
+    logging.info('deltaz_correct_detections')
     # Find x,y,z_deltaz_slope across fiducials and apply correction to all detections based on this
     xyz_colnames = [config['x_col'], config['y_col'], config['z_col']]
     xyz_dimnames = config['dimnames']

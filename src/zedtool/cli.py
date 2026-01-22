@@ -69,7 +69,8 @@ def print_ascii_logo() -> str:
     print(ret)
     return ret
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
+def cli_main():
     if len(sys.argv) != 2:
         print("Usage: zedtool.py <config_file>")
         print_version()

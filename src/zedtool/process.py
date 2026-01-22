@@ -15,7 +15,7 @@ from zedtool.detections import filter_detections, mask_detections_2d, mask_detec
 from zedtool.detections import bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz
 from zedtool.detections import compute_image_id, apply_corrections, deltaz_correct_detections, cat_experiment, check_z_step
 from zedtool.plots import plot_detections, plot_binned_detections_stats, plot_fiducials, plot_summary_stats, plot_fiducial_quality_metrics, save_to_tiff_3d, save_to_tiff_2d
-from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials, zstep_correct_fiducials
+from zedtool.fiducials import find_fiducials, make_fiducial_stats, filter_fiducials
 from zedtool.fiducials import plot_fiducial_correlations, make_quality_metrics, drift_correct_detections, make_deltaz_quality_metric
 from zedtool.configuration import config_validate, config_update, config_validate_detections, config_default, config_print
 from zedtool.deconvolution import deconvolve_z
@@ -110,8 +110,7 @@ def read_config(yaml_config_file: str) -> dict:
         return {}
 
     # Are we doing corrections? If so then a second pass is needed to replot things
-    config['making_corrections'] = (config['zstep_correct_fiducials'] or
-                            config['drift_correct_detections'] or
+    config['making_corrections'] = (config['drift_correct_detections'] or
                             config['drift_correct_detections_multi_pass'] or
                             config['deltaz_correct_detections'] or
                             config['rotation_correct_detections'] or
@@ -385,7 +384,6 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     config_post['rotation_correct_detections'] = 0
     config_post['drift_correct_detections'] = 0
     config_post['drift_correct_detections_multi_pass'] = 0
-    config_post['zstep_correct_fiducials'] = 0
     config_post['deltaz_correct_detections'] = 0
     config_post['deconvolve_z'] = 0
     config_post['making_corrections'] = 0

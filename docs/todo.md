@@ -1,5 +1,5 @@
 ### TODO:
-* Write something to the output files and to the logfile about whether rotation and deltaz correction should be done.
+* Write warning if rotation and deltaz correction should be run but are not selected.
 * Clean up euclidean_rigid_alignment_3d() - use scipy.spatial.transform.Rotation.align_vectors
 * Add minimum sample data and test to repo
 * Help about joining experiments
