@@ -1,4 +1,10 @@
 ### TODO:
+* Subsample points make vector plots smaller?
+* Test on zenodo gzipped files
+* Read gzip files
+* Remove cache stuff
+* Add a small sample file and config to the package
+* Separate prod/dev properly and remove any old stuff that should not be visible
 * Write warning if rotation and deltaz correction should be run but are not selected.
 * Clean up euclidean_rigid_alignment_3d() - use scipy.spatial.transform.Rotation.align_vectors
 * Add minimum sample data and test to repo
@@ -14,17 +20,17 @@
 - /hdd/jmarkham/work/zedtool/src/zedtool/fiducials.py:352: RuntimeWarning: All-NaN slice encountered   dzdt_mad[i,j] = np.nanmedian(np.abs(dzdt - median_dzdt))
 * Use ignore_image_id_col to determine output cols?
 * Handle files with missing first col in header like this:   ,frame,x,y,z,photons,sx,sy,bg,lpx,lpy
+* Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
 * Throw error if there are no good fiducials and report why there might be a problem
 * Fitting can't handle fitting_interval=z_step when there's missing stuff
 * For drift_correct_detections_multi_pass, change config['output_dir'] to capture intermediate results.
-* Parallelise - plot_fiducial_correlations(), make_fiducial_stats(),make_drift_corrections(), plot_time_point_metrics()
-* Remove duplicate parallel code
 * Check that precision is being preserved in corrected_detections.csv (or replaced with something usable - maybe plot old and new)
 * When fitting ranges are missing detections, better alternative to extrapolating forwards/backwards.
  - allow fiducial fits to have missing data and deal with NAs in optimisation/consensus process?
  - fiducials that are missing detections in some time intervals might then be allowed
 
 ### DONE:
+* Remove duplicate parallel code - No. leave it.
 * Remove zstep_correct_fiducials and deconvolve_z from paper version and plots
 * Use config file to select which covariates are plotted
  - replace this: columns = [config['image_id_col'], config['z_step_col'], config['cycle_col'], ... 

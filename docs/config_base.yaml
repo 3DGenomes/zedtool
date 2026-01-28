@@ -14,8 +14,6 @@ z_step_step: -100 # step size in nm for one step in the z-direction
 bin_resolution: 20 # bin size in nm for binned image
 debug: 0 # if 1 then prints and plots more to help with debugging.
 verbose: 1 # if 1 then print out more information during processing
-noclobber: 0 # If 1, will not overwrite cached intermediate results
-make_caches: 0 # if 1 then save the detections to a binary file for faster subsequent loading
 multiprocessing: 1 # if 1 then use multiprocessing to speed up the computation
 num_threads:  # number of threads to use for multiprocessing; if empty, then use all available threads
 float_format: "%.6g" # printf-style format for floating point numbers in outputs files

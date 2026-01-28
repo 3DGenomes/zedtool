@@ -1,4 +1,4 @@
-digraph zedtool_flow {
+digraph zedtool_files {
     rankdir=LR;
     fontsize=12;
     fontname="Helvetica";
@@ -20,7 +20,6 @@ digraph zedtool_flow {
                 <TR><TD ALIGN="LEFT">detections_file.csv</TD></TR>
                 <TR><TD ALIGN="LEFT">concatenate_detections_file.csv</TD></TR>
                 <TR><TD ALIGN="LEFT">concatenate_offset_file.csv</TD></TR>
-                <TR><TD ALIGN="LEFT">zedtool.log</TD></TR>
             </TABLE>
         >, shape=box, style=rounded, fillcolor=white];
     }

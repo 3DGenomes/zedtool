@@ -45,14 +45,11 @@ def read_config(yaml_config_file: str) -> dict:
     # Set up config. This carries all the global variables and is not changed after this.
     config = config_update(config_default(), config) # Update defaults with settings from file
     config['fiducial_dir'] = os.path.join(config['output_dir'], 'fiducials')
-    config['cache_dir'] = os.path.join(config['output_dir'],'cache')
     config['time_point_metrics_dir'] = os.path.join(config['output_dir'], 'time_point_metrics')
 
     # Make output directories (requires config)
     os.makedirs(config['output_dir'], exist_ok=True)
     os.makedirs(config['fiducial_dir'], exist_ok=True)
-    if config['make_caches']:
-        os.makedirs(config['cache_dir'], exist_ok=True)
     if config['plot_time_point_metrics']:
         os.makedirs(config['time_point_metrics_dir'], exist_ok=True)
     # set up logging (requires output_dir to exist)
@@ -135,21 +132,14 @@ def read_config(yaml_config_file: str) -> dict:
     return config
 
 def read_detections(config: dict) -> pd.DataFrame:
-    # read detections and cache if needed
-    binary_detections_file = os.path.join(config['cache_dir'], 'detections.pkl')
-    if config['noclobber'] and os.path.exists(binary_detections_file) and config['make_caches']:
-        logging.info(f"Loading detections from {binary_detections_file}")
-        df = pd.read_pickle(binary_detections_file)
-    else:
-        logging.info(f"Reading detections from {config['detections_file']}")
-        with fsspec.open(config['detections_file']) as f:
-            if config['use_pyarrow']:
-                pa_table = pa.csv.read_csv(f)
-                df = pa_table.to_pandas()
-            else:
-                df = pd.read_csv(f)
-        if config['make_caches']:
-            df.to_pickle(binary_detections_file)
+    # read detections
+    logging.info(f"Reading detections from {config['detections_file']}")
+    with fsspec.open(config['detections_file']) as f:
+        if config['use_pyarrow']:
+            pa_table = pa.csv.read_csv(f)
+            df = pa_table.to_pandas()
+        else:
+            df = pd.read_csv(f)
 
     # make frame_col, image_id_col, z_step_col, cycle_col, time_point_col into ints
     for col in [config['frame_col'], config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
@@ -391,8 +381,6 @@ def post_process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config
     # no density masking - already done
     config_post['threshold_on_density'] = 0
 
-    # don't make caches if we're just plotting the first pass
-    config_post['make_caches'] = 0
     # make new directory for post processing outputs
     config_post['output_dir'] = f"{config_post['output_dir']}_corrected"
     config_post['fiducial_dir'] = os.path.join(config_post['output_dir'], 'fiducials')

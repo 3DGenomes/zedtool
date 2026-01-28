@@ -499,42 +499,12 @@ def drift_correct_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, confi
     if nfiducials < 6:
         logging.warning(f'Only have {nfiducials} fiducials. Less than 6 or so may not make a very good drift correction')
 
-    noclobber = config['noclobber']
     x_col = ['x', 'y', 'z']
     xsd_col = ['x_sd', 'y_sd', 'z_sd']
     ndims = len(x_col)
-    # if fiducials file does not exist, read them in
-    outpath_x = os.path.join(config['cache_dir'], "fiducial_detections_x.npy")
-    outpath_xsd = os.path.join(config['cache_dir'], "fiducial_detections_xsd.npy")
-    if not os.path.exists(outpath_x) or not noclobber:
-        x_ft, xsd_ft = extract_fiducial_detections(df, df_fiducials, config)
-        if config['make_caches']:
-            np.save(outpath_x, x_ft)
-            np.save(outpath_xsd, xsd_ft)
-    else:
-        x_ft = np.load(outpath_x)
-        xsd_ft = np.load(outpath_xsd)
-        # Check that dimensions match the number of fiducials, if not throw error
-        if x_ft.shape[1] != len(df_fiducials):
-            logging.error(f'Number of fiducials in df_fiducials ({len(df_fiducials)}) does not match the number of fiducials in x_ft ({x_ft.shape[1]})')
-            raise RuntimeError('Mismatch with cached fiducials. Delete cache or set noclobber=0.')
-
-
-    # fit fiducials, interpolate across all time points and give uncertainties to interpolated areas
-    outpath_x = os.path.join(config['cache_dir'], "fiducial_fits_x.npy")
-    outpath_xsd = os.path.join(config['cache_dir'], "fiducial_fits_xsd.npy")
-    if not os.path.exists(outpath_x) or not noclobber:
-        x_fit_ft, xsd_fit_ft = fit_fiducial_detections( x_ft, xsd_ft, config)
-        if config['make_caches']:
-            np.save(outpath_x, x_fit_ft)
-            np.save(outpath_xsd, xsd_fit_ft)
-    else:
-        x_fit_ft = np.load(outpath_x)
-        xsd_fit_ft = np.load(outpath_xsd)
-        # Check that dimensions match the number of fiducials
-        if x_fit_ft.shape[1] != len(df_fiducials):
-            logging.error(f'Number of fiducials in df_fiducials ({len(df_fiducials)}) does not match the number of fiducials in x_fit_ft ({x_fit_ft.shape[1]})')
-            raise RuntimeError('Mismatch with cached fiducials. Delete cache or set noclobber=0.')
+    # Extract anf fit fiducials
+    x_ft, xsd_ft = extract_fiducial_detections(df, df_fiducials, config)
+    x_fit_ft, xsd_fit_ft = fit_fiducial_detections( x_ft, xsd_ft, config)
     # group fiducials to be zero centred
     if nfiducials >= 2:
         x_fit_ft, xsd_fit_ft = group_fiducial_fits(x_fit_ft, xsd_fit_ft, config)
@@ -887,9 +857,6 @@ def fit_fiducial_step(xt: np.ndarray, xt_sd: np.ndarray, config: dict) -> Tuple[
     return x_fit, xsd_fit
 
 def fit_fiducial_detections(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
-    return fit_fiducial_detections_parallel(x_ft, xsd_ft, config)
-
-def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, config: dict) -> Tuple[np.ndarray, np.ndarray]:
     logging.info('fit_fiducial_detections_parallel')
     ndim = x_ft.shape[0]
     nfiducials = x_ft.shape[1]
@@ -921,10 +888,21 @@ def fit_fiducial_detections_parallel(x_ft: np.ndarray, xsd_ft: np.ndarray, confi
     xsd_fit_ft = np.zeros_like(xsd_ft)
     xsd_fit_ft.fill(np.nan)
 
-    with multiprocessing.Pool(int(config['num_threads'])) as pool:
-        results = pool.starmap(fit_fiducial_step_parallel,
-                               [(i, k, fitting_intervals, x_ft[k,i,:], xsd_ft[k,i,:], config) for i in range(nfiducials) for k in
-                                range(ndim)])
+    # build tasks: each task is (fid_idx, dim_idx, fitting_intervals, x_slice, xsd_slice, config)
+    tasks = [(i, k, fitting_intervals, x_ft[k, i, :], xsd_ft[k, i, :], config)
+             for i in range(nfiducials) for k in range(ndim)]
+
+    results = []
+    # Use direct indexing since key is always present and an int
+    if config['multiprocessing'] == 0:
+        logging.info("fit_fiducial_detections_parallel: running single-threaded (config['multiprocessing']==0)")
+        for t in tasks:
+            results.append(fit_fiducial_step_parallel(*t))
+    else:
+        num_threads = max(1, int(config.get('num_threads', 1)))
+        with multiprocessing.Pool(num_threads) as pool:
+            results = pool.starmap(fit_fiducial_step_parallel, tasks)
+
     # k = dimension index, i = fiducial index
     for i, k, x_fit, xsd_fit in results:
         x_fit_ft[k, i, :] = x_fit

@@ -54,8 +54,6 @@ the fsspec library, such as a local file, a file on S3, or a file on Google Clou
 - `z_step_step`: Step size in nm for one step in the Z direction. Sign must match microscope setting. (`-100`)
 - `debug`: If set to 1, prints extra output and maks extra files. (`0`)
 - `verbose`: If set to 1, prints extra output to the terminal. (`1`)
-- `noclobber`: If set to 1, prevents overwriting some cached intermediate results. Safest to leave = 0. (`0`)
-- `make_caches`: If set to 1, saves detections and corrections to binary files for faster subsequent loading. Safest to leave = 0. (`0`)
 - `multiprocessing`: If 1 then use multiprocessing to speed up the computation. (`0`)
 - `num_threads`: Number of threads to use for multiprocessing. If zero then uses all available. (`0`)
 - `float_format`: printf-style format for floating point numbers in outputs files. (`%.6g`)
@@ -148,8 +146,9 @@ If `apply_drift_correction` is set then the drift corrections in `drift_correcti
 This is done directly after any concatenation of other detections but before any other processing.
 The values in the column `image_id_col` in `drift_correction_file` must match.
 
-### **Computation and Plotting Options**
-You can disable/enable various processing steps and visualizations by setting these values to 0/1. These are listed  below in the order in which they are performed.
+### **Computation and Plotting Steps**
+You can disable/enable various processing steps and visualisations by setting these values to 0/1. 
+These are listed below in the order in which they are performed.
 
 - `concatenate_detections`: Concatenate all detections from concatenate_detections_file using offsets from concatenate_offset_file. (`0`)
 - `apply_drift_correction`: Apply pre-made drift corrections from `drift_correction_file` to detections. 
@@ -163,16 +162,19 @@ If `correct_detections` is set then a drift correction file is written out that 
 - `plot_time_point_metrics`: Plot time-point metrics of drift correction for fiducials. (`0`)
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step (`0`)
 - `plot_fourier_correlation`: Plot Fourier Ring/Shell Correlation for the 2D/3D binned image. (`0`)
+- `rotation_correct_detections`: Correct for rotation/translation of the sample at time point boundaries.  (`0`)
 - `drift_correct_detections`: Do fiducial-based drift correction on all detections. This changes the x,y,z,... columns and copies them to x_0,y_0,... 
 In addition, it writes a file to the output directory called `drift_correction.tsv` that contains these corrections that can be used as described above.  (`0`)
-- `rotation_correct_detections`: Correct for rotation/translation of the sample at time point boundaries.  (`0`)
+- `drift_correct_detections_multi_pass`: Do second drift correction pass. Re-filters fiducials after initial correction and re-computes drift correction. (`0`)
 - `deltaz_correct_detections`: Correct z co-ordinate of all detections for deltaz variation. (`0`)
 - `deconvolve_z`: Reduce variation in z by squeezing peaks found in x-y bins. Experimental.  (`0`)
-- `drift_correct_detections_multi_pass`: Do second drift correction pass. Re-filters fiducials after initial correction and re-computes drift correction. (`0`)
 - `save_non_fiducial_detections` Save corrected non-fiducial detections to a separate file, `corrected_detections_no_fiducials.csv`  (`0`)
 - `save_fiducial_detections` Save corrected fiducial detections to a separate file, `corrected_detections_fiducials.csv`  (`0`)
+- `create_backup_columns` If set to 1 then backup x_col,y_col,z_col, x_sd_col,y_sd_col,z_sd_col before changing them. (`0`)
+
+### **Computation and Plotting Options**
 - `covariate_plot_quantities`: List of columns to plot as per-fiducial covariates (`image_id_col`, `z_step_col`, `cycle_col`, `time_point_col`, `deltaz_col`, `photons_col`, `x_sd_col`, `y_sd_col`, `z_sd_col`)
-- `plot_format`: File type to be used for plotting - [png|jpg|pdf|svg|...]. Use vector plots at your own risk.  (`png`)
+- `plot_format`: File type to be used for plotting - [png|jpg|pdf|svg|...]. (`png`)
 - `plot_dpi`: DPI to use for raster plots (`150`)
 ## Example Configuration File
 Options are read from a yaml configuration file supplied on the command line. Here is an example:

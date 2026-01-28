@@ -13,8 +13,6 @@ def config_default() -> dict:
         # Debugging and misc settings
         'debug': 0,
         'verbose': 1,
-        'noclobber': 0,
-        'make_caches': 0,
         'multiprocessing': 0,
         'use_pyarrow': 0,
         'num_threads': None,
@@ -132,9 +130,6 @@ def config_validate(config: dict) -> int:
         ret = 0
     # Check early on whether the requested parameters settings are valid
     if config['drift_correct_detections_multi_pass']:
-        if config['make_caches']:
-            logging.error('drift_correct_detections_multi_pass is not compatible with make_caches')
-            return 0
         if config['excluded_fiducials'] is not None or config['included_fiducials'] is not None:
             logging.error('drift_correct_detections_multi_pass is not compatible with excluded_fiducials or included_fiducials')
             return 0
