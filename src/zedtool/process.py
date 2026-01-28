@@ -10,6 +10,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.csv
 import fsspec
+import gzip
 from typing import Tuple
 from zedtool.detections import filter_detections, mask_detections_2d, mask_detections_3d, bin_detections
 from zedtool.detections import bins3d_to_stats2d, make_density_mask, make_image_index, create_backup_columns, compute_deltaz
@@ -133,13 +134,23 @@ def read_config(yaml_config_file: str) -> dict:
 
 def read_detections(config: dict) -> pd.DataFrame:
     # read detections
-    logging.info(f"Reading detections from {config['detections_file']}")
-    with fsspec.open(config['detections_file']) as f:
-        if config['use_pyarrow']:
-            pa_table = pa.csv.read_csv(f)
-            df = pa_table.to_pandas()
-        else:
-            df = pd.read_csv(f)
+    detections_file = config['detections_file']
+    logging.info(f"Reading detections from {detections_file}")
+    if detections_file.endswith('.gz'):
+        with fsspec.open(detections_file, 'rb') as f:
+            with gzip.open(f, 'rt') as gzipped_file:
+                if config['use_pyarrow']:
+                    pa_table = pa.csv.read_csv(gzipped_file)
+                    df = pa_table.to_pandas()
+                else:
+                    df = pd.read_csv(gzipped_file)
+    else:
+        with fsspec.open(detections_file) as f:
+            if config['use_pyarrow']:
+                pa_table = pa.csv.read_csv(f)
+                df = pa_table.to_pandas()
+            else:
+                df = pd.read_csv(f)
 
     # make frame_col, image_id_col, z_step_col, cycle_col, time_point_col into ints
     for col in [config['frame_col'], config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
@@ -161,11 +172,22 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     if config['concatenate_detections']:
         infile = config['concatenate_detections_file']
         logging.info(f"Concatenating {infile}")
-        if config['use_pyarrow']:
-            pa_table = pa.csv.read_csv(infile)
-            df2 = pa_table.to_pandas()
+        if infile.endswith('.gz'):
+            with fsspec.open(infile, 'rb') as f:
+                with gzip.open(f, 'rt') as gzipped_file:
+                    if config['use_pyarrow']:
+                        pa_table = pa.csv.read_csv(gzipped_file)
+                        df2 = pa_table.to_pandas()
+                    else:
+                        df2 = pd.read_csv(gzipped_file)
         else:
-            df2 = pd.read_csv(infile)
+            with fsspec.open(infile) as f:
+                if config['use_pyarrow']:
+                    pa_table = pa.csv.read_csv(f)
+                    df2 = pa_table.to_pandas()
+                else:
+                    df2 = pd.read_csv(f)
+
         logging.info(f"Loaded {df2.shape[0]} rows to concatenate")
         if not config_validate_detections(df2, config):
             logging.error("Concatenated detections do not match config")
