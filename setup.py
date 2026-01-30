@@ -20,7 +20,7 @@ setup(
     url='https://github.com/johnfmarkham/zedtool',
     description='Z Estimate Diagnostics Tool',
     package_dir = {'zedtool':'src/zedtool'},
-    package_data = {'zedtool': ['test/*']},
+    package_data = {'zedtool': ['test/*', 'VERSION']},
     install_requires=parse_requirements("requirements.txt"),
     python_requires=">=3.12",
     entry_points={
