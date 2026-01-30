@@ -204,6 +204,8 @@ def plot_detections(df: pd.DataFrame, filename: str, config: dict):
     ax[0, 1].scatter(df[config['y_col']], df[config['z_col']], s=0.01,alpha=0.05, rasterized=True, c=df[config['z_step_col']])
     ax[0, 1].set_xlabel('y (nm)')
     ax[0, 1].set_ylabel('z (nm)')
+    # Fix colorbar alpha issue
+    cbar.solids.set_alpha(1.0)
     # histogram of z in bottom right
     ax[1, 1].hist(df[config['z_col']], bins=100)
     ax[1, 1].set_xlabel('z (nm)')

@@ -132,13 +132,13 @@ def read_config(yaml_config_file: str) -> dict:
         logging.warning("Both quantile_outlier_cutoff and min_fiducial_detections are set to non-zero values. Only one should be set to non-zero.")
     return config
 
-def read_detections(config: dict) -> pd.DataFrame:
+def read_detections(detections_file: str, validate: bool, config: dict) -> pd.DataFrame:
     # read detections
-    detections_file = config['detections_file']
+    # detections_file = config['detections_file']
     logging.info(f"Reading detections from {detections_file}")
-    if detections_file.endswith('.gz'):
+    if '.csv.gz' in detections_file:
         with fsspec.open(detections_file, 'rb') as f:
-            with gzip.open(f, 'rt') as gzipped_file:
+            with gzip.open(f, 'rb') as gzipped_file:
                 if config['use_pyarrow']:
                     pa_table = pa.csv.read_csv(gzipped_file)
                     df = pa_table.to_pandas()
@@ -151,16 +151,16 @@ def read_detections(config: dict) -> pd.DataFrame:
                 df = pa_table.to_pandas()
             else:
                 df = pd.read_csv(f)
-
     # make frame_col, image_id_col, z_step_col, cycle_col, time_point_col into ints
     for col in [config['frame_col'], config['image_id_col'], config['z_step_col'], config['cycle_col'], config['time_point_col']]:
         if col in df.columns:
             df[col] = df[col].astype(int)
     # make sure detections are consistent with config
     logging.info(f"Loaded {df.shape[0]} rows")
-    if not config_validate_detections(df, config):
-        logging.error("Detections do not match config")
-        return pd.DataFrame()
+    if validate:
+        if not config_validate_detections(df, config):
+            logging.error("Detections do not match config")
+            return pd.DataFrame()
     return df
 
 def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
@@ -172,22 +172,7 @@ def pre_process_detections(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     if config['concatenate_detections']:
         infile = config['concatenate_detections_file']
         logging.info(f"Concatenating {infile}")
-        if infile.endswith('.gz'):
-            with fsspec.open(infile, 'rb') as f:
-                with gzip.open(f, 'rt') as gzipped_file:
-                    if config['use_pyarrow']:
-                        pa_table = pa.csv.read_csv(gzipped_file)
-                        df2 = pa_table.to_pandas()
-                    else:
-                        df2 = pd.read_csv(gzipped_file)
-        else:
-            with fsspec.open(infile) as f:
-                if config['use_pyarrow']:
-                    pa_table = pa.csv.read_csv(f)
-                    df2 = pa_table.to_pandas()
-                else:
-                    df2 = pd.read_csv(f)
-
+        df2 = read_detections(infile, False, config)
         logging.info(f"Loaded {df2.shape[0]} rows to concatenate")
         if not config_validate_detections(df2, config):
             logging.error("Concatenated detections do not match config")
@@ -302,10 +287,9 @@ def process_detections(df: pd.DataFrame, df_fiducials: pd.DataFrame, config: dic
 
     # Plot detections post-masking
     if config['plot_detections']:
-        # plot_detections() takes a _long_ time to run, so it's relegated to debug mode
+        # plot_detections() takes a _long_ time to run
         # binned_detections_summary.png will contain a lower resolution version of the same plot
-        if config['debug']:
-            plot_detections(df,'detections_summary', config)
+        plot_detections(df,'detections_summary', config)
         plot_binned_detections_stats(n_xy, mean_xy, sd_xy, 'binned_detections_summary',config)
         save_to_tiff_3d(counts_xyz,"binned_detections_3d", config)
 

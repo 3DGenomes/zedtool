@@ -18,7 +18,7 @@ def main(yaml_config_file: str) -> int:
         print(f"Failed to read {yaml_config_file}")
         return 1
 
-    df = read_detections(config)
+    df = read_detections(config['detections_file'], True, config)
     if df is None or len(df) == 0:
         print(f"Failed to read and validate detections file {config['detections_file']}")
         return 1

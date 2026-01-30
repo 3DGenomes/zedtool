@@ -605,13 +605,26 @@ def make_drift_corrections(df_fiducials: pd.DataFrame, x_fit_ft: np.ndarray, xsd
         outpath = os.path.join(outdir, f"combined_corrections_{x_col[k]}_vs_frame.{config['plot_format']}")
         plt.figure(figsize=(10, 6))
         ax = plt.gca()
-        ax.set_rasterization_zorder(2)
+        # ax.set_rasterization_zorder(2)
         for j in range(nfiducials):
             label = df_fiducials.label[j]
             zorder = 1 + (j / (nfiducials+1))
-            plt.scatter(np.arange(x_fit_ft.shape[2]), x_fit_ft[k,j,:], s=0.5, zorder = zorder, label=f'{label}')
+            plt.scatter(
+                np.arange(x_fit_ft.shape[2]),
+                x_fit_ft[k,j,:],
+                s=0.5,
+                zorder = zorder,
+                label=f'{label}',
+                rasterized=True
+            )
         zorder = 1 + (nfiducials / (nfiducials + 1))
-        plt.scatter(np.arange(x_fit_ft.shape[2]), x_t[k,:], s=0.5, zorder = zorder, c='black', label='fit')
+        plt.scatter(np.arange(x_fit_ft.shape[2]),
+                    x_t[k,:],
+                    s=0.5,
+                    zorder = zorder,
+                    c='black',
+                    label='fit',
+                    rasterized=True)
         plt.legend(markerscale=4, handletextpad=0.1, loc='best', fancybox=True, framealpha=1, fontsize='medium')
         plt.xlabel('image-ID')
         plt.ylabel(f"{x_col[k]} (nm)")
@@ -791,16 +804,16 @@ def plot_fiduciual_step_fit(fiducial_index: int, interval_index: int, dimension_
     x = np.arange(len(y))
     plt.figure(figsize=(10, 6))
     ax = plt.gca()
-    ax.set_rasterization_zorder(2)
+    # ax.set_rasterization_zorder(2)
     if np.sum(~np.isnan(y)) == 0 or np.sum(~np.isnan(ysd)) == 0 or np.sum(~np.isnan(y_fit)) == 0:
         if config['verbose']:
             logging.warning(f'No valid data for fitting in plot_fiduciual_step_fit() for fiducial {fiducial_index} dimension {dim} interval {interval_index}')
         return
-    sc = plt.scatter(x, y, c = ysd, s = 0.1, zorder=1, label='Detections')
+    sc = plt.scatter(x, y, c = ysd, s = 0.1, zorder=1, label='Detections', rasterized=True)
     plt.colorbar(sc, label='sd')
     # plt.scatter(x, y_fit+ysd_fit, s=0.1, label='fit+sd')
     # plt.scatter(x, y_fit-ysd_fit, s=0.1, label='fit-sd')
-    plt.scatter(x, y_fit, s=0.1, zorder=1.5, label='Fit')
+    plt.scatter(x, y_fit, s=0.1, zorder=1.5, label='Fit',rasterized=True)
     plt.xlabel('image-ID')
     plt.ylabel(f"{dim} (nm)")
     plt.title(f'Fit for {dim}  fid={fiducial_index} tp={interval_index}')
