@@ -22,8 +22,9 @@ def deconvolve_z_within_time_point(df: pd.DataFrame, df_fiducials: pd.DataFrame,
     return df
 
 def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray, x_idx: np.ndarray, y_idx: np.ndarray, config: dict) -> pd.DataFrame:
-    outdir = os.path.join(config['output_dir'], 'cluster_plots')
-    os.makedirs(outdir, exist_ok=True)
+    if config['debug']:
+        outdir = os.path.join(config['output_dir'], 'cluster_plots')
+        os.makedirs(outdir, exist_ok=True)
     # multiprocessing_works_with_sklearn = False
     # if multiprocessing_works_with_sklearn and config['multiprocessing']:
     if config['multiprocessing']:
@@ -32,7 +33,6 @@ def deconvolve_z(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np.ndarray,
     bin_threshold = config['decon_bin_threshold']
     min_cluster_sd = config['decon_min_cluster_sd']
     sd_shrink_ratio = config['decon_sd_shrink_ratio']
-    debug = True
     logging.info(f"Squeezing {np.sum(n_xy > bin_threshold)} bins.")
     # Find all the bins in n_xy that have more than bin_threshold detections and loop over them with their x,y coords
     for x in range(n_xy.shape[0]):
@@ -54,8 +54,7 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
     min_cluster_sd = config['decon_min_cluster_sd']
     sd_shrink_ratio = config['decon_sd_shrink_ratio']
     nbins = np.sum(n_xy > config['decon_bin_threshold'])
-    debug = True
-    if debug:
+    if config['debug']:
         decon_summary_stats = os.path.join(config['output_dir'], f'cluster_plots/summary.tsv')
         with open(decon_summary_stats, 'w') as f:
             f.write('npeaks\tsize\tmean\tsd\tmin\tmax\tmedian\n')
@@ -72,7 +71,7 @@ def deconvolve_z_parallel(df: pd.DataFrame, df_fiducials: pd.DataFrame, n_xy: np
     for i,z_deconv in zip(np.arange(nbins),results):
         df.loc[(x_idx == bin_x[i]) & (y_idx == bin_y[i]), 'z'] = z_deconv
 
-    if debug:
+    if config['debug']:
         # scatter plot of decon_summary_stats showing sd versus size, coloured by npeaks
         df_summary = pd.read_csv(decon_summary_stats, sep='\t')
         plt.figure()
@@ -150,8 +149,7 @@ def deconvolve_kmeans(z: np.ndarray, min_cluster_sd: float, sd_shrink_ratio: flo
         if cluster_sds_k[i] > min_cluster_sd:
             z_deconv[mask] = cluster_means_k[i] + (z[mask] - cluster_means_k[i]) * sd_shrink_ratio
 
-    debug = True
-    if debug:
+    if config['debug']:
         decon_summary_stats = os.path.join(config['output_dir'], f'cluster_plots/summary.tsv')
         filename = f"clusters_{k}_points_{len(z)}_{sizes_string_k}"
         plot_deconvolution(z, z_deconv, filename, config)

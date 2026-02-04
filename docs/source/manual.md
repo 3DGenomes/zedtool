@@ -42,7 +42,7 @@ The zedtool processing pipeline (see the diagram above) follows these main steps
 Columns are those that need to be offset (e.g., `x`, `y`, `z`,`time-point`, `image-ID`) and the row contains 
 the value that has to be added to the second experiment to make it consistent with the first.
 
-#### Uncorrected outputs
+#### Outputs
 - `output_dir` — top-level output directory (set in `config.yaml`). Contains binned detection files,
 drift correction details, logfile and backup of config file.
 - `output_dir/summary_plots` — overview plots and QC figures.
@@ -51,18 +51,17 @@ drift correction details, logfile and backup of config file.
 - `output_dir/fiducials` — per-fiducial diagnostics and data files.
 - `output_dir/fiducials/histograms` — histograms and distribution plots for fiducial metrics.
 - `output_dir/fiducials/f_idnum_z_value_y_value_x_value` — per-fiducial files (naming encodes fiducial id and mean coordinates).
+- `output_dir_corrected` — mirror of `output_dir` containing corrected detection tables and plots.  Subfolders under `output_dir_corrected` 
+replicate the same structure: `summary_plots`, `time_point_metrics`, `fiducials`, `fiducials/histograms`, 
+and per-fiducial files named as above.
 
-#### Corrected outputs
-- `output_dir_corrected` — mirror of `output_dir` containing corrected detection tables and plots.
-- Subfolders under `output_dir_corrected` replicate the same structure: `summary_plots`, `time_point_metrics`, `fiducials`, `fiducials/histograms`, and per-fiducial files named as above.
-
-### Localisation file format
+#### Localisation file format
 
 A localisation file is a CSV file where each row represents a single localisation. The column names are specified in the config file, 
 with default names listed below. Additional columns are allowed and will be preserved. 
 If a column is marked as `zero` in the config file then it need not be present in the localisation file and will be created and initialised to `0`.
 
-#### Default Column Names
+##### Default Column Names
 The default column names follow the Vutara format, written here in yaml-style as they would appear in the config file.
 
 ```yaml
@@ -85,7 +84,7 @@ llr_col: llr
 probe_col: vis-probe
 ```
 
-##### Sample localisation file Vutara format
+###### Sample localisation file Vutara format
 
 ```csv
 frame,image-ID,z-step,cycle,time-point,x,y,z,precisionx,precisiony,precisionz,photon-count,chisq,deltaz,log-likelihood,llr,vis-probe,area
@@ -93,7 +92,7 @@ frame,image-ID,z-step,cycle,time-point,x,y,z,precisionx,precisiony,precisionz,ph
 2,img001,0,1,1,1235.10,2346.00,149.8,10.8,11.0,19.5,1400,0.98,0.0,-344.8,11.7,A,48.1
 ```
 
-#### Specifying column names
+##### Specifying column names
 
 The following is a portion of a config file for processing a file made
 using Thunderstorm:
@@ -118,7 +117,7 @@ llr_col: zeros
 probe_col: zeros
 ```
 
-##### Sample localisations in Thunderstorm format:
+###### Sample localisations in Thunderstorm format
 
 ```csv
 "id","frame","x [nm]","y [nm]","sigma [nm]","intensity [photon]","offset [photon]","bkgstd [photon]","uncertainty [nm]"
@@ -128,14 +127,10 @@ probe_col: zeros
 4.0,1.0,3741.604997974105,9707.33175717059,112.73968099245164,428.6732078212021,13.790800037666964,3.801471070224385,8.067621278661006
 ```
 
-## Quality assessment
 
-### Plots
+#### Plots
 
 ![Plot Example](images/fiducials_plot.png)
-
-### Plots Produced by Zedtool
-
 
 - `output_dir/summary_plots`: Pre-correction overview plots.
 - `output_dir/time_point_metrics`: Drift and movement diagnostics.
@@ -146,33 +141,7 @@ probe_col: zeros
 These plots are essential for ensuring the accuracy of corrections and the reliability of the processed data.
 
 
-### Tables
-
-Text
-
-### Fiducials
-
-Text
-
-### Quality filtering without correction
-
-## Adjusting segmentation settings
-
-```bash
-setting: value
-```
-
-## Quality filtering
-
-Text
-
-```bash
-setting: value
-setting: value
-
-```
-
-## Localisation filtering
+## Sample Level 2 Heading
 
 Text
 
@@ -181,66 +150,44 @@ setting: value
 setting: value
 ```
 
-## Density filtering
-
-Text
-
-```bash
-setting: value
-setting: value
-```
-
-## Fiducial markers
-
-Text
-
-### Segmenting
-
-### Assessing
 
 ### Filtering and plotting
-
 * quantile or sd_outlier_cutoff
 * fiducial filtering quantities: 'n_detections', 'n_images', 'detections_per_image', 'x_mean', 'x_sd', 'y_mean', 'y_sd', 'z_mean', 'z_sd', 'photons_mean', 'photons_sd', 'area', 'x_madr', 'y_madr', 'z_madr'
 * plotting covariates: 'image_id_col', 'z_step_col', 'cycle_col', 'time_point_col', 'deltaz_col', 'photons_col', 'x_sd_col', 'y_sd_col', 'z_sd_col'
 * detections_per_image also has cutoff from max_detections_per_image
 
-### Selection
-
-## Rotation correction
-
-* How the method works
-* When to use it
-
-## Drift correction
-
-* How the method works
-
-### Fitting parameters
-
-### Choosing fiducials
-
-### Quality metrics
-
-### Importing and exporting drift correction
-
-## Deltaz correction
-
-* How the method works
-* When to use it
-
-## Joining experiments
-
-* Files required and offsets
-
-## Further data exploration
-
-### Telling between drift and localisation error
-
-### Movement at small time scales
-
-## Example of typical use cases
+## Examples
+ https://zenodo.org/records/18483027
 
 * Example 1: Simple QC and drift correction
 * Example 2: Experiment in two parts that require joining
 * Example 3: Experiment requiring manual fiducial selection
+
+
+
+## Frequently Asked Questions
+
+### How can I speed up zedtool?
+Here are several ways to speed up zedtool processing:
+- remove plotting and processing steps that you don't need. For example, if you don't need to, don't use
+`plot_summary_plots`, `plot_detections` or `plot_fiducials`.
+- zedtool supports multiprocessing to speed up processing which can be turned on with `multiprocessing=1` and setting `n_processes`. 
+Setting `n_processes` to `0` will use all available CPU cores.
+- setting `use_pyarrow=1` will use the pyarrow library for faster reading and writing of CSV files.
+---
+
+### How can I make zedtool use less memory?
+If you are running out of memory when processing large datasets, you can try the following:
+- Disable multiprocessing with `multiprocessing=0` or reduce the number of threads with `n_processes`.
+- Reduce the size of the dataset by filtering out unnecessary columns and rows with something else before processing.
+For example `awk` or `xsv` can be used to filter CSV files.
+- Turn off `use_pyarrow` if it is enabled, as pyarrow can use more memory.
+---
+
+### What's the minimum number of fiducial markers that zedtool will work with?
+To do drift correction you need at least 3 "good" fiducial markers that agree with each other. To do automatic 
+fiducial selection and deltaz correction you need at least 20 fiducials that are well distributed across the field of view
+to be able to do the outlier detection effectively and show consistent deltaz trends. To do rotation correction 
+you need at least 5 fiducial markers distributed across the field of view to accurately estimate rotation parameters.
+---
