@@ -31,7 +31,7 @@ cd zedtool-master
 
 ## Running zedool
 
-Once installed, you can run zedtool using:
+Once installed, from within the conda environment, you can run zedtool using:
 
 ```bash
 zedtool config.yaml

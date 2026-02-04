@@ -1,6 +1,4 @@
 ### TODO:
-* Subsample points make vector plots smaller?
-* Test on zenodo gzipped files
 * Add a small sample file and config to the package
 * Separate prod/dev properly and remove any old stuff that should not be visible
 * Write warning if rotation and deltaz correction should be run but are not selected.
@@ -28,6 +26,7 @@
  - fiducials that are missing detections in some time intervals might then be allowed
 
 ### DONE:
+* Test on zenodo gzipped files
 * Read gzip files
 * Remove cache stuff
 * Remove duplicate parallel code - No. leave it.

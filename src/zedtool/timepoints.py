@@ -109,7 +109,13 @@ def plot_time_point_metrics(df_fiducials: pd.DataFrame, df: pd.DataFrame, config
         plt.close()
         outpath = os.path.join(outdir, f"fiducial_cumulative_{y_col}_vs_timepoint.tsv")
         header = 'time_point\t' + '\t'.join(df_fiducials.name.astype(str))
-        table_data = np.concatenate((np.arange(metrics_ifdex.shape[0]).reshape(-1, 1) + 1, metrics_ifdex[:, :, k]), axis=1)
+        # time column 1..(N-1) and columns = fiducials values for metrics_ijfdex[1:, 0, :, k]
+        table_data = np.concatenate(
+            (np.arange(1, metrics_ijfdex.shape[0]).reshape(-1, 1),
+             metrics_ijfdex[1:, 0, :, k]),
+            axis=1
+        )
+
         np.savetxt(outpath, table_data, delimiter='\t', header=header, comments='')
 
     for k in range(ndims_ex):
