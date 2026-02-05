@@ -262,6 +262,7 @@ Now, make new config file with a different output directory and with the *bad* f
 output_dir: output_v2
 excluded_fiducials: 1,4,6 # example of excluding fiducials with ID 1, 4 and 6.
 ```
+
 Alternatively you can specify fiducials markers to keep using `included_fiducials`. 
 Then run zedtool again with the new config file with the putative "good" fiducial markers retained and check the results.
 ---
