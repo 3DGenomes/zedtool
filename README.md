@@ -40,13 +40,14 @@ zedtool config.yaml
 where `config.yaml` is a YAML configuration file containing experiment-specific parameters.
 
 ## Configuration Options
-
 All options for zedool are supplied in a YAML configuration file specified on the command line. 
 Below is a detailed explanation of the parameters used in the file with default values in parentheses.
+For an overview of the workflow and example output see [here](docs/source/manual.md).
 
 ### **Input and Output**
 - `detections_file`: Path to the input file containing detections. Can be any object that can be opened by 
-the fsspec library, such as a local file, a file on S3, or a file on Google Cloud Storage. (`input.csv`)
+the fsspec library, such as a local file, a file on S3, or a file on Google Cloud Storage.
+If it ends in `gz` then it will be decompressed. (`input.csv`)
 - `output_dir`: Directory where all output files will be stored. (`output`)
 
 ### **Binning and Debugging Options**
@@ -220,7 +221,7 @@ excluded_fiducials:
 median_filter_disc_radius: 1 
 filling_disc_radius: 10 
 dilation_disc_radius: 10 
-min_fiducial_size: 100 
+min_fiducial_size: 100
 min_fiducial_detections: 10 
 max_detections_per_image: 1.1 
 sd_outlier_cutoff: 2 
@@ -239,6 +240,6 @@ make_quality_metrics: 1
 
 ## License
 
-This package is licensed under the BSD 3-Clause License.
+This package is licensed under [PolyForm Noncommercial 1.0.0 license](https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Noncommercial-1.0.0.txt).
 
 
