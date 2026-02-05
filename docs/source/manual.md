@@ -34,7 +34,7 @@ The zedtool processing pipeline (see the diagram above) follows these main steps
 
 #### Inputs
 - `config.yaml` — pipeline configuration (sets `output_dir`, fitting/filtering options, multiprocessing, column names).
-See the [README](README.md) for more details.
+See the [README](../../README.md) for more details.
 - `detections_file.csv` — localisations assumed to be in a csv file.
 - `concatenate_detections_file.csv` — optional extra localisations used when joining multiple experiments.
 - `concatenate_offset_file.csv` — numeric offsets applied when concatenating experiments. 
