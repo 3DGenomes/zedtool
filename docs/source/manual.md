@@ -265,6 +265,7 @@ excluded_fiducials: 1,4,6 # example of excluding fiducials with ID 1, 4 and 6.
 
 Alternatively you can specify fiducials markers to keep using `included_fiducials`. 
 Then run zedtool again with the new config file with the putative "good" fiducial markers retained and check the results.
+
 ---
 
 ### Because of sample movement, each fiducial marker is being segmented into multiple objects. What can I do?
