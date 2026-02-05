@@ -2,6 +2,7 @@
 tests/
 .idea/
 .vscode/
+csv-editor.xml
 build/
 zedtool.egg-info/
 docs/build/
