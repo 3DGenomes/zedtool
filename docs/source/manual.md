@@ -200,7 +200,8 @@ https://zenodo.org/records/18483027
 ### How can I speed up zedtool?
 Here are several ways to speed up zedtool processing:
 - remove plotting and processing steps that you don't need. For example, if you don't need to, don't use
-`plot_summary_plots`, `plot_detections` and `plot_fiducials`.
+`plot_summary_plots`, `plot_detections` and `plot_fiducials`. If you look at the logfile
+you can see how long each step takes and use this to decide which steps to turn off.
 - zedtool can use multiple threads and this can be turned on with `multiprocessing=1` and setting `n_processes`. 
 Setting `n_processes` to `0` will use all available CPU cores. Parallelisation is done per-dimension or per-fiducial,
 so there is no benefit to setting `n_processes` to be more than the maximum of these two.
@@ -265,10 +266,16 @@ excluded_fiducials: 1,4,6 # example of excluding fiducials with ID 1, 4 and 6.
 
 Alternatively you can specify fiducials markers to keep using `included_fiducials`. 
 Then run zedtool again with the new config file with the putative "good" fiducial markers retained and check the results.
-
 ---
 
 ### Because of sample movement, each fiducial marker is being segmented into multiple objects. What can I do?
-Increase the values of `dilation_disc_radius` in the config file so that the segmented objects
+Increase the value of `dilation_disc_radius` in the config file so that the segmented objects
 are expanded so they merge together and pick up all the detections for the one fiducial marker.
+---
+
+### Because of sample movement, some fiducial marker detections are not being segmented. What can I do?
+You can try and pick them up by increasing the value of `dilation_disc_radius` in the config file.
+Another option is to remove all the non-fiducial detections and set `only_fiducials=1` in the config file.
+Then drift correct and run again with `apply_drift_correction=1` and `drift_correction_file` set
+to the drift correction file generated in the previous step.
 ---
