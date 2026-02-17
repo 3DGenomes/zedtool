@@ -13,4 +13,4 @@ docs/source/images/*sh
 *.pyc
 __pycache__/
 src/zedtool/__pycache__/
-
+docs/todo.md
