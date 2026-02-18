@@ -583,6 +583,11 @@ def plot_fiducial(fiducial_label: int, fiducial_name: str, df_detections_roi: pd
         plt.close()
     else:
         logging.info(f"Skipping deltaz dependence plot for fiducial {fiducial_name} due to zero variance in deltaz.")
+
+    # if config ['covariate_plot_quantities'] is a string, split it into a list
+    if isinstance(config['covariate_plot_quantities'], str):
+        config['covariate_plot_quantities'] = config['covariate_plot_quantities'].split(',')
+
     # Plot detections colour coded by possible covariates
     covariate_plot_quantities = []
     for q in config.get('covariate_plot_quantities', []):

@@ -158,7 +158,7 @@ If `correct_detections` is set then a drift correction file is written out that 
 - `threshold_on_density`: Remove detections based on density in the binned image. Can be useful to remove background that can drag down the threshold for segmentation. (`0`)
 - `make_quality_metrics`: Compute quality metrics for fiducials before correction. Quality metrics are re-computed at the end after all corrections. (`0`)
 - `plot_fiducial_correlations`: Plot correlations between fiducials. Normally not necessary. Can be slow! (`0`)
-- `plot_fiducials`: Plot fiducials before any correction. (`0`)
+- `plot_fiducials`: Plot individual fiducials and covariates. (`0`)
 - `plot_summary_stats`: Generate summary statistics plots for detections. (`0`)
 - `plot_time_point_metrics`: Plot time-point metrics of drift correction for fiducials. (`0`)
 - `plot_per_fiducial_fitting`: Make debugging images showing extraction of drift correction from fiducials at each time step (`0`)
