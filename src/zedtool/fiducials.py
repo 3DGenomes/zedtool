@@ -327,6 +327,7 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     if np.var(df[config['z_col']]) == 0:
         logging.warning('No variance in z positions, skipping fiducial correlations')
         return None, None
+    correlation_n_threshold = 1000
     n_fiducials = len(df_fiducials)
     n_images = int(np.max(df[config['image_id_col']]) + 1)
     logging.info(f'Making fiducial array: n_fiducials: {n_fiducials}, n_images: {n_images}')
@@ -364,7 +365,7 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
             median_dzdt = np.nanmedian(dzdt)
             dzdt_mad[i,j] = np.nanmedian(np.abs(dzdt - median_dzdt))
             mask = ~np.isnan(z[:,i]) & ~np.isnan(z[:,j])
-            if np.sum(mask) >= 2:
+            if np.sum(mask) >= correlation_n_threshold:
                 x_cor[i,j] = scipy.stats.pearsonr(x[mask,i], x[mask,j])[0]
                 y_cor[i,j] = scipy.stats.pearsonr(y[mask,i], y[mask,j])[0]
                 z_cor[i,j] = scipy.stats.pearsonr(z[mask,i], z[mask,j])[0]
@@ -380,15 +381,15 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
     dimensions = ['x', 'y', 'z']
     distances = [dx, dy, dz]
     plot_quantities = [x_cor, y_cor, z_cor, dz_mad, dzdt_mad]
-    quantity_names = ['x_cor', 'y_cor', 'z_cor', 'dz_mad (nm)', 'dzdt_mad (nm)']
+    quantity_names = ['x_cor', 'y_cor', 'z_cor', 'dz_mad', 'dzdt_mad']
     for quantity, quantity_name in zip(plot_quantities, quantity_names):
         for dim, dist in zip(dimensions, distances):
             xlabel = f'{quantity_name}'
             ylabel = f'Distance in {dim} (nm)'
             outpath = os.path.join(config['fiducial_dir'], f"fiducial_{quantity_name}_vs_d{dim}")
-            idx = (quantity != 0) & (~np.isnan(quantity))
+            idx = (dist != 0) & (~np.isnan(quantity))
             if np.sum(idx) > 0:
-                plot_scatter(quantity[idx], dist[idx], xlabel, ylabel,
+                plot_scatter(dist[idx], quantity[idx], xlabel, ylabel,
                              f'{quantity_name} vs distance', outpath, config)
     if config['debug']:
         # scatter plots of z for all pairs of fiducials
@@ -397,8 +398,8 @@ def plot_fiducial_correlations(df_fiducials: pd.DataFrame, df: pd.DataFrame, con
                 xlabel = colnames[i]
                 ylabel = colnames[j]
                 idx = (z[:,i] != 0) & (z[:,j] != 0) & (~np.isnan(z[:,i])) & (~np.isnan(z[:,j]))
-                if np.sum(idx) > 100:
-                    z_diff = np.mean(z[idx,i] - z[idx,j])
+                if np.sum(idx) > correlation_n_threshold:
+                    z_diff = np.mean(z[idx,i]) - np.mean((z[idx,j]))
                     z_diff_text = f'{int(z_diff):05d}'.replace('-', 'm')
                     filename = f"zdiff_{z_diff_text}_{ylabel}_vs_{xlabel}"
                     outpath = os.path.join(config['fiducial_dir'], "zscatter", filename)

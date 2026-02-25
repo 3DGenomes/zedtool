@@ -813,7 +813,7 @@ def save_to_tiff_3d(counts_xyz: np.ndarray, filename: str, config: dict):
     imgfile = construct_plot_path(filename, "tif", config)
     logging.info(f"Saving as binned image to {imgfile}. Max pixel value: {maxpixel}.")
     # Reverse the order of the dimensions indices to match the order of the axes in the image
-    img =  np.transpose(counts_xyz, (2, 1, 0))
+    img =  np.transpose(counts_xyz, (2, 0, 1))
 
     if maxpixel < 256:
         tifffile.imwrite(imgfile, img.astype(np.uint8), imagej=True)
